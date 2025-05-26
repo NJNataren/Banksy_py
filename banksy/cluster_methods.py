@@ -182,158 +182,294 @@ def mclust_R(adata: anndata.AnnData,
         return adata
 
 
-def run_Leiden_partition(
-        banksy_dict: dict,
-        resolutions: list,          
-        num_nn: int = 50,
-        num_iterations: int = -1,
-        partition_seed: int = 1234,
-        match_labels: bool = True,
-        annotations = None,
-        max_labels: int = None,
-        **kwargs) -> dict:
-    '''
-    Main driver function that runs Leiden partition across the banksy matrices stored in banksy_dict.
-    See the original leiden package: https://leidenalg.readthedocs.io/en/stable/intro.html
+# def run_Leiden_partition(
+#         banksy_dict: dict,
+#         resolutions: list,          
+#         num_nn: int = 50,
+#         num_iterations: int = -1,
+#         partition_seed: int = 1234,
+#         match_labels: bool = True,
+#         annotations = None,
+#         max_labels: int = None,
+#         **kwargs) -> dict:
+#     '''
+#     Main driver function that runs Leiden partition across the banksy matrices stored in banksy_dict.
+#     See the original leiden package: https://leidenalg.readthedocs.io/en/stable/intro.html
 
-    Args:
-        banksy_dict (dict): The processing dictionary containing:
-        |__ nbr weight decay
-          |__ lambda_param
-            |__ anndata  
+#     Args:
+#         banksy_dict (dict): The processing dictionary containing:
+#         |__ nbr weight decay
+#           |__ lambda_param
+#             |__ anndata  
 
-        resolutions: Resolution of the partition
+#         resolutions: Resolution of the partition
             
-        num_nn (int), default = 50: Number of nearest neighbours
+#         num_nn (int), default = 50: Number of nearest neighbours
 
-        num_iterations (int), default = -1: 
+#         num_iterations (int), default = -1: 
 
-        partition_seed (int): seed for partitioning (Leiden) algorithm
+#         partition_seed (int): seed for partitioning (Leiden) algorithm
         
-        match_labels (bool); default = True: Determines if labels are kept consistent across different hyperparameter settings
+#         match_labels (bool); default = True: Determines if labels are kept consistent across different hyperparameter settings
 
-    Optional args (kwargs):
-        Other parameters to the Leiden Partition
+#     Optional args (kwargs):
+#         Other parameters to the Leiden Partition
 
-        shared_nn_max_rank (int), default = 3
+#         shared_nn_max_rank (int), default = 3
 
-        shared_nn_min_shared_nbrs (int), default = 5
+#         shared_nn_min_shared_nbrs (int), default = 5
     
-    Returns:
-        results_df (pd.DataFrame): A pandas dataframe containing the results of the partition
+#     Returns:
+#         results_df (pd.DataFrame): A pandas dataframe containing the results of the partition
+#     '''
+#     options = {
+#         'shared_nn_max_rank ': 3,
+#         'shared_nn_min_shared_nbrs' : 5,
+#         'verbose': True
+#     }
+#     options.update(kwargs)
+
+#     results = {}
+
+#     for nbr_weight_decay in banksy_dict:
+        
+#         print(f"Decay type: {nbr_weight_decay}")
+
+#         for lambda_param in banksy_dict[nbr_weight_decay]:
+#             if not isinstance(lambda_param, float):
+#                 continue # skip other dictionary keys except lambda parameters
+
+#             print(f"Neighbourhood Contribution (Lambda Parameter): {lambda_param}")
+        
+#             adata_temp = banksy_dict[nbr_weight_decay][lambda_param]["adata"]
+
+#             pca_dims = get_pca_dims(adata_temp)
+#             print("PCA dims to analyse:", pca_dims)
+
+#             for pca_dim in pca_dims:
+                
+#                 if isinstance(pca_dim, str):
+#                     continue # skip full concatenated matrices
+                
+#                 print("\n" + "=" * 100 + 
+#                     f"\nSetting up partitioner for (nbr decay = {nbr_weight_decay}), "
+#                     f"Neighbourhood contribution = {lambda_param}, "
+#                     f"PCA dimensions = {pca_dim})\n" + "=" * 100 + "\n")
+                
+#                 banksy_reduced = adata_temp.obsm[f"reduced_pc_{pca_dim}"]
+              
+#                 partitioner = LeidenPartition(
+#                     banksy_reduced,
+#                     num_nn = num_nn,
+#                     nns_have_weights = True,
+#                     compute_shared_nn = True,
+#                     filter_shared_nn = True,
+#                     shared_nn_max_rank = options['shared_nn_max_rank '],
+#                     shared_nn_min_shared_nbrs = options['shared_nn_min_shared_nbrs'],
+#                     verbose = options['verbose'], 
+#                 )
+
+#                 if max_labels and not resolutions:
+#                     print("No resolutions indicated, trying to search for a suitable resolution from labels")
+#                     print(f"Finding resolution that matches {max_labels}")
+#                     resolutions = find_resolutions(
+#                         partitioner,
+#                         max_labels,
+#                         num_iterations,
+#                         partition_seed
+#                     )
+
+#                 for resolution in resolutions:
+
+#                     print(f"\nResolution: {resolution}\n" + "-" * 30 + "\n")
+
+#                     # Main partition via the Leiden Algorithm
+#                     # ---------------------------------------------------------------
+
+#                     label, modularity = partitioner.partition(
+#                         resolution = resolution,
+#                         partition_metric = leidenalg.RBConfigurationVertexPartition,
+#                         n_iterations = num_iterations,
+#                         seed = partition_seed,
+#                     )
+
+#                     # store results in dictionary
+#                     # ---------------------------------------------------------------
+
+#                     param_str = f"{nbr_weight_decay}_pc{pca_dim}_nc{lambda_param:0.2f}_r{resolution:0.2f}"
+#                     if not annotations:
+#                         print("No annotated labels")
+#                         results[param_str] = {
+#                             "decay": nbr_weight_decay,
+#                             "lambda_param": lambda_param,
+#                             "num_pcs":pca_dim,
+#                             "resolution":resolution,
+#                             "num_labels": label.num_labels,
+#                             "labels": label,
+#                             "adata": banksy_dict[nbr_weight_decay][lambda_param]["adata"]
+#                         }
+
+#                     else:
+#                         print("Computing ARI for annotated labels")
+#                         results[param_str] = {
+#                             "decay": nbr_weight_decay,
+#                             "lambda_param": lambda_param,
+#                             "num_pcs": pca_dim,
+#                             "resolution": resolution,
+#                             "num_labels": label.num_labels,
+#                             "labels": label,
+#                             "adata": banksy_dict[nbr_weight_decay][lambda_param]["adata"],
+#                             "ari" : adjusted_rand_score(annotations.dense, label.dense),
+#                             # For determining ari of specific domains
+#                             #"ari_domain_straight" : adjusted_rand_score(adata_temp .obs["domain"].cat.codes.values, label.dense),
+#                             #"ari_domain_smooth" : adjusted_rand_score(adata_temp.obs["smoothed_manual"].cat.codes.values, label.dense),
+#                             #"ari_domain_smooth2" : adjusted_rand_score(adata_temp .obs["smoothed_manual2"].cat.codes.values, label.dense),
+#                         }
+                
+#                         adata_temp.obs[param_str] = label.dense
+                        
+#                         print(f"Label Dense {label.dense}")
+
+    
+#     results_df, max_num_labels = convert2df(results, match_labels)
+
+#     return results_df, max_num_labels
+
+##################################
+# Parallelised Leiden clustering #
+##################################
+
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from typing import Tuple
+import pandas as pd
+
+def run_partition_job(args) -> Tuple[str, dict]:
     '''
+Here I have moved the partitioner (the algorithm used in network analysis to idenfity communities of nodes that are 
+more densely connected to each other than the rest of the network) to a helper function so that it can be run in parallel
+'''
+    nbr_weight_decay, lambda_param, pca_dim, resolution, adata_temp, options, num_nn, num_iterations, partition_seed, annotations, max_labels = args
+
+    banksy_reduced = adata_temp.obsm[f"reduced_pc_{pca_dim}"]
+
+
+    partitioner = LeidenPartition(
+        banksy_reduced,
+        num_nn=num_nn,
+        nns_have_weights=True,
+        compute_shared_nn=True,
+        filter_shared_nn=True,
+        shared_nn_max_rank=options['shared_nn_max_rank'],
+        shared_nn_min_shared_nbrs=options['shared_nn_min_shared_nbrs'],
+        verbose=options['verbose']
+    )
+# Run Leiden partitioning
+    label, modularity = partitioner.partition(
+        resolution=resolution,
+        partition_metric=leidenalg.RBConfigurationVertexPartition,
+        n_iterations=num_iterations,
+        seed=partition_seed
+    )
+
+# Store results in dictionary
+# ---------------------------------------------------------------
+
+    param_str = f"{nbr_weight_decay}_pc{pca_dim}_nc{lambda_param:0.2f}_r{resolution:0.2f}"
+
+    result = {
+        "decay": nbr_weight_decay,
+        "lambda_param": lambda_param,
+        "num_pcs":pca_dim,
+        "resolution":resolution,
+        "num_labels": label.num_labels,
+        "labels": label,
+        "adata": adata_temp
+    }
+
+    # if annotations:
+    #     result["ari"] = adjusted_rand_score(annotations.dense, label.dense)
+    #     adata_temp.obs[param_str] =  label.dense
+
+    if annotations is None:
+        result = {
+        "param_str": param_str,
+        "decay": nbr_weight_decay,
+        "lambda_param": lambda_param,
+        "num_pcs": pca_dim,
+        "resolution": resolution,
+        "num_labels": label.num_labels,
+        "labels": label,
+        "adata": adata_temp,
+    }
+
+    else:
+        ari_score = adjusted_rand_score(annotations.dense, label.dense)
+        result = {
+        "param_str": param_str,
+        "decay": nbr_weight_decay,
+        "lambda_param": lambda_param,
+        "num_pcs": pca_dim,
+        "resolution": resolution,
+        "num_labels": label.num_labels,
+        "labels": label,
+        "adata": adata_temp,
+        "ari": ari_score,
+        }
+
+    return param_str, result
+
+def run_Leiden_partition_parallel(
+    banksy_dict: dict,
+    resolutions: list,
+    num_nn = 50,
+    num_iterations: int = -1,
+    partition_seed: int = 1234,
+    match_labels: bool = True,
+    annotations=None,
+    max_labels: int = 4,
+    max_workers: int = 4, #cpus for parallelisation
+    **kwargs
+) -> dict:
     options = {
-        'shared_nn_max_rank ': 3,
-        'shared_nn_min_shared_nbrs' : 5,
+        'shared_nn_max_rank': 3,
+        'shared_nn_min_shared_nbrs': 5,
         'verbose': True
     }
     options.update(kwargs)
 
-    results = {}
+    tasks=[]
 
     for nbr_weight_decay in banksy_dict:
-        
-        print(f"Decay type: {nbr_weight_decay}")
-
         for lambda_param in banksy_dict[nbr_weight_decay]:
             if not isinstance(lambda_param, float):
-                continue # skip other dictionary keys except lambda parameters
+                continue
 
-            print(f"Neighbourhood Contribution (Lambda Parameter): {lambda_param}")
-        
             adata_temp = banksy_dict[nbr_weight_decay][lambda_param]["adata"]
-
             pca_dims = get_pca_dims(adata_temp)
-            print("PCA dims to analyse:", pca_dims)
 
             for pca_dim in pca_dims:
-                
-                if isinstance(pca_dim, str):
-                    continue # skip full concatenated matrices
-                
-                print("\n" + "=" * 100 + 
-                    f"\nSetting up partitioner for (nbr decay = {nbr_weight_decay}), "
-                    f"Neighbourhood contribution = {lambda_param}, "
-                    f"PCA dimensions = {pca_dim})\n" + "=" * 100 + "\n")
-                
-                banksy_reduced = adata_temp.obsm[f"reduced_pc_{pca_dim}"]
-              
-                partitioner = LeidenPartition(
-                    banksy_reduced,
-                    num_nn = num_nn,
-                    nns_have_weights = True,
-                    compute_shared_nn = True,
-                    filter_shared_nn = True,
-                    shared_nn_max_rank = options['shared_nn_max_rank '],
-                    shared_nn_min_shared_nbrs = options['shared_nn_min_shared_nbrs'],
-                    verbose = options['verbose'], 
-                )
+                if isinstance(pca_dims, str):
+                    continue # skips over any strings
 
-                if max_labels and not resolutions:
-                    print("No resolutions indicated, trying to search for a suitable resolution from labels")
-                    print(f"Finding resolution that matches {max_labels}")
-                    resolutions = find_resolutions(
-                        partitioner,
-                        max_labels,
-                        num_iterations,
-                        partition_seed
-                    )
+                for resolution in resolutions: #loops over all the provided resolutions
+                    tasks.append(( #for every combination of the paramaters below, it creates a task in a task list for parallel executition
+                        nbr_weight_decay, lambda_param, pca_dim, resolution,
+                        adata_temp, options, num_nn, num_iterations,
+                        partition_seed, annotations, max_labels
+                    ))
+    results= {}
 
-                for resolution in resolutions:
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        future_to_param = {executor.submit(run_partition_job, task): task for task in tasks}
 
-                    print(f"\nResolution: {resolution}\n" + "-" * 30 + "\n")
+        for future in as_completed(future_to_param):
+            param_str, result = future.result()
+            results[param_str] = result
 
-                    # Main partition via the Leiden Algorithm
-                    # ---------------------------------------------------------------
-
-                    label, modularity = partitioner.partition(
-                        resolution = resolution,
-                        partition_metric = leidenalg.RBConfigurationVertexPartition,
-                        n_iterations = num_iterations,
-                        seed = partition_seed,
-                    )
-
-                    # store results in dictionary
-                    # ---------------------------------------------------------------
-
-                    param_str = f"{nbr_weight_decay}_pc{pca_dim}_nc{lambda_param:0.2f}_r{resolution:0.2f}"
-                    if not annotations:
-                        print("No annotated labels")
-                        results[param_str] = {
-                            "decay": nbr_weight_decay,
-                            "lambda_param": lambda_param,
-                            "num_pcs":pca_dim,
-                            "resolution":resolution,
-                            "num_labels": label.num_labels,
-                            "labels": label,
-                            "adata": banksy_dict[nbr_weight_decay][lambda_param]["adata"]
-                        }
-
-                    else:
-                        print("Computing ARI for annotated labels")
-                        results[param_str] = {
-                            "decay": nbr_weight_decay,
-                            "lambda_param": lambda_param,
-                            "num_pcs": pca_dim,
-                            "resolution": resolution,
-                            "num_labels": label.num_labels,
-                            "labels": label,
-                            "adata": banksy_dict[nbr_weight_decay][lambda_param]["adata"],
-                            "ari" : adjusted_rand_score(annotations.dense, label.dense),
-                            # For determining ari of specific domains
-                            #"ari_domain_straight" : adjusted_rand_score(adata_temp .obs["domain"].cat.codes.values, label.dense),
-                            #"ari_domain_smooth" : adjusted_rand_score(adata_temp.obs["smoothed_manual"].cat.codes.values, label.dense),
-                            #"ari_domain_smooth2" : adjusted_rand_score(adata_temp .obs["smoothed_manual2"].cat.codes.values, label.dense),
-                        }
-                
-                        adata_temp.obs[param_str] = label.dense
-                        
-                        print(f"Label Dense {label.dense}")
-
-    
     results_df, max_num_labels = convert2df(results, match_labels)
-
     return results_df, max_num_labels
+######################################
+######################################
 
 def get_pca_dims(adata_temp):
     '''
