@@ -98,6 +98,14 @@ def plot_singular_values(pca: PCA,
                       xmin=0, xmax=num_pcs + 1,
                       linewidth=1, color='r')
 
+    # Add a vertical line to indiacte PC at noise cut off for clarity
+            cutoff_signal_pc = np.max(np.where(singular_values  > noise_highest_sv)) + 1
+            ax.vlines(x=cutoff_signal_pc, 
+            ymin=0, 
+            ymax=np.max(singular_values),
+            color='darkred', 
+            linestyle='--', label=f"Cutoff: PC{cutoff_signal_pc}")        
+
         elif isinstance(noise_highest_sv, np.ndarray):
 
             mean_sv = np.mean(noise_highest_sv)
