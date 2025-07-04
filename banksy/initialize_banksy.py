@@ -20,7 +20,7 @@ def initialize_banksy(adata: anndata.AnnData,
                       num_neighbours: int = 15,
                       nbr_weight_decay: str = 'scaled_gaussian',
                       max_m: int = 1,
-                      plt_edge_hist: bool = True,
+                      plt_edge_hist: bool = False, # set to false due plotting errors when using reciprocal
                       plt_nbr_weights: bool = True,
                       plt_agf_angles: bool = False,
                       plt_theta: bool = True

@@ -117,12 +117,14 @@ def create_spatial_nonspatial_adata(results_df: pd.DataFrame,
                                     lambda_list, 
                                     resolutions,
                                     cluster2annotation_spatial,
-                                    cluster2annotation_nonspatial):
+                                    cluster2annotation_nonspatial,
+                                    weights_scheme="scaled_gaussian"):
     """
     Creates spatial and nonspatial anndata object from results_df
     """
-    params_name = f"scaled_gaussian_pc{pca_dims[0]:2d}_nc{lambda_list[0]:0.2f}_r{resolutions[0]:0.2f}"
-    print(params_name)
+    #params_name = f"scaled_gaussian_pc{pca_dims[0]:2d}_nc{lambda_list[0]:0.2f}_r{resolutions[0]:0.2f}"
+    params_name = f"{weights_scheme}_pc{pca_dims[0]:2d}_nc{lambda_list[0]:0.2f}_r{resolutions[0]:0.2f}"
+    print("Using spatial params:", params_name)
     adata_spatial = results_df.loc[params_name, "adata"]
     label_name = f"labels_{params_name}"
     adata_spatial.obs['cell type'] = adata_spatial.obs[label_name].map(
