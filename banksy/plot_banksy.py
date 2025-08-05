@@ -38,6 +38,7 @@ def plot_results(
         color_list: List[str] = [],
         dataset_name: str = "slideseq_mousecerebellum",
         main_figsize: Tuple[float, float] = (15, 9),
+        scatter_dot_size: float = 3.0, # sets the dotsize on the cluster-cell position scatter plot
         **kwargs
 ) -> None:
     '''
@@ -111,7 +112,8 @@ def plot_results(
                      max_num_labels=max_num_labels,
                      params_name=params_name,
                      fig=fig,
-                     grid=grid)
+                     grid=grid,
+                     scatter_dot_size=scatter_dot_size)
 
         if save_fig:
             if not os.path.exists(save_path):
@@ -234,7 +236,8 @@ def _plot_labels(adata_temp: anndata.AnnData,
                  max_num_labels: int,
                  params_name: str,
                  fig: plt.Figure,
-                 grid: plt.grid):
+                 grid: plt.grid,
+                 scatter_dot_size: float):
     '''
     Plots the spatial map of cluster labels (each with different colour) in the main figure
     '''
@@ -252,7 +255,7 @@ def _plot_labels(adata_temp: anndata.AnnData,
                                   c=c,
                                   cmap=cmap,
                                   vmin=0, vmax=max_num_labels - 1,
-                                  s=3, alpha=1.0)
+                                  s=scatter_dot_size, alpha=1.0)
 
     ax_locs.set_aspect('equal', 'datalim')
     ax_locs.set_title(f'BANKSY Labels ({params_name})', fontsize=20, fontweight="bold", )
