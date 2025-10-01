@@ -73,6 +73,7 @@ def plot_singular_values(pca: PCA,
                          noise_highest_sv: Union[float, np.ndarray] = None,
                          title: str = None,
                          figsize: Tuple[int, int] = (6, 3),
+                         save_path: str = None,
                          ax=None,
                          ) -> None:
     """
@@ -124,6 +125,10 @@ def plot_singular_values(pca: PCA,
     ax.set_ylabel("singular values")
     if title is not None:
         ax.set_title(title)
+
+    # Save the plot if requested
+    if save_path is not None:
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
 
 
 def plot_remaining_variance(pca: PCA,
