@@ -177,6 +177,7 @@ def export_cluster_markers(
 
     # Write to .csv
     all_cluster_genes_df.to_csv(f"{file_path}cluster_top_{n_genes_label}_genes_with_scores_{dataset_name}_{key}.csv")
+    return(all_cluster_genes_df)
 
     #####################################################################################################
 
