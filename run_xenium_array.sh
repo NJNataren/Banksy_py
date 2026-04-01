@@ -7,7 +7,7 @@
 #SBATCH --time-02:00:00
 #SBATCH --output=log/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
-#SBATCH 
+#SBATCH --partition sacgf
 
 ## Load conda environment
 

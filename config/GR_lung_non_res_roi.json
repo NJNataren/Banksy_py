@@ -1,0 +1,8 @@
+{
+	"dataset_name": "GR_lung_non_res_roi",
+	"pca_label": "35",
+	"lambda_label": "0.20",
+	"res_label": "0.50",
+	"nbr_weight_decay": "scaled_gaussian",
+	"coord_keys": ["x", "y", "xy"]
+}
