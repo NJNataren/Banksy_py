@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #SBATCH --job-name=00_QC_testing_xenium_spatial
 #SBATCH --array=0-1 #number of samples to process
 #SBATCH --ntasks=1
@@ -7,7 +8,10 @@
 #SBATCH --time-02:00:00
 #SBATCH --output=log/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
-#SBATCH --partition sacgf
+#SBATCH --partition=sacgf
+
+#SBATCH --export=None
+
 
 ## Load conda environment
 
