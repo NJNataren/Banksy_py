@@ -240,7 +240,7 @@ downcast_float(adata, "float32")
 check_float(adata)
 
 
-# In[ ]:
+# In[11]:
 
 
 # Write the downcast file to AnnData format 
@@ -255,7 +255,7 @@ adata.write_h5ad(
 float_adata = f"{dataset_name}_raw_float_32.h5ad"
 
 
-# In[ ]:
+# In[12]:
 
 
 f"{processed_path}{dataset_name}_raw_float_32.h5ad"
@@ -438,34 +438,35 @@ poor_cells = mask_cells[mask_cells['threshold_passed']]
 adata.obs['threshold_passed'] = adata.obs['nCount_Xenium'] > threshold #True = passed
 
 
-# In[20]:
+# In[ ]:
 
 
-# #### Plot location of poor cells on tissue
-adata.uns["spatial"] = {dataset_name: {}}
+# # #### Plot location of poor cells on tissue
+# adata.uns["spatial"] = {dataset_name: {}}
 
-with rc_context({"figure.figsize": (12,8)}):
-    sq.pl.spatial_scatter(
-        adata,
-        library_id="dataset_name",
-        spatial_key="xy",
-        color="threshold_passed",
-        shape=None,
-        size=2,
-        img=False
-    )
-
-
-plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_{dataset_name}.png"),
-    dpi=300,
-    bbox_inches='tight'
-    )
+# with rc_context({"figure.figsize": (12,8)}):
+#     sq.pl.spatial_scatter(
+#         adata,
+#         library_id="dataset_name",
+#         spatial_key="xy",
+#         color="threshold_passed",
+#         shape=None,
+#         size=2,
+#         img=False
+#     )
 
 
-# In[21]:
+# plt.savefig(
+#     os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_{dataset_name}.png"),
+#     dpi=300,
+#     bbox_inches='tight'
+#     )
 
 
+# In[ ]:
+
+
+#### Plot location of poor cells on tissue
 adata.obs["threshold_passed_cat"] = adata.obs["threshold_passed"].map({True: "Pass", False: "Fail"}).astype("category")
 
 with rc_context({"figure.figsize": (12, 8)}):
@@ -483,10 +484,10 @@ with rc_context({"figure.figsize": (12, 8)}):
 
 
 
-# In[22]:
+# In[ ]:
 
 
-# #### Plot of total transripts per cell across sample (rainbow in viridis)
+#### Plot of total transripts per cell across sample (gist_stern, dynamic vmax threshold)
 
 with rc_context({"figure.figsize": (12, 8)}):
     sq.pl.spatial_scatter(
@@ -498,13 +499,64 @@ with rc_context({"figure.figsize": (12, 8)}):
         size=2,
         img=False,
         vmax = adata.obs['nCount_Xenium'].max(),
-        #vmax= 300,
-        palette="gist_stern"
+        cmap="gist_stern"
     )
 
 #
 plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_{dataset_name}.png"),
+    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_dynamic_range_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+
+
+# In[ ]:
+
+
+#### Plot of total transripts per cell across sample (gist_stern, hard coded vmax to threshold)
+
+with rc_context({"figure.figsize": (12, 8)}):
+    sq.pl.spatial_scatter(
+        adata,
+        library_id="dataset_name",
+        spatial_key="xy",
+        color="nCount_Xenium",
+        shape=None,
+        size=2,
+        img=False,
+        vmax= 300,
+        cmap="gist_stern"
+    )
+
+#
+plt.savefig(
+    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_set_range_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+
+
+# In[ ]:
+
+
+#### Plot of total transripts per cell across sample (gist_stern, hard coded vmax to threshold)
+
+with rc_context({"figure.figsize": (12, 8)}):
+    sq.pl.spatial_scatter(
+        adata,
+        library_id="dataset_name",
+        spatial_key="xy",
+        color="nCount_Xenium",
+        shape=None,
+        size=2,
+        img=False,
+        vmax = adata.obs['nCount_Xenium'].quantile(0.99),
+        cmap="gist_stern"
+    )
+
+#
+plt.savefig(
+    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_quantile_99_{dataset_name}.png"),
     dpi=300,
     bbox_inches='tight'
     )
