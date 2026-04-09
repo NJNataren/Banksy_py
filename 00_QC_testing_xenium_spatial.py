@@ -200,7 +200,7 @@ else:
 
 
 ## Read in the raw AnnData file
-adata = ad.read_h5ad(f"data/xenium/raw_data/{dataset_name}_raw_sopa.h5ad")
+adata = ad.read_h5ad(f"data/xenium/raw_data/{dataset_name}_raw.h5ad")
 #output_path = f"data/xenium/processed/{dataset_name}_xy.h5ad"
 adata.obs_keys()
 
@@ -767,7 +767,8 @@ print("Exists?", os.path.exists(file_path))
 
 
 ## Read in the processed AnnData file
-adata_lab = ad.read_h5ad(f"{output_path}/{dataset_name}_clustered_spatial_pc{pca_label}_nc{lambda_label}_r{res_label}.h5ad")
+#adata_lab = ad.read_h5ad(f"{output_path}/{dataset_name}_clustered_spatial_pc{pca_label}_nc{lambda_label}_r{res_label}.h5ad")
+adata_lab = ad.read_h5ad(f"{raw_path}/{dataset_name}/{dataset_name}_clustered_spatial_pc{pca_label}_nc{lambda_label}_r{res_label}.h5ad")
 adata_lab.obs_keys()
 
 
@@ -775,12 +776,14 @@ adata_lab.obs_keys()
 ## Use gzip to save it with compression
 import gzip
 import pickle
-with gzip.open(f"{output_path}/{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz", "rb") as f:
+#with gzip.open(f"{output_path}/{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz", "rb") as f:
+with gzip.open(f"{raw_path}/{dataset_name}/{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz", "rb") as f:
     banksy_dict = pickle.load(f)
 
 
 ## Read in the results_df data frame as a .pkl file
-with gzip.open(f"{output_path}/results_df_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.pkl.gz", "rb") as f:
+#with gzip.open(f"{output_path}/results_df_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.pkl.gz", "rb") as f:
+with gzip.open(f"{raw_path}/{dataset_name}/results_df_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.pkl.gz", "rb") as f:
     results_df = pickle.load(f)
 
 
@@ -1151,17 +1154,19 @@ sc.pl.rank_genes_groups_heatmap(
 
 # In[137]:
 
+groupby_key = f'banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann'
+
+sc.tl.dendrogram(adata_spatial, groupby=groupby_key)
 
 sc.pl.dendrogram(
     adata_spatial,
-    groupby=f'banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann',
+    groupby=groupby_key,
     save=f"_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.png"
 )
 
 sc.pl.correlation_matrix(
     adata_spatial,
-    #groupby='banksy_cluster_pc35_nc0.20_r0.50_raw',
-    f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann",
+    groupby_key = f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann",
     save=f"{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_cluster_correlation_plot.png",
     figsize=(5, 3.5)
 )

@@ -34,4 +34,4 @@ echo "Task $SLURM_ARRAY_TASK_ID using config: $CONFIG"
 #	Run the QC script	#
 #########################
 
-python 00_QC_xenium_spatial.py --config $CONFIG
+python 00_QC_testing_xenium_spatial.py --config $CONFIG
