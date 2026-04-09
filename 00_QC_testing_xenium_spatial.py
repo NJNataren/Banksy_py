@@ -1166,7 +1166,7 @@ sc.pl.dendrogram(
 
 sc.pl.correlation_matrix(
     adata_spatial,
-    groupby_key = f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann",
+    groupby = groupby_key,
     save=f"{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_cluster_correlation_plot.png",
     figsize=(5, 3.5)
 )
