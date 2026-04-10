@@ -4,5 +4,16 @@
 	"lambda_label": "0.20",
 	"res_label": "0.50",
 	"nbr_weight_decay": "scaled_gaussian",
-	"coord_keys": ["x", "y", "xy"]
+	"coord_keys": ["x", "y", "xy"],
+	
+	"new_labels": {
+    "0" : "Melanoma_0",
+    "1" : "Keratinocyte_1",
+    "2" : "M2_macrophage_2",
+    "3" : "Cycling_cell_3",
+    "4" : "Vascular_Endothelial_Cells_4",
+    "5" : "Fibroblast_5",
+    "6" : "T_cell_6",
+    "7" : "Dendritic_cells_7",
+    "8" : "Pericyte_Myofibroblast_8"}
 }

@@ -4,5 +4,25 @@
 	"lambda_label": "0.20",
 	"res_label": "0.50",
 	"nbr_weight_decay": "scaled_gaussian",
-	"coord_keys": ["x", "y", "xy"]
+	"coord_keys": ["x", "y", "xy"],
+	
+	"new_labels": {
+    "0" : "Differentiated_melanoma_cells_0",
+    "1" : "Invasive_melanoma_cells_1",
+    "2" : "Cytotoxic_CD8+_T_cells_2",
+    "3" : "Cancer_associated_fibroblasts_3",
+    "4" : "IFN-responsive_dedifferentiated_melanoma_cells_4",
+    "5" : "M2-like_tumour_associated_macrophages_5", 
+    "6" : "Cycling_melanoma_cells_6",
+    "7" : "CD4+_naive/memory_T_cells_(TCF7+/SELL+)_7",
+    "8" : "Vascular_endothelial_cells_8",
+    "9" : "Plasma_B_cells_9",
+    "10" : "Tumor–Epidermal Interface Melanoma Cells_(low_confidence)_10",
+    "11" : "Invasive_melanoma_cells_(low_confidence)_11",
+    "12" : "Melanoma_cells_lymphatic_interface_(MITF+)_12",
+    "13" : "Proliferative–Invasive_melanoma_cells_(MITF+/VIM+)_13",
+    "14" : "Immune-Interacting_melanoma_cells_MITF+_(low_confidence)_14",
+    "15" : "Proliferative–Invasive_melanoma_cells_MITF+/VIM+/MYH11+_(low_confidence)_15",
+    "16" : "Interface_melanoma_cells_keratinocyte-immune-Interacting_(low_confidence)_16",
+    "17" : "Immune-Interacting_stromal_cells_(low_confidence)_17"}
 }
