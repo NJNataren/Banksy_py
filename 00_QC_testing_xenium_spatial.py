@@ -56,30 +56,30 @@ random.seed(seed)
 # ## Set file paths and read in xenium data
 
 
-# In[3]:
+# In[ ]:
 
 
 #############
 #   TEST    #
 #############
 
-## Set the dataset_name and related settings to use during this analysis
-dataset_name = "GR_lung_non_res_roi"
+# ## Set the dataset_name and related settings to use during this analysis
+# dataset_name = "GR_lung_non_res_roi"
 
-pca_label = "35"
-pca_dims = int(pca_label)
-pca_dims = [pca_dims]
+# pca_label = "35"
+# pca_dims = int(pca_label)
+# pca_dims = [pca_dims]
 
-lambda_label = "0.20"
-lambda_list = [float(lambda_label)]
+# lambda_label = "0.20"
+# lambda_list = [float(lambda_label)]
 
-res_label = "0.50"
-resolutions = [float(res_label)]
+# res_label = "0.50"
+# resolutions = [float(res_label)]
 
-nbr_weight_decay = "scaled_gaussian"
+# nbr_weight_decay = "scaled_gaussian"
 
-# Keys to specify coordinate indexes in the anndata Object
-coord_keys = ('x', 'y', 'xy')
+# # Keys to specify coordinate indexes in the anndata Object
+# coord_keys = ('x', 'y', 'xy')
 
 
 ### Create directories for processed and output data and set the dataset_name
@@ -124,33 +124,33 @@ coord_keys = ('x', 'y', 'xy')
 #     print(f"Directory '{qc_path}' already exists.")
 
 
-# In[5]:
+# In[ ]:
 
 
-# # ## Set the dataset_name and related settings to use during this analysis
-# import json
-# import argparse
+# ## Set the dataset_name and related settings to use during this analysis
+import json
+import argparse
 
-# parser = argparse.ArgumentParser(prog="used to parse arguments form 00_QC_xenium_spatial.py to run on slurm")
-# parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True)
-# args = parser.parse_args()
+parser = argparse.ArgumentParser(prog="used to parse arguments form 00_QC_xenium_spatial.py to run on slurm")
+parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True)
+args = parser.parse_args()
 
-# with open(args.config) as f:
-#     cfg = json.load(f)
+with open(args.config) as f:
+    cfg = json.load(f)
 
-# # Derive the values from the config JSON
+# Derive the values from the config JSON
 
-# dataset_name = cfg["dataset_name"]
-# pca_label = cfg["pca_label"]
-# pca_dims = [int(pca_label)]
-# lambda_label = cfg["lambda_label"]
-# lambda_list = [float(lambda_label)]
-# res_label = cfg["res_label"]
-# resolutions = [float(res_label)]
-# nbr_weight_decay = cfg["nbr_weight_decay"]
+dataset_name = cfg["dataset_name"]
+pca_label = cfg["pca_label"]
+pca_dims = [int(pca_label)]
+lambda_label = cfg["lambda_label"]
+lambda_list = [float(lambda_label)]
+res_label = cfg["res_label"]
+resolutions = [float(res_label)]
+nbr_weight_decay = cfg["nbr_weight_decay"]
 
-# # Keys to specify coordinate indexes in the anndata Object
-# coord_keys = tuple(cfg["coord_keys"])
+# Keys to specify coordinate indexes in the anndata Object
+coord_keys = tuple(cfg["coord_keys"])
 
 
 # In[6]:
@@ -1576,7 +1576,7 @@ with rc_context({"figure.figsize": (8,5)}):
         add_outline=True,
         legend_fontsize=9,
         title=[f"DKK1 expression in {dataset_name}"],
-        save = f"_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_DKK1_response_genes.png"
+        save = f"_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_DKK1_genes.png"
         )
 
 
@@ -1824,7 +1824,7 @@ ax.set_ylabel("DSG2 expression (log)")
 
 plt.tight_layout()
 plt.savefig(
-    os.path.join(qc_path, "{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"),
+    os.path.join(qc_path, f"{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_DSG2_violin_plot.png"),
     dpi=300,
     bbox_inches='tight'
 )
@@ -1865,7 +1865,7 @@ ax.set_ylabel("SERPINE1 expression (log)")
 
 plt.tight_layout()
 plt.savefig(
-    os.path.join(qc_path, "{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_SERPINE1_family_violin_plot.png"),
+    os.path.join(qc_path, f"{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_SERPINE1_violin_plot.png"),
     dpi=300,
     bbox_inches='tight'
 )
@@ -1908,7 +1908,7 @@ ax.set_ylabel("DKK1 expression (log)")
 
 plt.tight_layout()
 plt.savefig(
-    os.path.join(qc_path, "{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_DKK1_family_violin_plot.png"),
+    os.path.join(qc_path, f"{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_DKK1_violin_plot.png"),
     dpi=300,
     bbox_inches='tight'
 )
@@ -1955,7 +1955,7 @@ axes[0].set_ylabel("T cell markers expression (log)")
 
 plt.tight_layout()
 plt.savefig(
-    os.path.join(qc_path, "{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_T_cell_markers_violin_plot.png"),
+    os.path.join(qc_path, f"{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_T_cell_markers_violin_plot.png"),
     dpi=300,
     bbox_inches='tight'
 )
