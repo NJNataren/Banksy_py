@@ -482,6 +482,14 @@ with rc_context({"figure.figsize": (12, 8)}):
     plt.legend(fontsize=20)
 
 
+# Save the figure
+plt.savefig(
+    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+plt.show() 
+print(f"Saving tissue_spatial_scatter_threshold_passed_cells_{dataset_name}.png to {qc_path}" )                     
 
 
 # In[ ]:
@@ -502,12 +510,13 @@ with rc_context({"figure.figsize": (12, 8)}):
         cmap="gist_stern"
     )
 
-#
+# Save the figure
 plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_dynamic_range_{dataset_name}.png"),
+    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_dynamic_range_{dataset_name}.png"),
     dpi=300,
     bbox_inches='tight'
     )
+plt.show() 
 
 
 # In[ ]:
@@ -530,10 +539,11 @@ with rc_context({"figure.figsize": (12, 8)}):
 
 #
 plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_set_range_{dataset_name}.png"),
+    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_set_range_{dataset_name}.png"),
     dpi=300,
     bbox_inches='tight'
     )
+plt.show() 
 
 
 # In[ ]:
@@ -556,10 +566,11 @@ with rc_context({"figure.figsize": (12, 8)}):
 
 #
 plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_threshold_passed_cells_qc_quantile_99_{dataset_name}.png"),
+    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_quantile_99_{dataset_name}.png"),
     dpi=300,
     bbox_inches='tight'
     )
+plt.show() 
 
 
 # In[23]:
