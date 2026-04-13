@@ -203,6 +203,15 @@ def extract_marker_genes_dict(
     clusters = results['names'].dtype.names # stores the clusters
     categories = adata.obs[groupby].cat.categories
 
+    ## Check that the luster labels provided by subset_cluster
+    assert len(clusters) == len(categories), (
+        f"Mismatch between number of clusters in '{filtered_key}' ({len(clusters)})"
+        f"and number of categories in '{groupby}' ({len(categories)}).\n"
+        f"clusters found: {list(clusters)}\n"
+        f"Categories found: {categories.tolist()}\n"
+        f"Check that your new_labels dict matches the number of clusters you have provided."
+    )
+
     marker_genes_dict = {} # initialise the marker_genes_dict
 
     for c in clusters:

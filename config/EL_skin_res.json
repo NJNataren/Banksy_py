@@ -7,17 +7,17 @@
 	"coord_keys": ["x", "y", "xy"],
 	
 	"new_labels": {
-    "0" : "Differentiated/Melanocytic melanoma cells (MITF+)_0",
+    "0" : "Differentiated_or_Melanocytic melanoma cells (MITF+)_0",
     "1" : "Cycling melanoma cells_1",
     "2" : "Invasive melanoma cells (MITF+)_2",
     "3" : "M2-like Tumour Associated Macrophages (CXCL12+)_3",
-    "4" : "Dedifferentiated melanoma (angiogenic/hypoxic)_4",
+    "4" : "Dedifferentiated melanoma (angiogenic_or_hypoxic)_4",
     "5" : "Invasive neural crest-like melanoma cells_5", 
     "6" : "Mesenchymal-like melanoma cells_6",
     "7" : "M2-like Tumour Associated Macrophages (CXCL16)_7",
     "8" : "Vascular endothelial cells_8",
     "9" : "Cancer associated fibroblasts (ECM-remodelling)_9",
-    "10" : "Melanocytic Melanoma Cells (MITF+/PKHD1L1+)_10",
+    "10" : "Melanocytic Melanoma Cells (MITF+ PKHD1L1+)_10",
     "11" : "Skin epithelial cells_11",
     "12" : "Stromal cells_12"}	
 }

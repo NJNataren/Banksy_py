@@ -14,15 +14,15 @@
     "4" : "IFN-responsive_dedifferentiated_melanoma_cells_4",
     "5" : "M2-like_tumour_associated_macrophages_5", 
     "6" : "Cycling_melanoma_cells_6",
-    "7" : "CD4+_naive/memory_T_cells_(TCF7+/SELL+)_7",
+    "7" : "CD4+_naive_or_memory_T_cells_(TCF7+ SELL+)_7",
     "8" : "Vascular_endothelial_cells_8",
     "9" : "Plasma_B_cells_9",
     "10" : "Tumor–Epidermal Interface Melanoma Cells_(low_confidence)_10",
     "11" : "Invasive_melanoma_cells_(low_confidence)_11",
     "12" : "Melanoma_cells_lymphatic_interface_(MITF+)_12",
-    "13" : "Proliferative–Invasive_melanoma_cells_(MITF+/VIM+)_13",
+    "13" : "Proliferative–Invasive_melanoma_cells_(MITF+ VIM+)_13",
     "14" : "Immune-Interacting_melanoma_cells_MITF+_(low_confidence)_14",
-    "15" : "Proliferative–Invasive_melanoma_cells_MITF+/VIM+/MYH11+_(low_confidence)_15",
+    "15" : "Proliferative–Invasive_melanoma_cells_MITF+ VIM+ MYH11+_(low_confidence)_15",
     "16" : "Interface_melanoma_cells_keratinocyte-immune-Interacting_(low_confidence)_16",
     "17" : "Immune-Interacting_stromal_cells_(low_confidence)_17"}
 }
