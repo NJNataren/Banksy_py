@@ -1,0 +1,21 @@
+{
+	"dataset_name": "GR_lung_non_res_roi",
+	"pca_label": "35",
+	"lambda_label": "0.20",
+	"res_label": "0.50",
+	"nbr_weight_decay": "scaled_gaussian",
+	"coord_keys": ["x", "y", "xy"],
+
+    "new_labels": {
+        "0" : "Invasive_Neural_crest-like_melanoma_0",
+        "1" : "M2-like_Tumour_Associated_Macrophages_1",
+        "2" : "Inflamed_Bronchial_Epithelial_Cells_(low_confidence)_2",
+        "3" : "Cycling_melanoma_cells_3",
+        "4" : "Cancer_Associated_Fibroblasts_4",
+        "5" : "Vascular_Endothelial_Cells_5", 
+        "6" : "Cytotoxic_CD8+_and_CD4+_T_Cells_6",
+        "7" : "Immature_Myeloid_Cells_or_Tumour_Myeloid_Cells_7",
+        "8" : "Mesenchymal-like_Melanoma_Cells_8",
+        "9" : "Vascular_smooth_muscle_or_pericytes_9"
+    }
+}
