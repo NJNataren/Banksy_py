@@ -153,7 +153,7 @@ nbr_weight_decay = cfg["nbr_weight_decay"]
 
 # Keys to specify coordinate indexes in the anndata Object
 coord_keys = tuple(cfg["coord_keys"])
-new_labels = cfg["new_labels"]
+#new_labels = cfg["new_labels"]
 
 
 # In[ ]:
@@ -728,19 +728,19 @@ print("All files saved to:", qc_path)
 # In[ ]:
 
 
-# ### Calculate the total counts for genes across all cells
-# adata_X = pd.DataFrame(
-#     adata.X.toarray(),
-#     index=adata.obs_names,
-#     columns=adata.var_names
-# )
+### Calculate the total counts for genes across all cells
+adata_X = pd.DataFrame(
+    adata.X.toarray(),
+    index=adata.obs_names,
+    columns=adata.var_names
+)
 
-# gene_total_object = adata_X.sum(axis=0)
+gene_total_object = adata_X.sum(axis=0)
 
 
-# top_genes_object = gene_total_object.sort_values(ascending=False).reset_index()
-# top_genes_object.columns = ['gene', 'total_counts']
-# top_genes_object.to_csv(os.path.join(qc_path, f"gene_counts_across_all_cells_{dataset_name}_test.csv"))
+top_genes_object = gene_total_object.sort_values(ascending=False).reset_index()
+top_genes_object.columns = ['gene', 'total_counts']
+top_genes_object.to_csv(os.path.join(qc_path, f"gene_counts_across_all_cells_{dataset_name}_test.csv"))
 
 
 # In[104]:

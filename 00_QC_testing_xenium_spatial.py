@@ -9,7 +9,7 @@
 ########################################################################################
 
 
-# In[76]:
+# In[1]:
 
 
 ### Import packages
@@ -54,37 +54,37 @@ import dask
 dask.config.set({"dataframe.query-planning": True})
 
 
-# In[ ]:
+# In[2]:
 
 
-# ############
-# #  TEST    #
-# ############
+############
+#  TEST    #
+############
 
-# ## Set file paths and read in xenium data
-# ## Set the dataset_name and related settings to use during this analysis
-# dataset_name = "GR_lung_non_res_roi"
+## Set file paths and read in xenium data
+## Set the dataset_name and related settings to use during this analysis
+dataset_name = "EL_skin_res"
 
-# pca_label = "35"
-# pca_dims = int(pca_label)
-# pca_dims = [pca_dims]
+pca_label = "20"
+pca_dims = int(pca_label)
+pca_dims = [pca_dims]
 
-# lambda_label = "0.20"
-# lambda_list = [float(lambda_label)]
+lambda_label = "0.20"
+lambda_list = [float(lambda_label)]
 
-# res_label = "0.50"
-# resolutions = [float(res_label)]
+res_label = "0.50"
+resolutions = [float(res_label)]
 
-# nbr_weight_decay = "scaled_gaussian"
+nbr_weight_decay = "scaled_gaussian"
 
-# # Keys to specify coordinate indexes in the anndata Object
-# coord_keys = ('x', 'y', 'xy')
-
-
-# ## Create directories for processed and output data and set the dataset_name
+# Keys to specify coordinate indexes in the anndata Object
+coord_keys = ('x', 'y', 'xy')
 
 
-# In[78]:
+## Create directories for processed and output data and set the dataset_name
+
+
+# In[3]:
 
 
 # #############
@@ -156,7 +156,7 @@ coord_keys = tuple(cfg["coord_keys"])
 new_labels = cfg["new_labels"]
 
 
-# In[ ]:
+# In[5]:
 
 
 ########################
@@ -206,7 +206,7 @@ else:
     print(f"Directory '{qc_path}' already exists.")
 
 
-# In[ ]:
+# In[6]:
 
 
 ###########################
@@ -224,7 +224,7 @@ adata.obs_keys()
 adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 
 
-# In[ ]:
+# In[7]:
 
 
 #####################################
@@ -235,7 +235,7 @@ adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 adata = adata[adata.obs['nCount_Xenium'] > 0].copy()
 
 
-# In[ ]:
+# In[8]:
 
 
 ####################################
@@ -261,7 +261,7 @@ adata.write_h5ad(
 float_adata = f"{dataset_name}_raw_float_32.h5ad"
 
 
-# In[ ]:
+# In[9]:
 
 
 #######################################
@@ -279,7 +279,7 @@ coord_keys = ('x', 'y', 'xy')
 raw_y, raw_x, adata = load_adata(filepath=processed_path, adata_filename=float_adata, load_adata_directly=True, coord_keys=('x','y','xy'))
 
 
-# In[ ]:
+# In[10]:
 
 
 #########################################
@@ -298,7 +298,7 @@ sc.pp.calculate_qc_metrics(adata,
                            )
 
 
-# In[87]:
+# In[11]:
 
 
 from banksy_utils.plot_utils import plot_qc_hist, plot_cell_positions
@@ -317,7 +317,7 @@ plt.savefig(os.path.join(qc_path, f"banksy_counts_and_genes_plot_{dataset_name}.
 plt.show()
 
 
-# In[ ]:
+# In[12]:
 
 
 #############################################################
@@ -360,7 +360,7 @@ plt.show()
 print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee):,} ({num_cells/len(knee)*100:.1f}%)")
 
 
-# In[89]:
+# In[13]:
 
 
 # ### Read in the raw matrix here!!
@@ -384,7 +384,7 @@ print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee
 # raw_matrix_subset.to_csv(os.path.join(qc_path, 'raw_matrix_subset.csv'))
 
 
-# In[90]:
+# In[14]:
 
 
 # # Define your cell IDs
@@ -427,7 +427,7 @@ print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee
 # X_df.to_csv(os.path.join(qc_path, 'subset_X.csv'))
 
 
-# In[ ]:
+# In[15]:
 
 
 #### Apply the minimum transcripts per cell mask 
@@ -447,7 +447,7 @@ poor_cells = mask_cells[mask_cells['threshold_passed']]
 adata.obs['threshold_passed'] = adata.obs['nCount_Xenium'] > threshold #True = passed
 
 
-# In[92]:
+# In[16]:
 
 
 #### Plot location of poor cells on tissue
@@ -476,7 +476,7 @@ plt.show()
 print(f"Saving tissue_spatial_scatter_threshold_passed_cells_{dataset_name}.png to {qc_path}" )                     
 
 
-# In[93]:
+# In[17]:
 
 
 #### Plot of total transripts per cell across sample (gist_stern, dynamic vmax threshold)
@@ -502,7 +502,7 @@ plt.savefig(
 plt.show() 
 
 
-# In[94]:
+# In[18]:
 
 
 #### Plot of total transripts per cell across sample (gist_stern, dynamic vmax threshold)
@@ -528,7 +528,7 @@ plt.savefig(
 plt.show() 
 
 
-# In[95]:
+# In[19]:
 
 
 #### Plot of total transripts per cell across sample (gist_stern, hard coded vmax to threshold)
@@ -554,7 +554,7 @@ plt.savefig(
 plt.show() 
 
 
-# In[96]:
+# In[20]:
 
 
 # ### Check a slice of cells to inspect counts
@@ -580,7 +580,7 @@ plt.show()
 # obs_subset.to_csv(f"{qc_path}/obs_subset_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.csv")
 
 
-# In[97]:
+# In[21]:
 
 
 # # Define your cell IDs
@@ -612,7 +612,7 @@ plt.show()
 # print(obsm_subset)
 
 
-# In[98]:
+# In[22]:
 
 
 # # Define your cell IDs
@@ -650,7 +650,7 @@ plt.show()
 # print("All files saved to:", qc_path)
 
 
-# In[ ]:
+# In[23]:
 
 
 ############################################
@@ -668,7 +668,7 @@ obs= adata.obs
 obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 
 
-# In[100]:
+# In[24]:
 
 
 # ### Inspect gene counts for the cells with the highest counts
@@ -711,7 +711,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 # # print(obsm_subset)
 
 
-# In[ ]:
+# In[25]:
 
 
 ####################################
@@ -725,7 +725,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 print("All files saved to:", qc_path)
 
 
-# In[103]:
+# In[26]:
 
 
 ### Calculate the total counts for genes across all cells
@@ -743,7 +743,7 @@ top_genes_object.columns = ['gene', 'total_counts']
 top_genes_object.to_csv(os.path.join(qc_path, f"gene_counts_across_all_cells_{dataset_name}_test.csv"))
 
 
-# In[104]:
+# In[27]:
 
 
 #### Plot the top 50 genes
@@ -761,7 +761,7 @@ plt.savefig(
     )
 
 
-# In[ ]:
+# In[28]:
 
 
 #################################################
@@ -774,7 +774,7 @@ file_path =f"{raw_path}/{dataset_name}/{dataset_name}_clustered_spatial_pc{pca_l
 print("Exists?", os.path.exists(file_path))
 
 
-# In[106]:
+# In[29]:
 
 
 ## Read in the processed AnnData file
@@ -796,7 +796,7 @@ with gzip.open(f"{raw_path}/{dataset_name}/results_df_{dataset_name}_pc{pca_labe
     results_df = pickle.load(f)
 
 
-# In[107]:
+# In[30]:
 
 
 # import scipy.sparse as sp
@@ -814,7 +814,7 @@ with gzip.open(f"{raw_path}/{dataset_name}/results_df_{dataset_name}_pc{pca_labe
 # print(f"Min value: {values.min()}")
 
 
-# In[ ]:
+# In[31]:
 
 
 ############################################################
@@ -849,7 +849,7 @@ with gzip.open(f"{raw_path}/{dataset_name}/results_df_{dataset_name}_pc{pca_labe
 # print(f"Noise threshold (mean top singular value of permuted data): {noise_sv:.4f}")
 
 
-# In[109]:
+# In[32]:
 
 
 # ## Perform PCA 
@@ -879,7 +879,7 @@ with gzip.open(f"{raw_path}/{dataset_name}/results_df_{dataset_name}_pc{pca_labe
 #     )
 
 
-# In[ ]:
+# In[33]:
 
 
 ######################################################
@@ -914,7 +914,7 @@ def determine_max_num_labels(nonspatial_labels, spatial_labels):
 max_num_labels=determine_max_num_labels(nonspatial_labels, spatial_labels)
 
 
-# In[111]:
+# In[34]:
 
 
 from banksy.plot_banksy import plot_results
@@ -938,7 +938,7 @@ plot_results(
 )
 
 
-# In[ ]:
+# In[35]:
 
 
 ########################################################
@@ -965,7 +965,7 @@ print(cluster2annotation_nonspatial)
 pad_clusters(cluster2annotation_spatial, list(range(max_num_labels)))
 
 
-# In[ ]:
+# In[36]:
 
 
 ######################################################
@@ -982,7 +982,7 @@ adata_spatial, adata_nonspatial = create_spatial_nonspatial_adata(results_df,
                                     cluster2annotation_nonspatial)
 
 
-# In[ ]:
+# In[37]:
 
 
 #####################################################
@@ -996,15 +996,40 @@ adata_spatial.obs[f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}"]
 # In[ ]:
 
 
+# new_labels = {
+#     "0" : "Differentiated_or_Melanocytic melanoma cells (MITF+)_0",
+#     "1" : "Cycling melanoma cells_1",
+#     "2" : "Invasive melanoma cells (MITF+)_2",
+#     "3" : "M2-like Tumour Associated Macrophages (CXCL12+)_3",
+#     "4" : "Dedifferentiated melanoma (angiogenic_or_hypoxic)_4",
+#     "5" : "Invasive neural crest-like melanoma cells_5", 
+#     "6" : "Mesenchymal-like melanoma cells_6",
+#     "7" : "M2-like Tumour Associated Macrophages (CXCL16)_7",
+#     "8" : "Vascular endothelial cells_8",
+#     "9" : "Cancer associated fibroblasts (ECM-remodelling)_9",
+#     "10" : "Melanocytic Melanoma Cells (MITF+ PKHD1L1+)_10",
+#     "11" : "Skin epithelial cells_11",
+#     "12" : "Stromal cells_12"}	
+
+
+# In[47]:
+
+
 #######################################################
 #       MAP THE CELL TYPE LABELS TO THE CLUSTERS      #
 #######################################################
 
-# cluster_col = f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}"
-adata_spatial.obs[f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann"] = adata_spatial.obs["cell type"].map(new_labels)
+cluster_col = f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}"
+adata_spatial.obs[f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann"] = adata_spatial.obs[cluster_col].map(new_labels)
 
 
-# In[ ]:
+# In[41]:
+
+
+adata_spatial.obs
+
+
+# In[48]:
 
 
 #####################################################################################
@@ -1038,7 +1063,7 @@ plt.savefig(
     )
 
 
-# In[ ]:
+# In[49]:
 
 
 ##############################################
@@ -1057,7 +1082,7 @@ sc.tl.rank_genes_groups(
 )
 
 
-# In[119]:
+# In[50]:
 
 
 ## Using the filter_ranked_genes_by_type to create a key for 
@@ -1074,7 +1099,7 @@ key_filtered = filter_ranked_genes_by_type(
 )
 
 
-# In[120]:
+# In[51]:
 
 
 # Plot the gene markers for each cluster
@@ -1087,7 +1112,7 @@ sc.pl.rank_genes_groups(
     save= f"_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}_spatial_top_gene_raw.png")
 
 
-# In[ ]:
+# In[53]:
 
 
 ## Total counts across unlabeled clustered
@@ -1095,11 +1120,11 @@ sc.pl.violin(
     adata_spatial, 
     "total_counts", 
     groupby=f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}", 
-    save= f"_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.pn
+    save= f"_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.png"
     )
 
 
-# In[ ]:
+# In[54]:
 
 
 ##############################
@@ -1134,7 +1159,7 @@ sc.pl.rank_genes_groups_heatmap(
 )
 
 
-# In[ ]:
+# In[55]:
 
 
 ########################################################
@@ -1158,7 +1183,7 @@ sc.pl.correlation_matrix(
 )
 
 
-# In[ ]:
+# In[56]:
 
 
 #####################################
@@ -1180,7 +1205,7 @@ export_clusters_wide(
 )
 
 
-# In[126]:
+# In[57]:
 
 
 # ### Export the top 20 clusters in long format with scores to .csv
@@ -1196,7 +1221,7 @@ export_cluster_markers(
 )
 
 
-# In[ ]:
+# In[58]:
 
 
 ################################################
@@ -1249,7 +1274,7 @@ print(merged_markers)
 merged_markers.to_csv(f"{processed_path}/cell_type_cluster_top_{n_genes_label}_genes_{dataset_name}_{key}.csv")
 
 
-# In[ ]:
+# In[59]:
 
 
 # ################################################
@@ -1260,7 +1285,7 @@ merged_markers.to_csv(f"{processed_path}/cell_type_cluster_top_{n_genes_label}_g
 # adata_spatial.obs[f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann"] = adata_spatial.obs["cell type"].map(new_labels)
 
 
-# In[ ]:
+# In[60]:
 
 
 #############################################
@@ -1269,7 +1294,7 @@ merged_markers.to_csv(f"{processed_path}/cell_type_cluster_top_{n_genes_label}_g
 adata_spatial.obsm['X_umap'] = banksy_dict['scaled_gaussian'][0.2]['adata'].obsm[f"reduced_pc_{pca_label}_umap"]
 
 
-# In[ ]:
+# In[61]:
 
 
 #############################
@@ -1299,7 +1324,7 @@ with rc_context({"figure.figsize": (3,3)}):
         )
 
 
-# In[ ]:
+# In[62]:
 
 
 ## Plot the umap with bulk labels
@@ -1350,7 +1375,7 @@ plt.savefig(os.path.join(qc_path, f"umap_{dataset_name}_threshold.png"), dpi=300
 plt.show()
 
 
-# In[ ]:
+# In[63]:
 
 
 ##################################
@@ -1410,7 +1435,7 @@ else:
     print(f"Directory '{spatial_scatter_path}' already exists.")
 
 
-# In[ ]:
+# In[64]:
 
 
 #############################################
@@ -1448,7 +1473,7 @@ def plot_goi_umaps (
             )
 
 
-# In[170]:
+# In[65]:
 
 
 ## DSG2 UMAP
@@ -1458,7 +1483,7 @@ sample_name= dataset_name,
 s=20, )
 
 
-# In[171]:
+# In[66]:
 
 
 ## SERPINE1 UMAP
@@ -1468,7 +1493,7 @@ sample_name= dataset_name,
 s=20, )
 
 
-# In[172]:
+# In[67]:
 
 
 ### DKK1
@@ -1479,7 +1504,7 @@ sample_name= dataset_name,
 s=20, )
 
 
-# In[173]:
+# In[68]:
 
 
 ### T cell markers
@@ -1490,7 +1515,7 @@ sample_name= dataset_name,
 s=20, )
 
 
-# In[174]:
+# In[69]:
 
 
 ### Integrin genes
@@ -1507,7 +1532,7 @@ ncols=2
 )
 
 
-# In[175]:
+# In[70]:
 
 
 # ### TPD52 family
@@ -1524,7 +1549,7 @@ ncols=2
 )
 
 
-# In[176]:
+# In[71]:
 
 
 #### Selectins
@@ -1541,7 +1566,7 @@ ncols=2
 )
 
 
-# In[177]:
+# In[72]:
 
 
 # ### Fucosyltransferase genes
@@ -1556,7 +1581,7 @@ s=20
 )
 
 
-# In[178]:
+# In[73]:
 
 
 # ### Adhesion molecules
@@ -1571,7 +1596,7 @@ s=20
 )
 
 
-# In[179]:
+# In[74]:
 
 
 # ### ICI response genes
@@ -1587,7 +1612,7 @@ s=20
 )
 
 
-# In[ ]:
+# In[75]:
 
 
 ##########################################
@@ -1608,7 +1633,7 @@ with rc_context({"figure.figsize": (10, 8)}):
     )
 
 
-# In[ ]:
+# In[76]:
 
 
 #### DSG2
@@ -1637,7 +1662,7 @@ plt.savefig(
 )
 
 
-# In[ ]:
+# In[77]:
 
 
 #### SERPINE1
@@ -1666,7 +1691,7 @@ plt.savefig(
 )
 
 
-# In[ ]:
+# In[78]:
 
 
 #### DKK1
@@ -1695,7 +1720,7 @@ plt.savefig(
 )
 
 
-# In[ ]:
+# In[79]:
 
 
 #### T cell markers
@@ -1729,7 +1754,7 @@ plt.savefig(
 )
 
 
-# In[ ]:
+# In[80]:
 
 
 #### Integrins
@@ -1750,7 +1775,7 @@ with rc_context({"figure.figsize": (6, 5)}):
         )
 
 
-# In[ ]:
+# In[81]:
 
 
 #### TPD52 genes
@@ -1770,7 +1795,7 @@ with rc_context({"figure.figsize": (6, 5)}):
         )
 
 
-# In[ ]:
+# In[82]:
 
 
 ##### Selectins
@@ -1790,7 +1815,7 @@ with rc_context({"figure.figsize": (6,5)}):
         )
 
 
-# In[ ]:
+# In[83]:
 
 
 #### Fucosyltransferase genes
@@ -1809,7 +1834,7 @@ with rc_context({"figure.figsize": (6, 5)}):
         )
 
 
-# In[ ]:
+# In[84]:
 
 
 # ### Adhesion genes
@@ -1828,7 +1853,7 @@ with rc_context({"figure.figsize": (6,5 )}):
         )
 
 
-# In[ ]:
+# In[85]:
 
 
 # ### ICI response genes
@@ -1848,7 +1873,7 @@ with rc_context({"figure.figsize": (6, 5)}):
         )
 
 
-# In[ ]:
+# In[86]:
 
 
 #################################
@@ -1860,7 +1885,7 @@ sc.settings.figdir = dotplot_path
 adata_spatial.obs[f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_ann"]
 
 
-# In[ ]:
+# In[87]:
 
 
 ######  Top 20 gene dotplots #####
@@ -1912,7 +1937,7 @@ for i in range(len(cluster_keys)):
             )
 
 
-# In[ ]:
+# In[88]:
 
 
 #### Tier gene 1 dotplots ####
@@ -1936,14 +1961,14 @@ def plot_goi_dotplot (
             )
 
 
-# In[ ]:
+# In[89]:
 
 
 # Set the figure directory to your desired location
 sc.settings.figdir = dotplot_path
 
 
-# In[ ]:
+# In[90]:
 
 
 #### B cell Tier 1 dotplot
@@ -1964,7 +1989,7 @@ plot_goi_dotplot(
 )
 
 
-# In[ ]:
+# In[91]:
 
 
 #### Cycling cell dotplot
@@ -1993,7 +2018,7 @@ plot_goi_dotplot(
 )
 
 
-# In[196]:
+# In[92]:
 
 
 #### Cycling cell dotplot
@@ -2039,7 +2064,7 @@ plot_goi_dotplot(
 )
 
 
-# In[ ]:
+# In[93]:
 
 
 #### Eccrine dotplot
@@ -2056,7 +2081,7 @@ plot_goi_dotplot(
 )
 
 
-# In[ ]:
+# In[94]:
 
 
 #### Erythrocyte dotplot
@@ -2080,7 +2105,7 @@ plot_goi_dotplot(
 )
 
 
-# In[193]:
+# In[95]:
 
 
 #### Fibroblast dotplot
@@ -2133,7 +2158,7 @@ plot_goi_dotplot(
 )
 
 
-# In[195]:
+# In[96]:
 
 
 #### Fibroblast dotplot
@@ -2191,7 +2216,7 @@ plot_goi_dotplot(
 )
 
 
-# In[197]:
+# In[97]:
 
 
 #### Lymphatic endothelial cells
@@ -2215,7 +2240,7 @@ plot_goi_dotplot(
 )
 
 
-# In[198]:
+# In[98]:
 
 
 #### Macrophage endothelial cells
@@ -2263,7 +2288,7 @@ plot_goi_dotplot(
 )
 
 
-# In[199]:
+# In[99]:
 
 
 #### Melanocyte cells
@@ -2292,7 +2317,7 @@ plot_goi_dotplot(
 )
 
 
-# In[200]:
+# In[100]:
 
 
 #### Melanocyte cells
@@ -2321,7 +2346,7 @@ plot_goi_dotplot(
 )
 
 
-# In[201]:
+# In[101]:
 
 
 #### Myofibroblast cells
@@ -2342,7 +2367,7 @@ plot_goi_dotplot(
 )
 
 
-# In[202]:
+# In[102]:
 
 
 #### NK cells
@@ -2360,7 +2385,7 @@ plot_goi_dotplot(
 )
 
 
-# In[203]:
+# In[103]:
 
 
 #### Pericytes
@@ -2384,7 +2409,7 @@ plot_goi_dotplot(
 )
 
 
-# In[205]:
+# In[104]:
 
 
 #### Pilosebaceous Cells
@@ -2405,7 +2430,7 @@ plot_goi_dotplot(
 )
 
 
-# In[206]:
+# In[105]:
 
 
 #### T Cells
@@ -2468,7 +2493,7 @@ plot_goi_dotplot(
 )
 
 
-# In[207]:
+# In[106]:
 
 
 #### Vascular endothelial cells
@@ -2506,7 +2531,7 @@ plot_goi_dotplot(
 )
 
 
-# In[ ]:
+# In[107]:
 
 
 ###############################################
@@ -2517,14 +2542,14 @@ plot_goi_dotplot(
 sc.settings.figdir = neighbour_path
 
 
-# In[ ]:
+# In[108]:
 
 
 # Adding spatial coordinates to .obsm
 adata_spatial.obsm["spatial"] = adata.obs[["x", "y"]].to_numpy()
 
 
-# In[ ]:
+# In[109]:
 
 
 sq.gr.spatial_neighbors(adata_spatial)
@@ -2539,7 +2564,7 @@ with rc_context({"figure.figsize": (10,10)}):
         save=f"neighbourhood_enrichment_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.png")
 
 
-# In[ ]:
+# In[110]:
 
 
 #############################
@@ -2566,7 +2591,7 @@ sq.gr.spatial_autocorr(
 adata_subsample.uns["moranI"].head(10)
 
 
-# In[ ]:
+# In[111]:
 
 
 ## Store moran I scores as a data frame
@@ -2584,7 +2609,7 @@ moran_scores_raw = moran_scores_raw[moran_scores_raw["pval_sim_fdr_bh"] <= 0.10]
 moran_scores_raw.to_csv(f"{processed_path}/moran_scores_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.csv")
 
 
-# In[ ]:
+# In[112]:
 
 
 ## Plot spatial scatter plots for genes with the top 10 highest Moran I scores
@@ -2611,49 +2636,49 @@ for i in top_moran:
 # In[ ]:
 
 
-###############################################
-#       COMPUTE AND PLOT CENTRALITY SCORE     #
-###############################################
-# ## Compute centrality scores
-sq.gr.centrality_scores(adata_subsample, cluster_key=cluster_key)
-sq.pl.centrality_scores(adata_subsample, cluster_key=cluster_key, figsize=(22, 4))
+# ###############################################
+# #       COMPUTE AND PLOT CENTRALITY SCORE     #
+# ###############################################
+# # ## Compute centrality scores
+# sq.gr.centrality_scores(adata_subsample, cluster_key=cluster_key)
+# sq.pl.centrality_scores(adata_subsample, cluster_key=cluster_key, figsize=(22, 4))
 
-### Compute co-occurence probability
-from spatialdata import SpatialData
-sdata = SpatialData()
-sdata.tables["subsample"] = sc.pp.subsample(adata_subsample, fraction=0.5, copy=True)
-cluster_keys = list(new_labels.keys())
+# ### Compute co-occurence probability
+# from spatialdata import SpatialData
+# sdata = SpatialData()
+# sdata.tables["subsample"] = sc.pp.subsample(adata_subsample, fraction=0.5, copy=True)
+# cluster_keys = list(new_labels.keys())
 
-cluster_key_label = f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_raw"
+# cluster_key_label = f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_raw"
 
-## Calculate and plot the co-occurence of clusters
-sq.gr.co_occurrence(
-    adata_subsample,
-    cluster_key=cluster_key_label
-    )
+# ## Calculate and plot the co-occurence of clusters
+# sq.gr.co_occurrence(
+#     adata_subsample,
+#     cluster_key=cluster_key_label
+#     )
 
 
-for i in cluster_keys:     
-    cluster_number = str(i)
+# for i in cluster_keys:     
+#     cluster_number = str(i)
      
-    with rc_context({"figure.figsize": (12,12)}):
-        sq.pl.co_occurrence(
-            adata_subsample,
-            cluster_key=cluster_key_label,
-            clusters=i,
-            figsize=(10, 10),
-            save=f"co-occurence_cluster_{cluster_number}_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.png"
-            )
+#     with rc_context({"figure.figsize": (12,12)}):
+#         sq.pl.co_occurrence(
+#             adata_subsample,
+#             cluster_key=cluster_key_label,
+#             clusters=i,
+#             figsize=(10, 10),
+#             save=f"co-occurence_cluster_{cluster_number}_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.png"
+#             )
 
-with rc_context({"figure.figsize": (12,8)}):
-    sq.pl.spatial_scatter(
-        adata_subsample,
-        library_id="dataset_name",
-        color=cluster_key_label,
-        shape=None,
-        size=2,
-        save=f"spatial_cluster_scatter_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.png"
-        )
+# with rc_context({"figure.figsize": (12,8)}):
+#     sq.pl.spatial_scatter(
+#         adata_subsample,
+#         library_id="dataset_name",
+#         color=cluster_key_label,
+#         shape=None,
+#         size=2,
+#         save=f"spatial_cluster_scatter_{dataset_name}_pc{pca_label}_nc{lambda_label}_r{res_label}.png"
+#         )
 
 
 # In[ ]:
