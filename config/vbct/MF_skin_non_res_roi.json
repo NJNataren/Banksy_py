@@ -1,5 +1,5 @@
 {
-	"dataset_name": "MF_skin_non_res",
+	"dataset_name": "MF_skin_non_res_roi",
 	"pca_label": "20",
 	"lambda_label": "0.20",
 	"res_label": "0.50",

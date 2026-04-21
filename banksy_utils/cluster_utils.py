@@ -122,8 +122,8 @@ def create_spatial_nonspatial_adata(results_df: pd.DataFrame,
     """
     Creates spatial and nonspatial anndata object from results_df
     """
-    #params_name = f"scaled_gaussian_pc{pca_dims[0]:2d}_nc{lambda_list[0]:0.2f}_r{resolutions[0]:0.2f}"
     params_name = f"{weights_scheme}_pc{pca_dims[0]:2d}_nc{lambda_list[0]:0.2f}_r{resolutions[0]:0.2f}" # removed the hard coding for the weight_scheme
+    #params_name = f"{weights_scheme}_pc{pca_dims:2d}_nc{lambda_list:0.2f}_r{resolutions:0.2f}"
     print("Using spatial params:", params_name)
     adata_spatial = results_df.loc[params_name, "adata"]
     label_name = f"labels_{params_name}"
