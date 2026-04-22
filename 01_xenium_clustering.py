@@ -53,20 +53,20 @@ random.seed(seed)
 #   ** LOCAL TESTING BLOCK **    #
 ##################################
 
-## Set the dataset_name and related settings to use during this analysis
-dataset_name = "CK_skin_res" # sample name
-pc_label = "20" # Label for the number of principal components used for the purpose of filenames
-pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
-lambda_label = "0.20" # File name label for Lambda setting, see comment below. 
-lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-res_label = ["0.50", "0.60", "0.70"] # BANKSY clustering resolution label for resolution chosen to produce plots
+# ## Set the dataset_name and related settings to use during this analysis
+# dataset_name = "CK_skin_res" # sample name
+# pc_label = "20" # Label for the number of principal components used for the purpose of filenames
+# pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
+# lambda_label = "0.20" # File name label for Lambda setting, see comment below. 
+# lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
+# res_label = ["0.50", "0.60", "0.70"] # BANKSY clustering resolution label for resolution chosen to produce plots
 
-resolutions = [float(res) for res in res_label] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-#resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-nbr_weight_decay = "scaled_gaussian" # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
-# close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
-# across regions if cells are pack more closely or loosely in different regions
-coord_keys = ('x', 'y', 'xy') # Keys to specify coordinate indexes in the anndata Object
+# resolutions = [float(res) for res in res_label] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+# #resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+# nbr_weight_decay = "scaled_gaussian" # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
+# # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
+# # across regions if cells are pack more closely or loosely in different regions
+# coord_keys = ('x', 'y', 'xy') # Keys to specify coordinate indexes in the anndata Object
 
 
 # In[ ]:
@@ -813,27 +813,27 @@ for res in resolutions:
 # In[ ]:
 
 
-# Save AnnData objects with clustering results
+# # Save AnnData objects with clustering results
 
-adata_spatial.write_h5ad(
-    filename = f"data/xenium/processed/{dataset_name}_clustered_spatial_pc{pc_label}_nc{lambda_label}_r{res_label}.h5ad",
-    compression="gzip"
-    )
-
-
-# In[ ]:
+# adata_spatial.write_h5ad(
+#     filename = f"data/xenium/processed/{dataset_name}_clustered_spatial_pc{pc_label}_nc{lambda_label}_r{res_label}.h5ad",
+#     compression="gzip"
+#     )
 
 
-## Export dictionary
+# # In[ ]:
 
-## Save the banksy dict as a pickle file to load it in later and avoid having to initialize repeatedly to save time
-## Use gzip to save it with compression
-import gzip
-import pickle
-with gzip.open(f"data/xenium/processed/{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz", "rb") as f:
-    pickle.dump(banksy_dict, f)
 
-## Export the results_df data frame
+# ## Export dictionary
 
-results_df.to_csv(f"data/xenium/processed/results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.csv")
+# ## Save the banksy dict as a pickle file to load it in later and avoid having to initialize repeatedly to save time
+# ## Use gzip to save it with compression
+# import gzip
+# import pickle
+# with gzip.open(f"data/xenium/processed/{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz", "rb") as f:
+#     pickle.dump(banksy_dict, f)
+
+# ## Export the results_df data frame
+
+# results_df.to_csv(f"data/xenium/processed/results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.csv")
 

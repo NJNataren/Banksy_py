@@ -1,6 +1,6 @@
 {
 	"dataset_name": "CK_bowel_res",
-	"pca_label": "35",
+	"pc_label": "35",
 	"lambda_label": "0.20",
 	"res_label": "0.50",
 	"nbr_weight_decay": "scaled_gaussian",
