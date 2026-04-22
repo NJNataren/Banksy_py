@@ -26,5 +26,8 @@
     "16" : "Differentiated_melanoma (MITF+ CD1A+ LYD6+)_16",
     "17" : "Melanoma Tumor Cells (MITF⁺_or_Epithelial-Contacting)_17",
     "18" : "Melanoma Tumor Cells (MITF⁺ MIR205HG)_18",
-    "19" : "Pericyte-like stromal cells_19"}
+    "19" : "Pericyte-like stromal cells_19"
+},
+
+    "resolutions": ["0.5"]
 }

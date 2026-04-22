@@ -20,5 +20,8 @@
     "10" : "Melanoma_cells_stress-responsive_10",
     "11" : "B_cells__or_Plasma_cells_11",
     "12" : "Dendritic_cells_12",
-    "13" : "Melanoma_neural_crest-like_(low_confidence)_13"}
+    "13" : "Melanoma_neural_crest-like_(low_confidence)_13"
+},
+
+"resolutions": ["0.5"]
 }

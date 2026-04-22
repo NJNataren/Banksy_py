@@ -24,5 +24,7 @@
     "14" : "Immune-Interacting_melanoma_cells_MITF+_(low_confidence)_14",
     "15" : "Proliferative–Invasive_melanoma_cells_MITF+ VIM+ MYH11+_(low_confidence)_15",
     "16" : "Interface_melanoma_cells_keratinocyte-immune-Interacting_(low_confidence)_16",
-    "17" : "Immune-Interacting_stromal_cells_(low_confidence)_17"}
+    "17" : "Immune-Interacting_stromal_cells_(low_confidence)_17"
+},
+"resolutions": ["0.5"]
 }
