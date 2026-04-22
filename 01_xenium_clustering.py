@@ -95,8 +95,8 @@ pc_label = cfg["pc_label"] # Label for the number of principal components used f
 pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
 lambda_label = cfg["lambda_label"] # File name label for Lambda setting, see comment below. 
 lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-res_label = cfg["res_label"] # BANKSY clustering resolution label for resolution chosen to produce plots
-resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+#res_label = cfg["res_label"] # BANKSY clustering resolution label for resolution chosen to produce plots
+resolutions = [float(res) for res in cfg["resolutions"]] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
 nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
 # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
 # across regions if cells are pack more closely or loosely in different regions

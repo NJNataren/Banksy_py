@@ -21,8 +21,9 @@
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG_DIR="config/vbct"
-CONFIGS=($CONFIG_DIR/CK_skin_res.json)
+CONFIG=/hpcfs/users/a1210419/Banksy_py/config/vbct/CK_skin_res.json
+##CONFIG_DIR="config/vbct"
+##CONFIGS=($CONFIG_DIR/*.json)
 ##CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
 
 ## Print a timestamp for each job and the config contents
