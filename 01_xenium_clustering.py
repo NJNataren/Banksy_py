@@ -51,61 +51,63 @@ np.random.seed(seed)
 random.seed(seed)
 
 
-# In[7]:
+# In[ ]:
 
 
-##################################
-#   ** LOCAL TESTING BLOCK **    #
-##################################
+# ##################################
+# #   ** LOCAL TESTING BLOCK **    #
+# ##################################
 
-## Set the dataset_name and related settings to use during this analysis
-dataset_name = "CK_skin_res" # sample name
-pc_label = "20" # Label for the number of principal components used for the purpose of filenames
-pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
-lambda_label = "0.20" # File name label for Lambda setting, see comment below. 
-lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-res_label = ["0.50", "0.60", "0.70"] # BANKSY clustering resolution label for resolution chosen to produce plots
-
-resolutions = [float(res) for res in res_label] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-#resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-nbr_weight_decay = "scaled_gaussian" # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
-# close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
-# across regions if cells are pack more closely or loosely in different regions
-coord_keys = ('x', 'y', 'xy') # Keys to specify coordinate indexes in the anndata Object
-
-
-# In[8]:
-
-
-# ########################
-# #   PARSE ARGUMENTS    #
-# ########################
-# # This block of code feeds arguments to this python script from a config files found in /config
-
-# ## Import argparse and json packages to read in variables from the per sample .json config files 
-# import argparse
-# import json
-
-# parser = argparse.ArgumentParser(prog="used to parse arguments form xenium_clustering.py to run on slurm") # Initialise the parser
-# parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True) # This defines the flag and tells the script to look for a JSON config
-# # in the form of a string config file path
-# args = parser.parse_args() # Looks at what is passed throught the terminal (in the slurm script in this case) after --config and stores it 
-
-# with open(args.config) as f: # Opens the file path provided by the user
-#     cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
-
-# ## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
-# dataset_name = cfg["dataset_name"] # sample name
-# pc_label = cfg["pc_label"] # Label for the number of principal components used for the purpose of filenames
+# ## Set the dataset_name and related settings to use during this analysis
+# dataset_name = "CK_skin_res" # sample name
+# pc_label = "20" # Label for the number of principal components used for the purpose of filenames
 # pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
-# lambda_label = cfg["lambda_label"] # File name label for Lambda setting, see comment below. 
+# lambda_label = "0.20" # File name label for Lambda setting, see comment below. 
 # lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-# #res_label = cfg["res_label"] # BANKSY clustering resolution label for resolution chosen to produce plots
-# resolutions = [float(res) for res in cfg["resolutions"]] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-# nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
+# res_label = ["0.50", "0.60", "0.70"] # BANKSY clustering resolution label for resolution chosen to produce plots
+
+# resolutions = [float(res) for res in res_label] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+# #resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+# nbr_weight_decay = "scaled_gaussian" # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
 # # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
 # # across regions if cells are pack more closely or loosely in different regions
-# coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
+# coord_keys = ('x', 'y', 'xy') # Keys to specify coordinate indexes in the anndata Object
+# max_workers=8 # maximum CPUs for Leiden clustering
+
+
+# In[ ]:
+
+
+########################
+#   PARSE ARGUMENTS    #
+########################
+# This block of code feeds arguments to this python script from a config files found in /config
+
+## Import argparse and json packages to read in variables from the per sample .json config files 
+import argparse
+import json
+
+parser = argparse.ArgumentParser(prog="used to parse arguments form xenium_clustering.py to run on slurm") # Initialise the parser
+parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True) # This defines the flag and tells the script to look for a JSON config
+# in the form of a string config file path
+args = parser.parse_args() # Looks at what is passed throught the terminal (in the slurm script in this case) after --config and stores it 
+
+with open(args.config) as f: # Opens the file path provided by the user
+    cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
+
+## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
+dataset_name = cfg["dataset_name"] # sample name
+pc_label = cfg["pc_label"] # Label for the number of principal components used for the purpose of filenames
+pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
+lambda_label = cfg["lambda_label"] # File name label for Lambda setting, see comment below. 
+lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
+#res_label = cfg["res_label"] # BANKSY clustering resolution label for resolution chosen to produce plots
+resolutions = [float(res) for res in cfg["resolutions"]] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
+# close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
+# across regions if cells are pack more closely or loosely in different regions
+coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
+max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", 4))
 
 
 # In[9]:
@@ -300,9 +302,9 @@ max_m = 1 # azumithal transform up to kth order
 nbr_weight_decay = "scaled_gaussian" # can also be "reciprocal", "uniform" or "ranked"
 
 # Find median distance to closest neighbours, the median distance will be `sigma`
-log_time("Start generating spatial weights graph for {dataset_name}.")
+log_time(f"Start generating spatial weights graph for {dataset_name}.")
 nbrs = median_dist_to_nearest_neighbour(adata, key = coord_keys[2])
-log_time("Finished generating spatil weights graph for {dataset_name}.")
+log_time(f"Finished generating spatil weights graph for {dataset_name}.")
 
 
 
@@ -326,7 +328,7 @@ log_time("Finished generating spatil weights graph for {dataset_name}.")
 # (4) **Visualize angles around random cell**. Plot points around a random index cell, annotated with angles from the index cell. `plot_theta = True`
 
 from banksy.initialize_banksy import initialize_banksy
-log_time("Start generating spatial weights from distance for {dataset_name}.")
+log_time(f"Start generating spatial weights from distance for {dataset_name}.")
 banksy_dict = initialize_banksy(
     adata,
     coord_keys,
@@ -338,7 +340,7 @@ banksy_dict = initialize_banksy(
     plt_agf_angles=False, # takes long time to plot
     plt_theta=False,
 )
-log_time("Finished generating spatial weights from distance for {dataset_name}.")
+log_time(f"Finished generating spatial weights from distance for {dataset_name}.")
 
 
 # In[ ]:
@@ -357,7 +359,7 @@ log_time("Finished generating spatial weights from distance for {dataset_name}."
 
 from banksy.embed_banksy import generate_banksy_matrix
 banksy_dict, banksy_matrix = generate_banksy_matrix(adata, banksy_dict, lambda_list, max_m)
-log_time("Finished generating BANKSY matrix for {dataset_name}.")
+log_time(f"Finished generating BANKSY matrix for {dataset_name}.")
 
 
 # In[20]:
@@ -380,13 +382,13 @@ print(banksy_dict['nonspatial'][0.0]['adata'])
 
 ## Perform PCA
 from banksy_utils.umap_pca import pca_umap
-log_time("Start PCA and UMAP embedding for {dataset_name}.")
+log_time(f"Start PCA and UMAP embedding for {dataset_name}.")
 pca_umap(banksy_dict,
          pc_dims = pc_dims,
          add_umap = True,
          #plt_remaining_var = True,
          )
-log_time("Finish PCA and UMAP embedding for {dataset_name}.")
+log_time(f"Finish PCA and UMAP embedding for {dataset_name}.")
 
 
 # In[ ]:
@@ -399,15 +401,15 @@ log_time("Finish PCA and UMAP embedding for {dataset_name}.")
 # Note that by default, we recommend resolution-based clustering (i.e., `leiden` or `louvain`) if no prior information on the number of clusters known. However, if the number of clusters is known *a priori*, the user can use `mclust` (gaussian-mixture model) by specifying the number of clusters beforehand.
 
 from banksy.cluster_methods import run_Leiden_partition_parallel
-log_time("Start Leiden clustering for {dataset_name}.")
+log_time(f"Start Leiden clustering for {dataset_name}.")
 ## Parallelised leiden partitioning function for clustering, if a computer has n cores, set max_workers to n-1
 results_df, max_num_labels = run_Leiden_partition_parallel(
     banksy_dict,
     resolutions,
     num_nn=50,
-    max_workers=7 # 8-core laptop
+    max_workers=max_workers # 8-core laptop
 )
-log_time("Finished Leiden clustering for {dataset_name}.")
+log_time(f"Finished Leiden clustering for {dataset_name}.")
 
 
 # In[23]:
