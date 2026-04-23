@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=01_xenium_clustering
-#SBATCH --array=0-5 
+#SBATCH --array=0-5%2 #limit to 2 so you're not using all the nodes
 #number of samples to process
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -10,6 +10,7 @@
 #SBATCH --output=logs/xenium_clustering_%x_%A_%a.out
 #SBATCH --error=logs/xenium_clustering_%x_%A_%a.err
 #SBATCH --partition=sacgf
+
 
 #SBATCH --export=None
 
@@ -32,7 +33,7 @@ CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
 echo "Task $SLURM_ARRAY_TASK_ID using config: $CONFIG"
 echo "================================="
 echo "Job started: $(date '+%Y-%m-%d %H:%M:%S')"
-#echo "Array task ID: $SLURM_ARRAY_TASK_ID"
+echo "Array task ID: $SLURM_ARRAY_TASK_ID"
 echo "Config file: $CONFIG"
 echo "---------------------------------"
 echo " Config contents:"
@@ -45,4 +46,4 @@ echo "================================="
 
 python 01_xenium_clustering.py --config $CONFIG
 
-echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')
+echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')"

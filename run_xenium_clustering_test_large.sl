@@ -1,14 +1,16 @@
 #!/bin/bash
 
 #SBATCH --job-name=01_xenium_clustering
-#SBATCH --array=0-2 
+#SBATCH --array=0-2%2 # runs at most 2 tasks at a time out of 3
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=128G
-#SBATCH --time=12:00:00
+#SBATCH --cpus-per-task=16 # increase from 8 - parallelisation of Leiden clustering will benefit
+#SBATCH --mem=180G
+#SBATCH --time=24:00:00
 #SBATCH --output=logs/xenium_clustering_%x_%A_%a.out
 #SBATCH --error=logs/xenium_clustering_%x_%A_%a.err
 #SBATCH --partition=sacgf
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=nathalie.nataren@adelaide.edu.au
 
 #SBATCH --export=None
 
@@ -31,7 +33,7 @@ CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
 echo "Task $SLURM_ARRAY_TASK_ID using config: $CONFIG"
 echo "================================="
 echo "Job started: $(date '+%Y-%m-%d %H:%M:%S')"
-#echo "Array task ID: $SLURM_ARRAY_TASK_ID"
+echo "Array task ID: $SLURM_ARRAY_TASK_ID"
 echo "Config file: $CONFIG"
 echo "---------------------------------"
 echo " Config contents:"
@@ -44,4 +46,4 @@ echo "================================="
 
 python 01_xenium_clustering.py --config $CONFIG
 
-echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')
+echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')"

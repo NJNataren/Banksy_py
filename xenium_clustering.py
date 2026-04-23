@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[ ]:
+
+
 # # Xenium spatial clustering with BANKSY
 # ### **Author:** Nathalie Nataren
 # ### **Date:** 17/04/2026
@@ -8,7 +11,8 @@
 # **Description:** The purpose of this analysis is to perform clustering of Xenium spatial data as part of the metastatic melanoma ICI therapy response study (VBCT lab).
 # 
 
-# In[1]:
+
+# In[ ]:
 
 
 import anndata as ad
@@ -46,7 +50,7 @@ np.random.seed(seed)
 random.seed(seed)
 
 
-# In[2]:
+# In[ ]:
 
 
 ##################################
@@ -103,7 +107,7 @@ nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much ne
 coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
 
 
-# In[3]:
+# In[ ]:
 
 
 ########################
@@ -154,7 +158,7 @@ else:
     print(f"Directory '{qc_path}' already exists.")
 
 
-# In[4]:
+# In[ ]:
 
 
 ###########################
@@ -168,7 +172,7 @@ adata = ad.read_h5ad(os.path.join(raw_path, f"{dataset_name}_raw.h5ad"))
 adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 
 
-# In[5]:
+# In[ ]:
 
 
 #####################################
@@ -179,7 +183,7 @@ adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 adata = adata[adata.obs['nCount_Xenium'] > 0].copy()
 
 
-# In[6]:
+# In[ ]:
 
 
 ####################################
@@ -204,7 +208,7 @@ adata.write_h5ad(
 float_adata = f"{dataset_name}_float_32.h5ad"
 
 
-# In[7]:
+# In[ ]:
 
 
 #######################################
@@ -222,7 +226,7 @@ coord_keys = coord_keys
 raw_y, raw_x, adata = load_adata(filepath=processed_path, adata_filename=float_adata, load_adata_directly=True, coord_keys=coord_keys)
 
 
-# In[8]:
+# In[ ]:
 
 
 processed_path
@@ -233,7 +237,8 @@ processed_path
 # Normalize data matrix using `normalize_total`.
 # 
 
-# In[9]:
+
+# In[ ]:
 
 
 ## Save the raw counts
@@ -243,7 +248,7 @@ adata.layers["counts"] = adata.X.copy()
 print(adata.layers["counts"][:5,:5])
 
 
-# In[10]:
+# In[ ]:
 
 
 from banksy_utils.filter_utils import normalize_total, filter_hvg, print_max_min
@@ -253,7 +258,7 @@ normalize_total(adata)
 print(adata.X)
 
 
-# In[11]:
+# In[ ]:
 
 
 ## Perform log-transformation and save the log-normalised in adata.raw
@@ -282,7 +287,8 @@ adata.raw = adata.copy()
 #     
 # Weight of edges can be represented by uniform distance (i.e., a closer neighbour will have a higher weight), or using `reciprocal` ($\frac{1}{r})$. As mentioned above, BANKSY by default applies a gaussian envelope function to map the distance (between nodes) to the `weights` the connection of cell-to-neighbor
 
-# In[12]:
+
+# In[ ]:
 
 
 from banksy.main import median_dist_to_nearest_neighbour
@@ -314,7 +320,8 @@ nbrs = median_dist_to_nearest_neighbour(adata, key = coord_keys[2])
 # 
 # (4) **Visualize angles around random cell**. Plot points around a random index cell, annotated with angles from the index cell. `plot_theta = True`
 
-# In[13]:
+
+# In[ ]:
 
 
 from banksy.initialize_banksy import initialize_banksy
@@ -343,7 +350,8 @@ banksy_dict = initialize_banksy(
 # 
 # Here, we save all the results in the dictionary (`banksy_dict`), which contains the results from the subsequent operations for BANKSY. 
 
-# In[14]:
+
+# In[ ]:
 
 
 from banksy.embed_banksy import generate_banksy_matrix
@@ -352,7 +360,8 @@ banksy_dict, banksy_matrix = generate_banksy_matrix(adata, banksy_dict, lambda_l
 
 # ### Append Non-spatial results to the `banksy_dict` for comparsion
 
-# In[15]:
+
+# In[ ]:
 
 
 from banksy.main import concatenate_all
@@ -365,7 +374,7 @@ banksy_dict["nonspatial"] = {
 print(banksy_dict['nonspatial'][0.0]['adata'])
 
 
-# In[16]:
+# In[ ]:
 
 
 from banksy_utils.umap_pca import pca_umap
@@ -383,7 +392,8 @@ pca_umap(banksy_dict,
 # 
 # Note that by default, we recommend resolution-based clustering (i.e., `leiden` or `louvain`) if no prior information on the number of clusters known. However, if the number of clusters is known *a priori*, the user can use `mclust` (gaussian-mixture model) by specifying the number of clusters beforehand.
 
-# In[17]:
+
+# In[ ]:
 
 
 from banksy.cluster_methods import run_Leiden_partition_parallel
@@ -397,13 +407,13 @@ results_df, max_num_labels = run_Leiden_partition_parallel(
 )
 
 
-# In[18]:
+# In[ ]:
 
 
 banksy_dict[f"{nbr_weight_decay}"]
 
 
-# In[19]:
+# In[ ]:
 
 
 print(banksy_dict["scaled_gaussian"].keys())
@@ -413,7 +423,8 @@ print(banksy_dict["scaled_gaussian"].keys())
 # 
 # ### Visualize the clustering results from BANKSY, including the clusters from the Umap embbedings
 
-# In[20]:
+
+# In[ ]:
 
 
 from banksy.plot_banksy import plot_results
@@ -437,13 +448,13 @@ plot_results(
 )
 
 
-# In[21]:
+# In[ ]:
 
 
 print(results_df)
 
 
-# In[22]:
+# In[ ]:
 
 
 ##########################################################
@@ -478,7 +489,7 @@ def determine_max_num_labels(nonspatial_labels, spatial_labels):
 max_num_labels=determine_max_num_labels(nonspatial_labels, spatial_labels)
 
 
-# In[23]:
+# In[ ]:
 
 
 ########################################################
@@ -506,6 +517,7 @@ pad_clusters(cluster2annotation_spatial, list(range(max_num_labels)))
 
 # In[ ]:
 
+
 #########################################################
 #       CREATE SPATIAL AND NONSPATIAL ADATA OBJECTS     #
 #########################################################
@@ -524,7 +536,8 @@ for resolution in resolutions:
     adata_dict[resolution] = {"spatial": adata_spatial, "nonspatial": adata_nonspatial}
 
 
-# In[42]:
+# In[ ]:
+
 
 ## Create a flat dictionary of the spatial and non-spatial 
 # spatial
@@ -538,7 +551,7 @@ for res, adatas in adata_dict.items():
     spatial_adatas[res]  = adatas["nonspatial"]
 
 
-# In[48]:
+# In[ ]:
 
 
 # Save individaul anndata objects at each resolution
@@ -606,6 +619,7 @@ for res in resolutions:
 # # Top expressed genes per cluster
 
 # ### Spatial clustering results
+
 
 # In[ ]:
 
@@ -802,6 +816,7 @@ for res in resolutions:
 
 
 # ### Non-spatial clustering results
+
 
 # In[ ]:
 
