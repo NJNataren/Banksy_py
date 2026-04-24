@@ -1,0 +1,32 @@
+{
+	"dataset_name": "CK_bowel_res",
+	"lambda_label": "0.20",
+	"res_label": "0.50",
+	"nbr_weight_decay": "scaled_gaussian",
+	"coord_keys": ["x", "y", "xy"],
+	
+	"new_labels": {
+    "0" : "CD8+ cytotoxic T cells_0",
+    "1" : "Differentiated melanoma cells_1",
+    "2" : "Stromal B_or_plasma cells_2",
+    "3" : "Vascular endothelial cells_3",
+    "4" : "Pigment-like melanoma cells_4",
+    "5" : "Neural crest-like stressed melanoma cells_5", 
+    "6" : "M2-like tumour associated macrophages_6",
+    "7" : "Invasive melanoma cells (neural_crest-like)_7",
+    "8" : "Myofibroblast_8",
+    "9" : "Cycling melanoma cells_9",
+    "10" : "Gastrointestinal epithelilal cells_10",
+    "11" : "Inflammatory TAMs_or_monocytes_11",
+    "12" : "Cancer associated fibroblasts_12",
+    "13" : "Central memory_or_Naive T cells_13",
+    "14" : "Dendritic cells_14",
+    "15" : "Differentiated melanoma cells_or_Epithelial-Adjacent_15", 
+    "16" : "Differentiated_melanoma (MITF+ CD1A+ LYD6+)_16",
+    "17" : "Melanoma Tumor Cells (MITF⁺_or_Epithelial-Contacting)_17",
+    "18" : "Melanoma Tumor Cells (MITF⁺ MIR205HG)_18",
+    "19" : "Pericyte-like stromal cells_19"
+},
+
+    "resolutions": ["0.5"]
+}
