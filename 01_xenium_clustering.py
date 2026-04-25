@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[20]:
+# In[5]:
 
 
 # # Xenium spatial clustering with BANKSY
@@ -12,7 +12,7 @@
 # 
 
 
-# In[21]:
+# In[6]:
 
 
 import anndata as ad
@@ -51,66 +51,66 @@ np.random.seed(seed)
 random.seed(seed)
 
 
-# In[ ]:
+# In[7]:
 
 
-# ##################################
-# #   ** LOCAL TESTING BLOCK **    #
-# ##################################
+##################################
+#   ** LOCAL TESTING BLOCK **    #
+##################################
 
-# ## Set the dataset_name and related settings to use during this analysis
-# dataset_name = "CK_skin_res" # sample name
-# pc_label = "20" # Label for the number of principal components used for the purpose of filenames
-# pc_dims = [20] # The number of principal components stored a list for analyses
-# lambda_label = "0.20" # File name label for Lambda setting, see comment below. 
-# lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-# res_label = ["0.50", "0.60", "0.70"] # BANKSY clustering resolution label for resolution chosen to produce plots
-
-# resolutions = [float(res) for res in res_label] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-# #resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-# nbr_weight_decay = "scaled_gaussian" # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
-# # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
-# # across regions if cells are pack more closely or loosely in different regions
-# coord_keys = ('x', 'y', 'xy') # Keys to specify coordinate indexes in the anndata Object
-# max_workers=8 # maximum CPUs for Leiden clustering
-
-
-# In[ ]:
-
-
-########################
-#   PARSE ARGUMENTS    #
-########################
-# This block of code feeds arguments to this python script from a config files found in /config
-
-## Import argparse and json packages to read in variables from the per sample .json config files 
-import argparse
-import json
-
-parser = argparse.ArgumentParser(prog="used to parse arguments form xenium_clustering.py to run on slurm") # Initialise the parser
-parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True) # This defines the flag and tells the script to look for a JSON config
-# in the form of a string config file path
-args = parser.parse_args() # Looks at what is passed throught the terminal (in the slurm script in this case) after --config and stores it 
-
-with open(args.config) as f: # Opens the file path provided by the user
-    cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
-
-## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
-dataset_name = cfg["dataset_name"] # sample name
-pc_label = cfg["pc_label"] # Label for the number of principal components used for the purpose of filenames
-pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
-lambda_label = cfg["lambda_label"] # File name label for Lambda setting, see comment below. 
+## Set the dataset_name and related settings to use during this analysis
+dataset_name = "CK_skin_res" # sample name
+pc_label = "20" # Label for the number of principal components used for the purpose of filenames
+pc_dims = [20] # The number of principal components stored a list for analyses
+lambda_label = "0.20" # File name label for Lambda setting, see comment below. 
 lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-#res_label = cfg["res_label"] # BANKSY clustering resolution label for resolution chosen to produce plots
-resolutions = [float(res) for res in cfg["resolutions"]] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
+res_label = ["0.50", "0.60", "0.70"] # BANKSY clustering resolution label for resolution chosen to produce plots
+
+resolutions = [float(res) for res in res_label] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+#resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+nbr_weight_decay = "scaled_gaussian" # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
 # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
 # across regions if cells are pack more closely or loosely in different regions
-coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
-max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", 4)) # Parameter for the run_Leiden_partition_parallel() clustering function 
+coord_keys = ('x', 'y', 'xy') # Keys to specify coordinate indexes in the anndata Object
+max_workers=8 # maximum CPUs for Leiden clustering
 
 
-# In[24]:
+# In[8]:
+
+
+# ########################
+# #   PARSE ARGUMENTS    #
+# ########################
+# # This block of code feeds arguments to this python script from a config files found in /config
+
+# ## Import argparse and json packages to read in variables from the per sample .json config files 
+# import argparse
+# import json
+
+# parser = argparse.ArgumentParser(prog="used to parse arguments form xenium_clustering.py to run on slurm") # Initialise the parser
+# parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True) # This defines the flag and tells the script to look for a JSON config
+# # in the form of a string config file path
+# args = parser.parse_args() # Looks at what is passed throught the terminal (in the slurm script in this case) after --config and stores it 
+
+# with open(args.config) as f: # Opens the file path provided by the user
+#     cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
+
+# ## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
+# dataset_name = cfg["dataset_name"] # sample name
+# pc_label = cfg["pc_label"] # Label for the number of principal components used for the purpose of filenames
+# pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
+# lambda_label = cfg["lambda_label"] # File name label for Lambda setting, see comment below. 
+# lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
+# #res_label = cfg["res_label"] # BANKSY clustering resolution label for resolution chosen to produce plots
+# resolutions = [float(res) for res in cfg["resolutions"]] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+# nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
+# # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
+# # across regions if cells are pack more closely or loosely in different regions
+# coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
+# max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", 4)) # Parameter for the run_Leiden_partition_parallel() clustering function 
+
+
+# In[9]:
 
 
 ########################
@@ -161,7 +161,7 @@ else:
     print(f"Directory '{qc_path}' already exists.")
 
 
-# In[25]:
+# In[10]:
 
 
 ## Function to log sub task start time
@@ -169,7 +169,7 @@ def log_time(step):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {step}")
 
 
-# In[26]:
+# In[11]:
 
 
 ###########################
@@ -184,7 +184,7 @@ log_time(f"Loading in data for {dataset_name}")
 adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 
 
-# In[27]:
+# In[12]:
 
 
 #####################################
@@ -195,7 +195,7 @@ adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 adata = adata[adata.obs['nCount_Xenium'] > 0].copy()
 
 
-# In[28]:
+# In[13]:
 
 
 ####################################
@@ -220,7 +220,7 @@ adata.write_h5ad(
 float_adata = f"{dataset_name}_float_32.h5ad"
 
 
-# In[29]:
+# In[14]:
 
 
 #######################################
@@ -238,7 +238,7 @@ coord_keys = coord_keys
 raw_y, raw_x, adata = load_adata(filepath=processed_path, adata_filename=float_adata, load_adata_directly=True, coord_keys=coord_keys)
 
 
-# In[30]:
+# In[15]:
 
 
 # ## Normalize and log transform data
@@ -252,7 +252,7 @@ adata.layers["counts"] = adata.X.copy()
 print(adata.layers["counts"][:5,:5])
 
 
-# In[31]:
+# In[16]:
 
 
 from banksy_utils.filter_utils import normalize_total, filter_hvg, print_max_min
@@ -262,7 +262,7 @@ normalize_total(adata)
 print(adata.X)
 
 
-# In[32]:
+# In[17]:
 
 
 ## Perform log-transformation and save the log-normalised in adata.raw
@@ -272,7 +272,7 @@ print(adata.X)
 adata.raw = adata.copy()
 
 
-# In[33]:
+# In[18]:
 
 
 # ## Generate spatial weights graph
@@ -308,7 +308,7 @@ log_time(f"Finished generating spatil weights graph for {dataset_name}.")
 
 
 
-# In[34]:
+# In[19]:
 
 
 # ### Generate spatial weights from distance
@@ -343,7 +343,7 @@ banksy_dict = initialize_banksy(
 log_time(f"Finished generating spatial weights from distance for {dataset_name}.")
 
 
-# In[35]:
+# In[20]:
 
 
 # ## Generate BANKSY matrix
@@ -362,7 +362,7 @@ banksy_dict, banksy_matrix = generate_banksy_matrix(adata, banksy_dict, lambda_l
 log_time(f"Finished generating BANKSY matrix for {dataset_name}.")
 
 
-# In[36]:
+# In[21]:
 
 
 # ### Append Non-spatial results to the `banksy_dict` for comparsion
@@ -377,7 +377,7 @@ banksy_dict["nonspatial"] = {
 print(banksy_dict['nonspatial'][0.0]['adata'])
 
 
-# In[37]:
+# In[22]:
 
 
 ## Perform UMAP embedding
@@ -391,7 +391,7 @@ pca_umap(banksy_dict,
 log_time(f"Finish PCA and UMAP embedding for {dataset_name}.")
 
 
-# In[ ]:
+# In[23]:
 
 
 # ### Cluster cells using a partition algorithm
@@ -412,7 +412,7 @@ results_df, max_num_labels = run_Leiden_partition_parallel(
 log_time(f"Finished Leiden clustering for {dataset_name}.")
 
 
-# In[ ]:
+# In[24]:
 
 
 # ## Dynamically extract the number of principal components from the results_df
@@ -420,7 +420,7 @@ log_time(f"Finished Leiden clustering for {dataset_name}.")
 # pc_dims = pc_label['num_pcs'].iloc[0]
 
 
-# In[ ]:
+# In[25]:
 
 
 # ## Plot results
@@ -450,7 +450,7 @@ plot_results(
 print(results_df)
 
 
-# In[ ]:
+# In[26]:
 
 
 ##########################################################
@@ -485,7 +485,7 @@ def determine_max_num_labels(nonspatial_labels, spatial_labels):
 max_num_labels=determine_max_num_labels(nonspatial_labels, spatial_labels)
 
 
-# In[ ]:
+# In[27]:
 
 
 ########################################################
@@ -511,7 +511,7 @@ print(cluster2annotation_nonspatial)
 pad_clusters(cluster2annotation_spatial, list(range(max_num_labels)))
 
 
-# In[ ]:
+# In[28]:
 
 
 #########################################################
@@ -532,7 +532,7 @@ for resolution in resolutions:
     adata_dict[resolution] = {"spatial": adata_spatial, "nonspatial": adata_nonspatial}
 
 
-# In[80]:
+# In[29]:
 
 
 pc_dims
@@ -540,7 +540,7 @@ pc_dims
 
 # 
 
-# In[49]:
+# In[30]:
 
 
 ## Create a flat dictionary of the spatial and non-spatial 
@@ -550,7 +550,7 @@ for res, adatas in adata_dict.items():
     spatial_adatas[res]  = adatas["spatial"]
 
 
-# In[72]:
+# In[31]:
 
 
 # Save individaul anndata objects at each resolution
@@ -559,7 +559,7 @@ for res in resolutions:
     spatial_adatas[res].write_h5ad(os.path.join(processed_path, f"adata_spatial_{dataset_name}_{res_str}.h5ad"))
 
 
-# In[75]:
+# In[40]:
 
 
 ## Export dictionary
@@ -568,16 +568,16 @@ for res in resolutions:
 ## Use gzip to save it with compression
 import gzip
 import pickle
-for res in resolutions:
-    with gzip.open(os.path.join(processed_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz"), "wb") as f:
-        pickle.dump(banksy_dict, f)
+#for res in resolutions:
+with gzip.open(os.path.join(processed_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz"), "wb") as f:
+    pickle.dump(banksy_dict, f)
 
 ## Export the results_df data frame
 
 results_df.to_csv(os.path.join(processed_path,f"results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}.csv"))
 
 
-# In[77]:
+# In[41]:
 
 
 #############################################
@@ -602,10 +602,10 @@ print(merged)
 merged.to_csv(os.path.join(processed_path, f"{dataset_name}_cell_cluster_id_across_clustering_res.csv"))
 
 
-# In[69]:
+# In[37]:
 
 
-output_path
+print(res_label)
 
 
 # In[ ]:
