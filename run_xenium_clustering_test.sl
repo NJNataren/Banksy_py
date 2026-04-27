@@ -2,11 +2,10 @@
 
 #SBATCH --job-name=01_xenium_clustering
 #SBATCH --array=0-5%2 #limit to 2 so you're not using all the nodes
-#number of samples to process
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=180G
-#SBATCH --time=02:00:00
+#SBATCH --time=08:00:00
 #SBATCH --output=logs/xenium_clustering_%x_%A_%a.out
 #SBATCH --error=logs/xenium_clustering_%x_%A_%a.err
 #SBATCH --partition=sacgf

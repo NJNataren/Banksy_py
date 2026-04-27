@@ -1,7 +1,8 @@
 {
 	"dataset_name": "MG_gastric_non_res",
+    "pc_label": "35",
 	"lambda_label": "0.20",
-	"res_label": "0.50",
+	"res_label": ["0.50", "0.60", "0.70"],
 	"nbr_weight_decay": "scaled_gaussian",
 	"coord_keys": ["x", "y", "xy"],
 	
@@ -24,6 +25,5 @@
     "15" : "Mast-like_immune_regulatory_cells_15", 
     "16" : "Invasive_melanoma_cells_(NOS2+)_16",
     "17" : "Dedifferentiated_melanoma_cells_17"
-},
-"resolutions": ["0.5", "0.6", "0.7"]
+}
 }

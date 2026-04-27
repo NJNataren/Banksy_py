@@ -1,7 +1,8 @@
 {
 	"dataset_name": "EL_skin_res",
+    "pc_label": "20",
 	"lambda_label": "0.20",
-	"res_label": "0.50",
+	"res_label": ["0.50", "0.60", "0.70"],
 	"nbr_weight_decay": "scaled_gaussian",
 	"coord_keys": ["x", "y", "xy"],
 	
@@ -19,7 +20,5 @@
     "10" : "Melanocytic Melanoma Cells (MITF+ PKHD1L1+)_10",
     "11" : "Skin epithelial cells_11",
     "12" : "Stromal cells_12"
-},
-
-    "resolutions": ["0.5", "0.6", "0.7"]
+}
 }

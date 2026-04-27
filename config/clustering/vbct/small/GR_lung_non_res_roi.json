@@ -1,7 +1,8 @@
 {
 	"dataset_name": "GR_lung_non_res_roi",
+    "pc_label": "35",
 	"lambda_label": "0.20",
-	"res_label": "0.50",
+	"res_label": ["0.50", "0.60", "0.70"],
 	"nbr_weight_decay": "scaled_gaussian",
 	"coord_keys": ["x", "y", "xy"],
 
@@ -16,7 +17,5 @@
         "7" : "Immature_Myeloid_Cells_or_Tumour_Myeloid_Cells_7",
         "8" : "Mesenchymal-like_Melanoma_Cells_8",
         "9" : "Vascular_smooth_muscle_or_pericytes_9"
-    },
-   
-    "resolutions": ["0.5", "0.6", "0.7"]
+    }
 }
