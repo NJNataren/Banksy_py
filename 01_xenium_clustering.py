@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[38]:
 
 
 # # Xenium spatial clustering with BANKSY
@@ -12,7 +12,7 @@
 # 
 
 
-# In[2]:
+# In[39]:
 
 
 import anndata as ad
@@ -110,7 +110,7 @@ coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in th
 max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", 4)) # Parameter for the run_Leiden_partition_parallel() clustering function 
 
 
-# In[8]:
+# In[42]:
 
 
 ########################
@@ -161,7 +161,7 @@ else:
     print(f"Directory '{qc_path}' already exists.")
 
 
-# In[9]:
+# In[43]:
 
 
 ## Function to log sub task start time
@@ -169,7 +169,7 @@ def log_time(step):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {step}")
 
 
-# In[10]:
+# In[44]:
 
 
 ###########################
@@ -184,7 +184,13 @@ log_time(f"Loading in data for {dataset_name}")
 adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 
 
-# In[11]:
+# In[45]:
+
+
+res_label
+
+
+# In[46]:
 
 
 #####################################
@@ -195,7 +201,7 @@ adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 adata = adata[adata.obs['nCount_Xenium'] > 0].copy()
 
 
-# In[12]:
+# In[47]:
 
 
 ####################################
@@ -220,7 +226,7 @@ adata.write_h5ad(
 float_adata = f"{dataset_name}_float_32.h5ad"
 
 
-# In[13]:
+# In[48]:
 
 
 #######################################
@@ -238,7 +244,7 @@ coord_keys = coord_keys
 raw_y, raw_x, adata = load_adata(filepath=processed_path, adata_filename=float_adata, load_adata_directly=True, coord_keys=coord_keys)
 
 
-# In[14]:
+# In[49]:
 
 
 # ## Normalize and log transform data
@@ -252,7 +258,7 @@ adata.layers["counts"] = adata.X.copy()
 print(adata.layers["counts"][:5,:5])
 
 
-# In[15]:
+# In[50]:
 
 
 from banksy_utils.filter_utils import normalize_total, filter_hvg, print_max_min
@@ -262,7 +268,7 @@ normalize_total(adata)
 print(adata.X)
 
 
-# In[16]:
+# In[51]:
 
 
 ## Perform log-transformation and save the log-normalised in adata.raw
@@ -272,7 +278,7 @@ print(adata.X)
 adata.raw = adata.copy()
 
 
-# In[17]:
+# In[52]:
 
 
 # ## Generate spatial weights graph
@@ -308,7 +314,7 @@ log_time(f"Finished generating spatil weights graph for {dataset_name}.")
 
 
 
-# In[18]:
+# In[53]:
 
 
 # ### Generate spatial weights from distance
@@ -343,7 +349,7 @@ banksy_dict = initialize_banksy(
 log_time(f"Finished generating spatial weights from distance for {dataset_name}.")
 
 
-# In[19]:
+# In[54]:
 
 
 # ## Generate BANKSY matrix
@@ -362,7 +368,7 @@ banksy_dict, banksy_matrix = generate_banksy_matrix(adata, banksy_dict, lambda_l
 log_time(f"Finished generating BANKSY matrix for {dataset_name}.")
 
 
-# In[20]:
+# In[55]:
 
 
 # ### Append Non-spatial results to the `banksy_dict` for comparsion
@@ -377,7 +383,7 @@ banksy_dict["nonspatial"] = {
 print(banksy_dict['nonspatial'][0.0]['adata'])
 
 
-# In[21]:
+# In[56]:
 
 
 ## Perform UMAP embedding
@@ -391,7 +397,7 @@ pca_umap(banksy_dict,
 log_time(f"Finish PCA and UMAP embedding for {dataset_name}.")
 
 
-# In[22]:
+# In[57]:
 
 
 # ### Cluster cells using a partition algorithm
@@ -412,7 +418,7 @@ results_df, max_num_labels = run_Leiden_partition_parallel(
 log_time(f"Finished Leiden clustering for {dataset_name}.")
 
 
-# In[23]:
+# In[58]:
 
 
 # ## Dynamically extract the number of principal components from the results_df
@@ -420,7 +426,7 @@ log_time(f"Finished Leiden clustering for {dataset_name}.")
 # pc_dims = pc_label['num_pcs'].iloc[0]
 
 
-# In[24]:
+# In[59]:
 
 
 # ## Plot results
@@ -450,7 +456,7 @@ plot_results(
 print(results_df)
 
 
-# In[25]:
+# In[62]:
 
 
 ##########################################################
@@ -485,7 +491,7 @@ def determine_max_num_labels(nonspatial_labels, spatial_labels):
 max_num_labels=determine_max_num_labels(nonspatial_labels, spatial_labels)
 
 
-# In[26]:
+# In[64]:
 
 
 ########################################################
@@ -511,7 +517,7 @@ print(cluster2annotation_nonspatial)
 pad_clusters(cluster2annotation_spatial, list(range(max_num_labels)))
 
 
-# In[27]:
+# In[65]:
 
 
 #########################################################
@@ -532,15 +538,15 @@ for resolution in resolutions:
     adata_dict[resolution] = {"spatial": adata_spatial, "nonspatial": adata_nonspatial}
 
 
-# In[28]:
+# In[66]:
 
 
-pc_dims
+res_label
 
 
 # 
 
-# In[29]:
+# In[68]:
 
 
 ## Create a flat dictionary of the spatial and non-spatial 
@@ -550,7 +556,7 @@ for res, adatas in adata_dict.items():
     spatial_adatas[res]  = adatas["spatial"]
 
 
-# In[30]:
+# In[69]:
 
 
 # Save individaul anndata objects at each resolution
@@ -559,17 +565,17 @@ for res in resolutions:
     spatial_adatas[res].write_h5ad(os.path.join(processed_path, f"adata_spatial_{dataset_name}_{res_str}.h5ad"))
 
 
-# In[31]:
+# In[ ]:
 
 
 ## Export dictionary
-
+res_str = "_".join(res_label)
 ## Save the banksy dict as a pickle file to load it in later and avoid having to initialize repeatedly to save time
 ## Use gzip to save it with compression
 import gzip
 import pickle
 #for res in resolutions:
-with gzip.open(os.path.join(processed_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz"), "wb") as f:
+with gzip.open(os.path.join(processed_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str}_banksy_dict.pkl.gz"), "wb") as f:
     pickle.dump(banksy_dict, f)
 
 ## Export the results_df data frame
@@ -577,7 +583,7 @@ with gzip.open(os.path.join(processed_path, f"{dataset_name}_pc{pc_label}_nc{lam
 results_df.to_csv(os.path.join(processed_path,f"results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}.csv"))
 
 
-# In[32]:
+# In[80]:
 
 
 #############################################
@@ -594,18 +600,25 @@ merged = raw_cell_ids.copy()
 
 for res in resolutions:
     df = spatial_adatas[res].obs.reset_index()
-    res_label = float(res)
-    df = df[['index', f'labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res_label}0']]
+    #res_ = float(res)
+    #df = df[['index', f'labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res_label}0']]
+    df = df[['index', f'labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res:.2f}']]
     merged = pd.merge(merged, df, on = 'index', how = 'left')
 print(merged)
 
-merged.to_csv(os.path.join(processed_path, f"{dataset_name}_cell_cluster_id_across_clustering_res.csv"))
+merged.to_csv(os.path.join(processed_path, f"{dataset_name}_cell_cluster_id_across_clustering_res_{res_str}.csv"))
 
 
-# In[33]:
+# In[78]:
 
 
-print(res_label)
+resolutions
+
+
+# In[75]:
+
+
+res_label
 
 
 # In[34]:
