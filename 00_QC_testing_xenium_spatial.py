@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[178]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -11,7 +11,7 @@
 ## Author: Nathalie Nataren
 
 
-# In[2]:
+# In[179]:
 
 
 ### Import packages
@@ -77,42 +77,42 @@ random.seed(seed)
 #     "12" : "Stromal cells_12"}	
 
 
-# In[4]:
+# In[ ]:
 
 
-# # --------------------- PARSE ARGUMENTS FROM JSON CONFIG --------------------- #
+# --------------------- PARSE ARGUMENTS FROM JSON CONFIG --------------------- #
 
-# # This block of code feeds arguments to this python script from a config files found in /config
+# This block of code feeds arguments to this python script from a config files found in /config
 
-# ## Import argparse and json packages to read in variables from the per sample .json config files 
-# import argparse
-# import json
+## Import argparse and json packages to read in variables from the per sample .json config files 
+import argparse
+import json
 
-# parser = argparse.ArgumentParser(prog="used to parse arguments form 00_QC_xenium_spatial.py to run on slurm") # Initialise the parser
-# parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True) # This defines the flag and tells the script to look for a JSON config
-# # in the form of a string config file path
-# args = parser.parse_args() # Looks at what is passed throught the terminal (in the slurm script in this case) after --config and stores it 
+parser = argparse.ArgumentParser(prog="used to parse arguments form 00_QC_xenium_spatial.py to run on slurm") # Initialise the parser
+parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True) # This defines the flag and tells the script to look for a JSON config
+# in the form of a string config file path
+args = parser.parse_args() # Looks at what is passed throught the terminal (in the slurm script in this case) after --config and stores it 
 
-# with open(args.config) as f: # Opens the file path provided by the user
-#     cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
+with open(args.config) as f: # Opens the file path provided by the user
+    cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
 
-# ## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
-# dataset_name = cfg["dataset_name"] # sample name
-# pc_label = cfg["pc_label"] # Label for the number of principal components used for the purpose of filenames
-# pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
-# lambda_label = cfg["lambda_label"] # File name label for Lambda setting, see comment below. 
-# lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-# res_label = cfg["res_label"] # BANKSY clustering resolution label for resolution chosen to produce plots
-# resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-# nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
-# # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
-# # across regions if cells are pack more closely or loosely in different regions
+## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
+dataset_name = cfg["dataset_name"] # sample name
+pc_label = cfg["pc_label"] # Label for the number of principal components used for the purpose of filenames
+pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
+lambda_label = cfg["lambda_label"] # File name label for Lambda setting, see comment below. 
+lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
+res_label = cfg["res_label"] # BANKSY clustering resolution label for resolution chosen to produce plots
+resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
+# close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
+# across regions if cells are pack more closely or loosely in different regions
 
-# coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
-# new_labels = cfg["new_labels"] # These are the cluster labels for cell types
+coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
+new_labels = cfg["new_labels"] # These are the cluster labels for cell types
 
 
-# In[5]:
+# In[182]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -164,7 +164,7 @@ else:
     print(f"Directory '{qc_path}' already exists.")
 
 
-# In[12]:
+# In[183]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -182,19 +182,19 @@ adata = ad.read_h5ad(os.path.join(raw_path, f"{dataset_name}_raw.h5ad"))
 adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 
 
-# In[10]:
+# In[184]:
 
 
 raw_path
 
 
-# In[ ]:
+# In[185]:
 
 
 adata.obsm
 
 
-# In[13]:
+# In[186]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -205,7 +205,7 @@ adata.obsm
 adata = adata[adata.obs['nCount_Xenium'] > 0].copy()
 
 
-# In[14]:
+# In[187]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -230,7 +230,7 @@ adata.write_h5ad(
 float_adata = f"{dataset_name}_raw_float_32.h5ad"
 
 
-# In[15]:
+# In[188]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -248,7 +248,7 @@ coord_keys = coord_keys
 raw_y, raw_x, adata = load_adata(filepath=processed_path, adata_filename=float_adata, load_adata_directly=True, coord_keys=coord_keys)
 
 
-# In[16]:
+# In[189]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -279,7 +279,7 @@ plt.savefig(os.path.join(qc_path, f"banksy_counts_and_genes_plot_{dataset_name}.
 plt.show()
 
 
-# In[17]:
+# In[190]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -316,7 +316,7 @@ plt.show()
 print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee):,} ({num_cells/len(knee)*100:.1f}%)")
 
 
-# In[18]:
+# In[191]:
 
 
 # ---------------- Apply the minimum transcripts per cell mask --------------- #
@@ -336,7 +336,7 @@ mask_cells = mask_cells.rename(columns={"index":"cell_id", "nCount_Xenium" : "mi
 adata.obs['min_trans_passed'] = adata.obs['nCount_Xenium'] > threshold #True = passed
 
 
-# In[19]:
+# In[192]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
@@ -365,7 +365,7 @@ plt.show()
 print(f"Saving tissue_spatial_scatter_min_counts_threshold_passed_cells_{dataset_name}.png to {qc_path}" )                     
 
 
-# In[20]:
+# In[193]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -392,7 +392,7 @@ plt.savefig(
 plt.show() 
 
 
-# In[168]:
+# In[194]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -420,7 +420,7 @@ plt.savefig(
 plt.show() 
 
 
-# In[169]:
+# In[196]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -438,7 +438,7 @@ obs= adata.obs
 obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 
 
-# In[170]:
+# In[197]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -453,7 +453,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 print("All files saved to:", qc_path)
 
 
-# In[171]:
+# In[198]:
 
 
 # ----------- Calculate the total counts for genes across all cells ---------- #
@@ -471,7 +471,7 @@ top_genes_object.columns = ['gene', 'total_counts']
 top_genes_object.to_csv(os.path.join(qc_path, f"gene_counts_across_all_cells_{dataset_name}_test.csv"))
 
 
-# In[172]:
+# In[199]:
 
 
 # --------------------------- Plot the top 50 genes -------------------------- #
@@ -489,7 +489,7 @@ plt.savefig(
     )
 
 
-# In[173]:
+# In[200]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -515,7 +515,7 @@ adata.obs['max_trans_threshold_passed'] = max_trans_threshold_passed['max_transc
 max_trans_threshold_passed
 
 
-# In[175]:
+# In[201]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
@@ -544,7 +544,7 @@ plt.show()
 print(f"Saving tissue_spatial_scatter_max_counts_threshold_passed_cells_{dataset_name}.png to {qc_path}" )                     
 
 
-# In[176]:
+# In[202]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -555,7 +555,7 @@ file_path =f"{raw_path}/{dataset_name}/{dataset_name}_clustered_spatial_pc{pc_la
 print("Exists?", os.path.exists(file_path))
 
 
-# In[177]:
+# In[203]:
 
 
 # -------------------- Read in the processed AnnData file -------------------- #
