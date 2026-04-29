@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name=01_xenium_clustering
-#SBATCH --array=0-5%2 #limit to 2 so you're not using all the nodes
+#SBATCH --array=0-4%2 #limit to 2 so you're not using all the nodes
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
 #SBATCH --time=08:00:00
 #SBATCH --output=logs/xenium_clustering_%x_%A_%a.out

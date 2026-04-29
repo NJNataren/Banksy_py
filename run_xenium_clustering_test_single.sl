@@ -22,7 +22,7 @@
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG=/hpcfs/users/a1210419/Banksy_py/config/vbct/clustering/small/BE_brain_non_res.json #local testing
+CONFIG=/hpcfs/users/a1210419/Banksy_py/config/clustering/vbct/small/BE_brain_non_res.json #local testing
 ## CONFIG_DIR="config/clustering/vbct/small"
 ## CONFIGS=($CONFIG_DIR/*.json)
 ## CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
