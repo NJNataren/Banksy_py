@@ -4,9 +4,9 @@
 #SBATCH --array=0-7%2
 #number of samples to process
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=180G
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --output=logs/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
 #SBATCH --partition=sacgf
@@ -23,7 +23,7 @@
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG_DIR="config/vbct"
+CONFIG_DIR="config/QC/vbct"
 CONFIGS=($CONFIG_DIR/*.json)
 CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
 
