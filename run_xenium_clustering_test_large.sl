@@ -9,12 +9,12 @@
 #SBATCH --output=logs/xenium_clustering_%x_%A_%a.out
 #SBATCH --error=logs/xenium_clustering_%x_%A_%a.err
 #SBATCH --partition=sacgf
-#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_90
 #SBATCH --mail-user=nathalie.nataren@adelaide.edu.au
 
-#SBATCH --export=None
+#SBATCH --export=NONE
 
-
+set -euo pipefail
 ## Load conda environment
 
 ###############################

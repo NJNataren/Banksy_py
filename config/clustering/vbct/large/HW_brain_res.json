@@ -2,7 +2,7 @@
 	"dataset_name": "HW_brain_res",
     "pc_label": "30",
 	"lambda_label": "0.20",
-	"res_label": ["0.50"],
+	"res_label": ["0.90"],
 	"nbr_weight_decay": "scaled_gaussian",
 	"coord_keys": ["x", "y", "xy"],
 	

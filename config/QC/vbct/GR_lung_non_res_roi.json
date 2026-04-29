@@ -17,7 +17,5 @@
         "7" : "Immature_Myeloid_Cells_or_Tumour_Myeloid_Cells_7",
         "8" : "Mesenchymal-like_Melanoma_Cells_8",
         "9" : "Vascular_smooth_muscle_or_pericytes_9"
-    },
-   
-    "resolutions": ["0.5", "0.6", "0.7"]
+    }
 }

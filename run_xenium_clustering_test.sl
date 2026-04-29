@@ -13,7 +13,7 @@
 
 #SBATCH --export=None
 
-
+set -euo pipefail
 ## Load conda environment
 
 ###############################

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 #SBATCH --job-name=00_QC_testing_xenium_spatial
 #SBATCH --array=0-7%2
 #number of samples to process
@@ -11,8 +12,7 @@
 #SBATCH --error=logs/%x_%A_%a.err
 #SBATCH --partition=sacgf
 
-#SBATCH --export=None
-
+set -euo pipefail
 
 ## Load conda environment
 

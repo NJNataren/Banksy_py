@@ -25,6 +25,5 @@
     "15" : "Mast-like_immune_regulatory_cells_15", 
     "16" : "Invasive_melanoma_cells_(NOS2+)_16",
     "17" : "Dedifferentiated_melanoma_cells_17"
-},
-"resolutions": ["0.5", "0.6", "0.7"]
+}
 }

@@ -20,7 +20,5 @@
     "10" : "Melanocytic Melanoma Cells (MITF+ PKHD1L1+)_10",
     "11" : "Skin epithelial cells_11",
     "12" : "Stromal cells_12"
-},
-
-    "resolutions": ["0.5", "0.6", "0.7"]
+}
 }
