@@ -544,58 +544,58 @@ plt.show()
 print(f"Saving tissue_spatial_scatter_max_counts_threshold_passed_cells_{dataset_name}.png to {qc_path}" )                     
 
 
-# In[29]:
+# In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                      READ IN PRELABELLED ANNDATA OBJECT                      #
-# ---------------------------------------------------------------------------- #
-file_path =f"{raw_path}/{dataset_name}/{dataset_name}_clustered_spatial_pc{pc_label}_nc{lambda_label}_r{res_label}.h5ad"
+# # ---------------------------------------------------------------------------- #
+# #                      READ IN PRELABELLED ANNDATA OBJECT                      #
+# # ---------------------------------------------------------------------------- #
+# file_path =f"{raw_path}/{dataset_name}/{dataset_name}_clustered_spatial_pc{pc_label}_nc{lambda_label}_r{res_label}.h5ad"
 
-print("Exists?", os.path.exists(file_path))
-
-
-# In[30]:
+# print("Exists?", os.path.exists(file_path))
 
 
-# -------------------- Read in the processed AnnData file -------------------- #
-import gzip
-import pickle
-
-adata_lab = ad.read_h5ad(os.path.join(raw_path, f"{dataset_name}", f"{dataset_name}_clustered_spatial_pc{pc_label}_nc{lambda_label}_r{res_label}.h5ad"))
-print(f"Pre-lablled anndata object for {dataset_name} sucessfully read in.")
-
-## Read in the banksy_dict dictionary as a .pkl file
-## Use gzip to extract compressed dictionary
-
-dict_name = f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz"
-
-with gzip.open(os.path.join(raw_path, f"{dataset_name}", dict_name), "rb") as f:
-    banksy_dict = pickle.load(f)
-
-## Read in the results_df data frame as a .pkl file
-results_name = f"results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.pkl.gz"
-
-with gzip.open(os.path.join(raw_path, f"{dataset_name}", results_name), "rb") as f:
-    results_df = pickle.load(f)
+# In[ ]:
 
 
-# In[31]:
+# # -------------------- Read in the processed AnnData file -------------------- #
+# import gzip
+# import pickle
+
+# adata_lab = ad.read_h5ad(os.path.join(raw_path, f"{dataset_name}", f"{dataset_name}_clustered_spatial_pc{pc_label}_nc{lambda_label}_r{res_label}.h5ad"))
+# print(f"Pre-lablled anndata object for {dataset_name} sucessfully read in.")
+
+# ## Read in the banksy_dict dictionary as a .pkl file
+# ## Use gzip to extract compressed dictionary
+
+# dict_name = f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_banksy_dict.pkl.gz"
+
+# with gzip.open(os.path.join(raw_path, f"{dataset_name}", dict_name), "rb") as f:
+#     banksy_dict = pickle.load(f)
+
+# ## Read in the results_df data frame as a .pkl file
+# results_name = f"results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.pkl.gz"
+
+# with gzip.open(os.path.join(raw_path, f"{dataset_name}", results_name), "rb") as f:
+#     results_df = pickle.load(f)
 
 
-import scipy.sparse as sp
-import numpy as np
+# In[ ]:
 
-## Check if values are integers
-if sp.issparse(adata.X):
-    values = adata.X.data  # non-zero values only
-else:
-    values = adata.X.flatten()
 
-print(values[:20])  # look at actual values
-print(f"Are all integers: {np.all(values == values.astype(int))}")
-print(f"Max value: {values.max()}")
-print(f"Min value: {values.min()}")
+# import scipy.sparse as sp
+# import numpy as np
+
+# ## Check if values are integers
+# if sp.issparse(adata.X):
+#     values = adata.X.data  # non-zero values only
+# else:
+#     values = adata.X.flatten()
+
+# print(values[:20])  # look at actual values
+# print(f"Are all integers: {np.all(values == values.astype(int))}")
+# print(f"Max value: {values.max()}")
+# print(f"Min value: {values.min()}")
 
 
 # In[ ]:
@@ -607,10 +607,10 @@ print(f"Min value: {values.min()}")
 
 import scipy.sparse as sp
 
-if sp.issparse(adata_lab.X):
-    X = adata_lab.X.toarray()
+if sp.issparse(adata.X):
+    X = adata.X.toarray()
 else:
-    X = np.array(adata_lab.X) 
+    X = np.array(adata.X) 
 
 ## Import the noise_equiv_singular_value() function 
 from banksy_utils.pca import plot_singular_values
