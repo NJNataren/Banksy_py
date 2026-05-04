@@ -2,7 +2,7 @@
 	"dataset_name": "MG_gastric_non_res",
     "pc_label": "35",
 	"lambda_label": "0.20",
-	"res_label": ["0.50", "0.60", "0.70"],
+	"res_label": ["0.80", "0.90", "1.00"],
 	"nbr_weight_decay": "scaled_gaussian",
 	"coord_keys": ["x", "y", "xy"],
 	

@@ -607,7 +607,7 @@ with gzip.open(os.path.join(processed_path, f"{dataset_name}_pc{pc_label}_nc{lam
 
 ## Export the results_df data frame
 
-results_df.to_csv(os.path.join(processed_path,f"results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}.csv"))
+results_df.to_csv(os.path.join(processed_path,f"results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str}.csv"))
 
 
 # In[45]:

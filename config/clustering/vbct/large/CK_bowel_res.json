@@ -2,7 +2,7 @@
 	"dataset_name": "CK_bowel_res",
 	"pc_label": "35",
 	"lambda_label": "0.20",
-	"res_label": ["0.90"],
+	"res_label": ["1.00"],
 	"nbr_weight_decay": "scaled_gaussian",
 	"coord_keys": ["x", "y", "xy"],
 	
