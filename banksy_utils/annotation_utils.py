@@ -1,28 +1,43 @@
 # Author: Nathalie Nataren
-# Date: 30/09/
+# Date: 30/09/2025
 
 # These helper functions can be used to make cluster gene marker extraction eaiser to aid manual cluster annotation
 
 import copy
 import pandas as pd
 import os
+import numpy as np
 
 def filter_ranked_genes_by_type(
     adata, 
     key, # i.e., f"banksy_cluster_pc{pca_label}_nc{lambda_label}_r{res_label}_markers_raw"
-    gene_type='raw', # or "_nbr_0" or "_nbr_1"
-    top_n=20, 
-    new_key_suffix="_raw_only"):
+    gene_type : str, # "raw", "_nbr_0" or "_nbr_1"
+    top_n : int, 
+    new_key_suffix : str):
     """
+
     This function filters the ranked gene results (after running sc.tl.rank_genes_groups()) to include
     only genes of specific annotation and saves the results under a new key in 
     adata_spatial.uns, where:
-    raw = markers without suffixes "_nbr_0" and "_nbr_1", which are used to determine cluster identity
-    _nbr_0 = mean neighbour expression, these are genes that are expressed in cell neighbours
-    _nbr_1 = Azimuthal Gabor filter output, these genes expressed at a boundary of spatial interface in a directional pattern
-    """
+    "raw" -> the gene's won expression in each cell (this captures cell identity)
+    "_nbr_0" -> mean neighbour expression of a given gene, averaged over cell's spatial neighbour
+    "_nbr_1" -> Azimuthal Gabor filter output for a given gene, this measures the local expression gradient around each cell (is a cell in a tissue boundary)
 
-    import numpy as np
+    Parameters
+    ----------
+
+    adata : AnnData object
+        BANKSY clustered anndata object
+    key : str
+        The adata.obs column name created by `sc.tl.rank_genes_groups()` that indicates top markers for each cluster.
+    gene_type : str
+        select the gene type from those described above, "raw", "_nbr_0", and "_nbr_1".
+    top_n : int
+        The number of top genes to extract for a specified gene type.
+    new_key_suffix: str
+        The name for the new key that will be entered into adata.uns which can then be called by scanpy functions such as "sc.pl.rank_genes_groups()"
+
+    """
 
     # Copy the full rank_genes_groups results
     original= adata.uns[key]
@@ -31,14 +46,37 @@ def filter_ranked_genes_by_type(
     # Get cluster names
     clusters = original['names'].dtype.names
 
-    # Create new structured arrays for all the .uns data
-    new_names = np.recarray(shape=(top_n,), dtype = [(c, object) for c in clusters])
-    new_scores = np.recarray(shape=(top_n,), dtype = [(c, float) for c in clusters])
+    # Define all the fields to capture from .uns
+    fields = ['names', 'scores', 'pvals', 'pvals_adj', 'logfoldchanges']
+
+    # Build empty array for each field
+    new_arrays = {}
+
+    for f in fields:
+        # Gene names are strings,all other values are floats
+        if f == "names":
+            dtype = object
+        else:
+            dtype = float
+        
+        # Generate one column per cluster all with the same dtype
+        column_spec = []
+        for cluster_name in clusters:
+            column_spec.append((cluster_name, dtype))
+            #print(f"This is the cluster name '{cluster_name}'.")
+
+        # Empty table: top_n rows, one column per cluster
+        new_arrays[f] = np.recarray(shape=(top_n,), dtype=column_spec) 
+
+
+    # # Create new structured arrays for all the .uns data
+    # new_names = np.recarray(shape=(top_n,), dtype = [(c, object) for c in clusters])
+    # new_scores = np.recarray(shape=(top_n,), dtype = [(c, float) for c in clusters])
 
     for c in clusters:
         # Get the full list of genes and scores
         genes = original['names'][c]
-        scores = original['scores'][c]
+        #scores = original['scores'][c]
 
         # Filter the genes based on their gene_type annotation i.e., 'raw' for no suffix
         if gene_type == 'raw':
@@ -50,35 +88,42 @@ def filter_ranked_genes_by_type(
         else:
             raise ValueError("Invalid gene_type. Use 'raw', 'nbr_0' or 'nbr_1'.")
 
-        # Apply the filters and store the top_n genes and scores
-        # initialise empty lists
-        filtered_genes = []
-        filtered_scores = []
+        # Indices of kept gene, top_n only, array of original positions of our top_n genes
+        idx = np.where(mask)[0][:top_n]
 
-        # Iterate through each gene and its corresponding mask value
-        for g, m, score in zip(genes, mask, scores):
-            if m:
-                filtered_genes.append(g)
-                filtered_scores.append(score)
-    
-        # Keep only the top N genes and scores
-        filtered_genes = filtered_genes[:top_n]
-        filtered_scores = filtered_scores[:top_n]
+        # Loop through and slice every field with the same indices to that we take the top_n across all, then pad to top_n if needed
 
-        # pad the top genes if necessary
-        filtered_genes += [''] * (top_n - len(filtered_genes))
-        filtered_scores += [np.nan] * (top_n - len(filtered_scores))
+        for f in fields:
+            # Get the original values for field f and cluster c
+            full_column = original[f][c]
+            # Select only the positions for top_n that we want to keep
+            kept_values = full_column[idx]
+            #Convert to a list so we can append padding
+            values = list(kept_values)
 
-        # Assign to the structured arrays
-        new_names[c] = filtered_genes
-        new_scores[c] = filtered_scores
+            # Decide on padding depnding on the type of missing data
 
-    # store the filtered results under a new key
+            if f == "names":
+                pad_value =""
+            else:
+                pad_value = np.nan
+            
+            # Calculate bow many entries short by
+            n_missing = top_n -len(values)
+
+            # Pad by n_missing
+            values = values + [pad_value] * n_missing
+
+            # Write into the correct column of the new array
+            new_arrays[f][c] = values
+
+    # Replace each filed in the filtered copy
+    for f in fields:
+        filtered[f] = new_arrays[f]
 
     new_key = key + new_key_suffix
-    filtered['names'] = new_names
-    filtered['scores'] = new_scores
     adata.uns[new_key] = filtered
+
 
     # Copy group labels to .obs for downstream plotting e.g., sc.pl.rank_genes_groups_heatmap(
     original_groupby = key.replace("_markers", "")
@@ -88,10 +133,63 @@ def filter_ranked_genes_by_type(
         adata.obs[new_groupby] = adata.obs[original_groupby].copy()
         print(f"Copied cluster labels to adata.obs['{new_groupby}']")
     else:
-         print(f"⚠️ Could not find original groupby column '{original_groupby}' in adata.obs.")
+         print(f"Could not find original groupby column '{original_groupby}' in adata.obs.")
 
     print(f"Stored filtered {gene_type} markers in adata.uns['{new_key}']")
     return new_key
+
+        # Patch params so sc.pl.rank_genes_groups_* functions can find the right groupby column
+    if 'params' in original and isinstance(original['params'], dict):
+        filtered['params'] = dict(original['params'])
+    else:
+        filtered['params'] = {}
+    filtered['params']['groupby'] = new_groupby
+
+    print(f"Stored filtered {gene_type} markers in adata.uns['{new_key}']")
+    return new_key
+
+        # # Apply the filters and store the top_n genes and scores
+        # # initialise empty lists
+        # filtered_genes = []
+        # filtered_scores = []
+
+        # # Iterate through each gene and its corresponding mask value
+        # for g, m, score in zip(genes, mask, scores):
+        #     if m:
+        #         filtered_genes.append(g)
+        #         filtered_scores.append(score)
+    
+        # # Keep only the top N genes and scores
+        # filtered_genes = filtered_genes[:top_n]
+        # filtered_scores = filtered_scores[:top_n]
+
+        # # pad the top genes if necessary
+        # filtered_genes += [''] * (top_n - len(filtered_genes))
+        # filtered_scores += [np.nan] * (top_n - len(filtered_scores))
+
+        # # Assign to the structured arrays
+        # new_names[c] = filtered_genes
+        # new_scores[c] = filtered_scores
+
+    # # store the filtered results under a new key
+
+    # new_key = key + new_key_suffix
+    # filtered['names'] = new_names
+    # filtered['scores'] = new_scores
+    # adata.uns[new_key] = filtered
+
+    # # Copy group labels to .obs for downstream plotting e.g., sc.pl.rank_genes_groups_heatmap(
+    # original_groupby = key.replace("_markers", "")
+    # new_groupby = original_groupby + new_key_suffix
+
+    # if original_groupby in adata.obs.columns:
+    #     adata.obs[new_groupby] = adata.obs[original_groupby].copy()
+    #     print(f"Copied cluster labels to adata.obs['{new_groupby}']")
+    # else:
+    #      print(f"Could not find original groupby column '{original_groupby}' in adata.obs.")
+
+    # print(f"Stored filtered {gene_type} markers in adata.uns['{new_key}']")
+    # return new_key
 
 #######################################################################################
 

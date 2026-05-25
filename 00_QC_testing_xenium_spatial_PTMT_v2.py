@@ -109,7 +109,7 @@ nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much ne
 # across regions if cells are pack more closely or loosely in different regions
 
 coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
-new_labels = cfg["new_labels"] # These are the cluster labels for cell types
+#new_labels = cfg["new_labels"] # These are the cluster labels for cell types
 
 
 # In[9]:
