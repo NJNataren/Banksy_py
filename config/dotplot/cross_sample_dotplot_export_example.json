@@ -1,0 +1,27 @@
+{
+    "marker_file": "data/xenium/raw_data/gene_markers/table_s2_genes_in_xenium_gene_list.csv",
+    "gene_column": "Gene",
+    "marker_group_column": "Cell_type",
+    "expression_source": "raw",
+    "output_csv": "data/xenium/processed/cross_sample_dotplot_exports/cross_sample_dotplot_summary.csv",
+    "objects": [
+        {
+            "sample": "CK_skin_res",
+            "resolution": "0.50",
+            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p5.h5ad",
+            "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.50"
+        },
+        {
+            "sample": "CK_skin_res",
+            "resolution": "0.60",
+            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p6.h5ad",
+            "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.60"
+        },
+        {
+            "sample": "CK_skin_res",
+            "resolution": "0.70",
+            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p7.h5ad",
+            "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.70"
+        }
+    ]
+}
