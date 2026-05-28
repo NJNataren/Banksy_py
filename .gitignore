@@ -4,6 +4,12 @@
 /archive
 /hpc
 
+#Pycaches
+__pycache__/
+*.py[cod]
+
 # local Codex notes
 /CODEX/
 AGENTS.md
+DEVELOPER_NOTES.md
+PROJECT_CONTEXT.md

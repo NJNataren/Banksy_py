@@ -8,19 +8,19 @@
         {
             "sample": "CK_skin_res",
             "resolution": "0.50",
-            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p5.h5ad",
+            "adata_path": "data/xenium/processed/CK_skin_res/CK_skin_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.50"
         },
         {
             "sample": "CK_skin_res",
             "resolution": "0.60",
-            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p6.h5ad",
+            "adata_path": "data/xenium/processed/CK_skin_res/CK_skin_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.60"
         },
         {
             "sample": "CK_skin_res",
             "resolution": "0.70",
-            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p7.h5ad",
+            "adata_path": "data/xenium/processed/CK_skin_res/CK_skin_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.70"
         }
     ]
