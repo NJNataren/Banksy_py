@@ -6,7 +6,8 @@ Title: Export Dotplot Data From Config
 Date: 2026-05-29
 Summary: Export long-format dotplot-ready gene expression summaries from clean
 Xenium expression AnnData objects. The config defines marker selection, the
-expression source, cluster columns, and the combined CSV output path.
+expression source, cluster columns, and either one combined CSV output or split
+CSV outputs by fields such as resolution.
 """
 
 import argparse
@@ -240,20 +241,110 @@ def summarize_object(
     return rows
 
 
+def sanitize_output_label(value):
+    """Return a filename-safe label for a split output value."""
+    return str(value).replace(".", "p").replace("/", "-").replace(" ", "_")
+
+
+def default_split_output_path(output_csv, split_by, split_value):
+    """Build a split-output path when no explicit template is configured.
+
+    Args:
+        output_csv: Base CSV path from the config.
+        split_by: Column used to split the output.
+        split_value: Value of `split_by` for this output table.
+
+    Returns:
+        CSV path with a split label inserted before `_dotplot_summary` when
+        possible, otherwise before the `.csv` suffix.
+    """
+    label = sanitize_output_label(split_value)
+    suffix = f"_{split_by}_{label}"
+
+    if output_csv.endswith("_dotplot_summary.csv"):
+        return output_csv.replace("_dotplot_summary.csv", f"{suffix}_dotplot_summary.csv")
+
+    root, ext = os.path.splitext(output_csv)
+    return f"{root}{suffix}{ext or '.csv'}"
+
+
+def resolve_output_path(cfg, split_by=None, split_value=None):
+    """Resolve the CSV output path for combined or split export modes.
+
+    Args:
+        cfg: Dotplot export config dictionary.
+        split_by: Optional column used to split outputs.
+        split_value: Optional value for the current split.
+
+    Returns:
+        Path to the CSV that should be written.
+    """
+    output_csv = cfg["output_csv"]
+    if split_by is None:
+        return output_csv
+
+    template = cfg.get("output_csv_template")
+    if template:
+        return template.format(
+            split_by=split_by,
+            split_value=str(split_value),
+            split_label=sanitize_output_label(split_value),
+            resolution=str(split_value),
+            resolution_label=sanitize_output_label(split_value),
+        )
+
+    return default_split_output_path(output_csv, split_by, split_value)
+
+
+def write_dotplot_table(out, output_csv):
+    """Write one dotplot summary table to CSV and return the path."""
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    out.to_csv(output_csv, index=False)
+    print(f"Wrote {output_csv}")
+    return output_csv
+
+
+def write_dotplot_outputs(out, cfg):
+    """Write combined or split dotplot output tables.
+
+    Args:
+        out: Long-format dotplot summary DataFrame.
+        cfg: Dotplot export config dictionary.
+
+    Returns:
+        List of written CSV paths.
+    """
+    split_by = cfg.get("split_by")
+    if not split_by:
+        return [write_dotplot_table(out, resolve_output_path(cfg))]
+
+    if split_by not in out.columns:
+        raise ValueError(
+            f"split_by column {split_by!r} is not available. "
+            f"Available columns: {list(out.columns)}"
+        )
+
+    written_paths = []
+    for split_value, split_df in out.groupby(split_by, sort=True):
+        output_csv = resolve_output_path(cfg, split_by=split_by, split_value=split_value)
+        written_paths.append(write_dotplot_table(split_df, output_csv))
+
+    return written_paths
+
+
 def export_dotplot_summary(cfg):
-    """Export a combined long-format dotplot summary CSV.
+    """Export long-format dotplot summary CSVs.
 
     Args:
         cfg: Dotplot export config dictionary.
 
     Returns:
-        Path to the written CSV.
+        List of written CSV paths.
     """
     import pandas as pd
 
     expression_source = cfg.get("expression_source", "raw")
     objects = cfg["objects"]
-    output_csv = cfg["output_csv"]
     use_all_genes, marker_genes, marker_groups = load_marker_settings(cfg)
 
     rows = []
@@ -268,13 +359,10 @@ def export_dotplot_summary(cfg):
             )
         )
 
-    # Write one combined table across all configured objects. This can be
-    # concatenated across samples or plotted directly with seaborn/matplotlib.
+    # Write one combined table by default, or split tables when the config asks
+    # for one CSV per resolution/sample/etc.
     out = pd.DataFrame(rows)
-    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-    out.to_csv(output_csv, index=False)
-    print(f"Wrote {output_csv}")
-    return output_csv
+    return write_dotplot_outputs(out, cfg)
 
 
 def main():

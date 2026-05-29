@@ -1,0 +1,29 @@
+{
+    "output_png": "figures/dotplots/vbct_small_canonical_markers_multi_sample_dotplot.png",
+    "title": "VBCT small canonical marker dotplot",
+    "gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "CK_skin_res",
+        "GR_lung_non_res_roi"
+    ],
+    "resolution_order": [
+        "0.50",
+        "0.60",
+        "0.70"
+    ],
+    "figure": {
+        "min_width": 14,
+        "min_height": 10,
+        "width_per_gene": 0.35,
+        "height_per_cluster": 0.42,
+        "max_dot_size": 220,
+        "dpi": 300,
+        "cmap": "viridis"
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/cross_sample_dotplot_exports/CK_skin_res_r0p70_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/GR_lung_non_res_roi_r0p70_canonical_markers_dotplot_summary.csv"
+    ]
+}
