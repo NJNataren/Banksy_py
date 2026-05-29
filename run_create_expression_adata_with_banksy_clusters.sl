@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=02_create_expression_adata
-#SBATCH --array=0-0%1
+#SBATCH --array=0-1%1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
@@ -21,7 +21,7 @@ conda activate banksy
 
 # Override at submit time when needed, for example:
 # sbatch --export=CONFIG_DIR=config/dotplot/create_expression/vbct_small run_create_expression_adata_with_banksy_clusters.sl
-CONFIG_DIR="${CONFIG_DIR:-config/dotplot/testing/create_expression}"
+CONFIG_DIR="${CONFIG_DIR:-config/dotplot/create_expression/vbct_small}"
 shopt -s nullglob
 CONFIGS=("$CONFIG_DIR"/*.json)
 

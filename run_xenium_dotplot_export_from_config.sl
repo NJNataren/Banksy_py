@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=03_xenium_dotplot_export
-#SBATCH --array=0-1%1
+#SBATCH --array=0-2%1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
@@ -21,7 +21,7 @@ conda activate banksy
 
 # Override at submit time when needed, for example:
 # sbatch --export=CONFIG_DIR=config/dotplot/export_summary/vbct_small run_xenium_dotplot_export_from_config.sl
-CONFIG_DIR="${CONFIG_DIR:-config/dotplot/testing/export_summary}"
+CONFIG_DIR="${CONFIG_DIR:-config/dotplot/export_summary/vbct_small}"
 shopt -s nullglob
 CONFIGS=("$CONFIG_DIR"/*.json)
 
