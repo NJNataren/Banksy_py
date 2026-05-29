@@ -6,19 +6,19 @@
         {
             "sample": "GR_lung_non_res_roi",
             "resolution": "0.50",
-            "adata_path": "data/xenium/processed/CK_skin_res/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
+            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.50"
         },
         {
             "sample": "GR_lung_non_res_roi",
             "resolution": "0.60",
-            "adata_path": "data/xenium/processed/CK_skin_res/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
+            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.60"
         },
         {
             "sample": "GR_lung_non_res_roi",
             "resolution": "0.70",
-            "adata_path": "data/xenium/processed/CK_skin_res/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
+            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70"
         }
     ]
