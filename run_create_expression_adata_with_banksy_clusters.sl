@@ -21,7 +21,7 @@ conda activate banksy
 
 # Override at submit time when needed, for example:
 # sbatch --export=CONFIG_DIR=config/dotplot/create_expression/vbct_small run_create_expression_adata_with_banksy_clusters.sl
-CONFIG_DIR="${CONFIG_DIR:-config/dotplot/create_expression/local_test}"
+CONFIG_DIR="${CONFIG_DIR:-config/dotplot/testing/create_expression}"
 shopt -s nullglob
 CONFIGS=("$CONFIG_DIR"/*.json)
 

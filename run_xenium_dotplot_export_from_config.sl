@@ -21,7 +21,7 @@ conda activate banksy
 
 # Override at submit time when needed, for example:
 # sbatch --export=CONFIG_DIR=config/dotplot/export_summary/vbct_small run_xenium_dotplot_export_from_config.sl
-CONFIG_DIR="${CONFIG_DIR:-config/dotplot/export_summary/local_test}"
+CONFIG_DIR="${CONFIG_DIR:-config/dotplot/testing/export_summary}"
 shopt -s nullglob
 CONFIGS=("$CONFIG_DIR"/*.json)
 
