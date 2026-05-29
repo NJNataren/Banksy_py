@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --job-name=03_xenium_dotplot_export
-#SBATCH --array=0-1%1
+#SBATCH --job-name=02_create_expression_adata
+#SBATCH --array=0-0%1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
@@ -20,8 +20,8 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 # Override at submit time when needed, for example:
-# sbatch --export=CONFIG_DIR=config/dotplot/export_summary/vbct_small run_xenium_dotplot_export_from_config.sl
-CONFIG_DIR="${CONFIG_DIR:-config/dotplot/export_summary/local_test}"
+# sbatch --export=CONFIG_DIR=config/dotplot/create_expression/vbct_small run_create_expression_adata_with_banksy_clusters.sl
+CONFIG_DIR="${CONFIG_DIR:-config/dotplot/create_expression/local_test}"
 shopt -s nullglob
 CONFIGS=("$CONFIG_DIR"/*.json)
 
@@ -47,6 +47,6 @@ echo "Config contents:"
 cat "$CONFIG"
 echo "================================="
 
-python 03_export_dotplot_data_from_config.py --config "$CONFIG"
+python 02_create_expression_adata_with_banksy_clusters.py --config "$CONFIG"
 
-echo "Dotplot export finished: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Expression AnnData creation finished: $(date '+%Y-%m-%d %H:%M:%S')"

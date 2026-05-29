@@ -1,0 +1,27 @@
+{
+    "expression_adata_path": "data/xenium/processed/CK_skin_res/CK_skin_res_float_32.h5ad",
+    "output_h5ad": "data/xenium/processed/CK_skin_res/CK_skin_res_normalised_log1p_with_banksy_clusters.h5ad",
+    "filter_obs_key": "nCount_Xenium",
+    "filter_min": 0,
+    "counts_layer": "counts",
+    "objects": [
+        {
+            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p5.h5ad",
+            "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.50",
+            "annotation_column": "cell type",
+            "annotation_output": "labels_scaled_gaussian_pc20_nc0.20_r0.50_annotation"
+        },
+        {
+            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p6.h5ad",
+            "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.60",
+            "annotation_column": "cell type",
+            "annotation_output": "labels_scaled_gaussian_pc20_nc0.20_r0.60_annotation"
+        },
+        {
+            "adata_path": "data/xenium/processed/CK_skin_res/adata_spatial_CK_skin_res_0p7.h5ad",
+            "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.70",
+            "annotation_column": "cell type",
+            "annotation_output": "labels_scaled_gaussian_pc20_nc0.20_r0.70_annotation"
+        }
+    ]
+}
