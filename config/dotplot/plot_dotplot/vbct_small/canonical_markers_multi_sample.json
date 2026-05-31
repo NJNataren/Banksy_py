@@ -24,6 +24,12 @@
     },
     "dotplot_summary_csvs": [
         "data/xenium/processed/cross_sample_dotplot_exports/CK_skin_res_r0p70_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/EL_skin_res_r0p70_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/MF_skin_non_res_r1p1_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/BE_brain_non_res_r0p70_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/HW_brain_res_r1p1_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/CK_bowel_res_r1p1_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/MG_gastric_non_res_r0p70_canonical_markers_dotplot_summary.csv",
         "data/xenium/processed/cross_sample_dotplot_exports/GR_lung_non_res_roi_r0p70_canonical_markers_dotplot_summary.csv"
     ]
 }

@@ -1,0 +1,27 @@
+{
+    "use_all_genes": true,
+    "expression_source": "raw",
+    "output_csv": "data/xenium/processed/cross_sample_dotplot_exports/GR_lung_non_res_roi_all_genes_dotplot_summary.csv",
+    "objects": [
+        {
+            "sample": "GR_lung_non_res_roi",
+            "resolution": "0.50",
+            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
+            "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.50"
+        },
+        {
+            "sample": "GR_lung_non_res_roi",
+            "resolution": "0.60",
+            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
+            "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.60"
+        },
+        {
+            "sample": "GR_lung_non_res_roi",
+            "resolution": "0.70",
+            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
+            "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70"
+        }
+    ],
+    "split_by": "resolution",
+    "output_csv_template": "data/xenium/processed/cross_sample_dotplot_exports/GR_lung_non_res_roi_r{resolution_label}_all_genes_dotplot_summary.csv"
+}
