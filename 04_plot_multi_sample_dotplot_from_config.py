@@ -308,7 +308,7 @@ def add_gene_group_labels(ax, gene_order, cluster_order, gene_groups):
             ha="center",
             va="bottom",
             rotation=90,
-            fontsize=8,
+            fontsize=16,
             color="#333333",
         )
 
@@ -370,13 +370,15 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
     )
 
     ax.set_xticks(range(len(gene_order)))
-    ax.set_xticklabels(gene_order, rotation=90)
+    ax.set_xticklabels(gene_order, rotation=90, fontsize=16)
     ax.set_yticks(range(len(cluster_order)))
-    ax.set_yticklabels(make_cluster_labels(df, cluster_order))
+    ax.set_yticklabels(make_cluster_labels(df, cluster_order), fontsize=14)
     ax.set_ylim(-0.75, len(cluster_order) - 0.25)
     ax.set_xlabel("Gene")
     ax.set_ylabel("Sample / resolution / cluster")
-    ax.set_title(cfg.get("title", "Multi-sample dotplot summary"))
+    #ax.set_title(cfg.get("title", "Multi-sample dotplot summary"))
+    title = cfg.get("title", "Multi-sample dotplot summary")
+    fig.suptitle(title, fontsize=14, y=0.995)
 
     add_gene_group_labels(ax, gene_order, cluster_order, gene_groups)
     add_sample_separators(ax, df, cluster_order)
