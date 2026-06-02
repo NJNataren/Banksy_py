@@ -1,7 +1,9 @@
 {
-    "use_all_genes": true,
+    "marker_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
+    "gene_column": "Gene",
+    "marker_group_column": "Tier_1_annotation",
     "expression_source": "raw",
-    "output_csv": "data/xenium/processed/cross_sample_dotplot_exports/CK_bowel_res_all_genes_dotplot_summary.csv",
+    "output_csv": "data/xenium/processed/cross_sample_dotplot_exports/CK_bowel_res_canonical_markers_dotplot_summary.csv",
     "objects": [
         {
             "sample": "CK_bowel_res",
@@ -21,7 +23,5 @@
             "adata_path": "data/xenium/processed/CK_bowel_res/CK_bowel_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc35_nc0.20_r1.10"
         }
-    ],
-    "split_by": "resolution",
-    "output_csv_template": "data/xenium/processed/cross_sample_dotplot_exports/CK_bowel_res_r{resolution_label}_all_genes_dotplot_summary.csv"
+    ]
 }

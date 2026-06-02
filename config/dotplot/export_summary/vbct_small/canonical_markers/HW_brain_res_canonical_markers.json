@@ -23,7 +23,5 @@
             "adata_path": "data/xenium/processed/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.10"
         }
-    ],
-    "split_by": "resolution",
-    "output_csv_template": "data/xenium/processed/cross_sample_dotplot_exports/HW_brain_res_r{resolution_label}_canonical_markers_dotplot_summary.csv"
+    ]
 }

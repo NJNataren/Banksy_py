@@ -21,7 +21,5 @@
             "adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70"
         }
-    ],
-    "split_by": "resolution",
-    "output_csv_template": "data/xenium/processed/cross_sample_dotplot_exports/GR_lung_non_res_roi_r{resolution_label}_all_genes_dotplot_summary.csv"
+    ]
 }
