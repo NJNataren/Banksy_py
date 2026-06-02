@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name=02_create_expression_adata
-#SBATCH --array=0-1%1
+#SBATCH --array=0-7%3
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
 #SBATCH --output=logs/%x_%A_%a.out

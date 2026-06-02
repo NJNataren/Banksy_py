@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=03_xenium_dotplot_export
-#SBATCH --array=0-15%1
+#SBATCH --array=0-15%3
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
