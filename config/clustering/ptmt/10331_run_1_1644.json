@@ -2,7 +2,7 @@
     "dataset_name": "10331_run_1_1644",
     "pca_label": "20",
     "lambda_label": "0.20",
-    "res_label": "0.50",
+    "res_label": ["0.50", "0.60", "0.70"],
     "nbr_weight_decay": "scaled_gaussian",
     "coord_keys": ["x", "y", "xy"]
 }

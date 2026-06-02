@@ -24,7 +24,8 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 #CONFIG=/hpcfs/users/a1210419/Banksy_py/config/vbct/CK_skin_res.json #local testing
-CONFIG_DIR="config/clustering/vbct/small"
+#CONFIG_DIR="config/clustering/vbct/small"
+CONFIG_DIR="config/clustering/ptmt"
 CONFIGS=($CONFIG_DIR/*.json)
 CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
 
@@ -43,6 +44,7 @@ echo "================================="
 #	Run the QC script	#
 #########################
 
-python 01_xenium_clustering.py --config $CONFIG
+#python 01_xenium_clustering.py --config $CONFIG
+python 01_xenium_clustering_clean_adata_test.py --config $CONFIG
 
 echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')"
