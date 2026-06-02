@@ -1,0 +1,70 @@
+{
+    "output_png": "figures/dotplots/local_canonical_markers_multi_sample_dotplot.png",
+    "title": "Local canonical marker dotplot",
+    "gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "CK_skin_res",
+        "EL_skin_res",
+        "MF_skin_non_res",
+        "BE_brain_non_res",
+        "HW_brain_res",
+        "CK_bowel_res",
+        "MG_gastric_non_res",
+        "GR_lung_non_res_roi"
+    ],
+    "figure": {
+        "min_width": 14,
+        "min_height": 10,
+        "width_per_gene": 0.35,
+        "height_per_cluster": 0.42,
+        "max_dot_size": 220,
+        "dpi": 100,
+        "cmap": "viridis"
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/CK_skin_res_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/EL_skin_res_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/MF_skin_non_res_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/BE_brain_non_res_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/HW_brain_res_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/CK_bowel_res_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/MG_gastric_non_res_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/GR_lung_non_res_roi_canonical_markers_dotplot_summary.csv"
+    ],
+    "sample_filters": [
+        {
+            "sample": "CK_skin_res",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "EL_skin_res",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "MF_skin_non_res",
+            "resolution": "1.1"
+        },
+        {
+            "sample": "BE_brain_non_res",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "HW_brain_res",
+            "resolution": "1.1"
+        },
+        {
+            "sample": "CK_bowel_res",
+            "resolution": "1.1"
+        },
+        {
+            "sample": "MG_gastric_non_res",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "GR_lung_non_res_roi",
+            "resolution": "0.7"
+        }
+    ]
+}

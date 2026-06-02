@@ -36,7 +36,7 @@ DEFAULT_FIGURE = {
     "width_per_gene": 0.35,
     "height_per_cluster": 0.42,
     "max_dot_size": 220,
-    "dpi": 300,
+    "dpi": 100,
     "cmap": "viridis",
 }
 
@@ -121,6 +121,56 @@ def filter_values(df, column, allowed_values):
     if filtered.empty:
         raise ValueError(f"Filtering {column!r} to {allowed_values} removed all rows")
     return filtered
+
+
+def apply_sample_filters(df, sample_filters):
+    """Apply sample-specific filters such as chosen resolution per sample.
+
+    Args:
+        df: Combined dotplot summary table.
+        sample_filters: List of config entries with `sample` and optional
+            `resolution` values.
+
+    Returns:
+        Filtered DataFrame containing only requested sample/resolution rows.
+
+    Raises:
+        ValueError: If a requested sample is absent, if a sample is listed more
+            than once, or if a requested resolution is unavailable.
+    """
+    if not sample_filters:
+        return df
+
+    filtered_parts = []
+    seen_samples = set()
+
+    for item in sample_filters:
+        sample = str(item["sample"])
+        resolution = str(item.get("resolution", "")).strip()
+
+        if sample in seen_samples:
+            raise ValueError(f"Sample {sample!r} appears more than once in sample_filters")
+        seen_samples.add(sample)
+
+        sample_df = df[df["sample"].astype(str) == sample].copy()
+        if sample_df.empty:
+            raise ValueError(f"Sample {sample!r} was not found in the input CSVs")
+
+        # Leave resolution blank in template configs so the user can fill their
+        # preferred comparison level later without breaking the JSON structure.
+        if resolution:
+            sample_df = sample_df[sample_df["resolution"].astype(str) == resolution].copy()
+            if sample_df.empty:
+                raise ValueError(
+                    f"Resolution {resolution!r} was not found for sample {sample!r}"
+                )
+
+        filtered_parts.append(sample_df)
+
+    if not filtered_parts:
+        raise ValueError("sample_filters removed all rows")
+
+    return pd.concat(filtered_parts, ignore_index=True)
 
 
 def load_gene_file(gene_file, gene_column, gene_group_column):
@@ -281,13 +331,12 @@ def make_cluster_labels(df, cluster_order):
     return labels
 
 
-def add_gene_group_labels(ax, gene_order, cluster_order, gene_groups):
+def add_gene_group_labels(ax, gene_order, gene_groups):
     """Draw vertical separators and labels for grouped genes.
 
     Args:
         ax: Matplotlib axes containing the dotplot.
         gene_order: Ordered list of genes along the x-axis.
-        cluster_order: Ordered list of y-axis cluster identifiers.
         gene_groups: Optional mapping from gene name to group label.
     """
     if not gene_groups or not gene_order:
@@ -306,19 +355,32 @@ def add_gene_group_labels(ax, gene_order, cluster_order, gene_groups):
             start = idx
 
     group_runs.append((current_group, start, len(gene_order) - 1))
-
-    top_y = len(cluster_order) - 0.05
+    # These ax.text function calls control the distance of the cell type labels from the x-axis at the top and bottom of the plot
     for group_name, start, end in group_runs:
         midpoint = (start + end) / 2
         ax.text(
             midpoint,
-            top_y,
+            1.03,
             group_name,
             ha="center",
             va="bottom",
             rotation=90,
-            fontsize=8,
+            fontsize=16,
             color="#333333",
+            transform=ax.get_xaxis_transform(),
+            clip_on=False,
+        )
+        ax.text(
+            midpoint,
+            -0.03,
+            group_name,
+            ha="center",
+            va="top",
+            rotation=90,
+            fontsize=16,
+            color="#333333",
+            transform=ax.get_xaxis_transform(),
+            clip_on=False,
         )
 
 
@@ -381,22 +443,26 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
     )
 
     ax.set_xticks(range(len(gene_order)))
-    ax.set_xticklabels(gene_order, rotation=90)
+    ax.set_xticklabels(gene_order, rotation=90, fontsize=16)
+    ax.tick_params(axis="x", top=True, labeltop=True)
     ax.set_yticks(range(len(cluster_order)))
-    ax.set_yticklabels(make_cluster_labels(df, cluster_order))
+    ax.set_yticklabels(make_cluster_labels(df, cluster_order), fontsize=14)
     ax.set_ylim(-0.75, len(cluster_order) - 0.25)
-    ax.set_xlabel("Gene")
-    ax.set_ylabel("Sample / resolution / cluster")
-    ax.set_title(cfg.get("title", "Multi-sample dotplot summary"))
+    ax.set_xlabel("Gene", fontsize=16)
+    ax.set_ylabel("Sample / resolution / cluster", fontsize=16)
+    ax.tick_params(axis="x", labelsize=16)
+    ax.tick_params(axis="y", labelsize=14)
+    fig.suptitle(cfg.get("title", "Multi-sample dotplot summary"), fontsize=18, y=0.99)
 
-    add_gene_group_labels(ax, gene_order, cluster_order, gene_groups)
+    add_gene_group_labels(ax, gene_order, gene_groups)
     add_sample_separators(ax, df, cluster_order)
 
     ax.grid(axis="both", color="#e6e6e6", linewidth=0.5)
     ax.set_axisbelow(True)
 
     cbar = fig.colorbar(scatter, ax=ax, pad=0.01)
-    cbar.set_label(cfg.get("colorbar_label", "Mean expression"))
+    cbar.set_label(cfg.get("colorbar_label", "Mean expression"), fontsize=16)
+    cbar.ax.tick_params(labelsize=16)
 
     for pct in cfg.get("size_legend_percentages", [25, 50, 75, 100]):
         ax.scatter(
@@ -416,7 +482,7 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
         frameon=False,
     )
 
-    fig.tight_layout()
+    fig.tight_layout(rect=[0.03, 0.04, 0.98, 0.88])
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
     fig.savefig(output_png, dpi=figure_cfg["dpi"], bbox_inches="tight")
     print(f"Wrote {output_png}")
@@ -440,6 +506,7 @@ def main():
     cfg = load_config(args.config)
 
     df = load_export_tables(get_dotplot_summary_csvs(cfg))
+    df = apply_sample_filters(df, cfg.get("sample_filters"))
     df = filter_values(df, "sample", cfg.get("samples"))
     df = filter_values(df, "resolution", cfg.get("resolutions"))
 
