@@ -452,7 +452,7 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
     ax.set_ylabel("Sample / resolution / cluster", fontsize=16)
     ax.tick_params(axis="x", labelsize=16)
     ax.tick_params(axis="y", labelsize=14)
-    fig.suptitle(cfg.get("title", "Multi-sample dotplot summary"), fontsize=18, y=0.99)
+    fig.suptitle(cfg.get("title", "Multi-sample dotplot summary"), fontsize=18, y=0.88)
 
     add_gene_group_labels(ax, gene_order, gene_groups)
     add_sample_separators(ax, df, cluster_order)

@@ -1,6 +1,6 @@
 {
     "output_png": "figures/dotplots/local_canonical_markers_multi_sample_dotplot.png",
-    "title": "Local canonical marker dotplot",
+    "title": "Canonical marker dotplot",
     "gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
     "gene_column": "Gene",
     "gene_group_column": "Tier_1_annotation",
