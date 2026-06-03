@@ -1,6 +1,6 @@
 {
-    "output_png": "figures/dotplots/local_canonical_markers_multi_sample_dotplot.png",
-    "title": "Canonical marker dotplot",
+    "output_png": "figures/dotplots/local_canonical_markers_multi_sample_zscore_dotplot.png",
+    "title": "Canonical marker dotplot, z-scored by gene",
     "gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
     "gene_column": "Gene",
     "gene_group_column": "Tier_1_annotation",
@@ -20,8 +20,10 @@
         "width_per_gene": 0.35,
         "height_per_cluster": 0.42,
         "max_dot_size": 220,
-        "dpi": 100,
-        "cmap": "viridis"
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5
     },
     "dotplot_summary_csvs": [
         "data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/CK_skin_res_canonical_markers_dotplot_summary.csv",
@@ -66,5 +68,13 @@
             "sample": "GR_lung_non_res_roi",
             "resolution": "0.7"
         }
-    ]
+    ],
+    "gene_review_file": "data/xenium/raw_data/gene_markers/xenium_canonical_gene_review_for_dotplot.csv",
+    "gene_review_gene_column": "Gene",
+    "gene_review_keep_column": "keep_for_dotplot",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score"
 }

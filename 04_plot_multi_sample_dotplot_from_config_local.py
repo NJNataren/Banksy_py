@@ -38,6 +38,18 @@ DEFAULT_FIGURE = {
     "max_dot_size": 220,
     "dpi": 100,
     "cmap": "viridis",
+    "color_vmin": None,
+    "color_vmax": None,
+    "x_tick_fontsize": 16,
+    "y_tick_fontsize": 14,
+    "axis_label_fontsize": 16,
+    "title_fontsize": 18,
+    "title_y": 0.88,
+    "colorbar_fontsize": 16,
+    "gene_group_fontsize": 16,
+    "highlight_label_color": "#d62728",
+    "highlight_label_weight": "bold",
+    "tight_layout_rect": [0.03, 0.04, 0.98, 0.88],
 }
 
 
@@ -218,6 +230,145 @@ def load_gene_file(gene_file, gene_column, gene_group_column):
     return requested_genes, gene_groups
 
 
+def load_highlight_genes(highlight_gene_file, highlight_gene_column):
+    """Load genes whose x-axis labels should be visually highlighted.
+
+    Args:
+        highlight_gene_file: Optional CSV containing genes to highlight.
+        highlight_gene_column: Column containing gene symbols.
+
+    Returns:
+        Set of gene symbols to highlight.
+    """
+    if not highlight_gene_file:
+        return set()
+
+    highlight_df = pd.read_csv(highlight_gene_file)
+    if highlight_gene_column not in highlight_df.columns:
+        raise ValueError(
+            f"Highlight gene column {highlight_gene_column!r} not found in "
+            f"{highlight_gene_file}. Available columns: {list(highlight_df.columns)}"
+        )
+
+    return set(
+        highlight_df[highlight_gene_column]
+        .dropna()
+        .astype(str)
+        .drop_duplicates()
+        .tolist()
+    )
+
+
+def is_keep_gene_value(value):
+    """Return whether a review-table value means the gene should be plotted."""
+    if pd.isna(value):
+        return True
+
+    normalized = str(value).strip().lower()
+    if not normalized:
+        return True
+
+    return normalized not in {"false", "f", "no", "n", "0", "drop", "exclude"}
+
+
+def apply_gene_review_filter(df, gene_order, gene_groups, cfg):
+    """Remove genes marked for exclusion in an optional review CSV.
+
+    Args:
+        df: Filtered long-format dotplot summary table.
+        gene_order: Ordered genes currently planned for the x-axis.
+        gene_groups: Optional mapping from gene name to group label.
+        cfg: Plot config dictionary.
+
+    Returns:
+        Tuple of filtered DataFrame, filtered gene order, and filtered gene groups.
+    """
+    review_file = cfg.get("gene_review_file")
+    if not review_file:
+        return df, gene_order, gene_groups
+
+    gene_column = cfg.get("gene_review_gene_column", cfg.get("gene_column", "Gene"))
+    keep_column = cfg.get("gene_review_keep_column", "keep_for_dotplot")
+    review_df = pd.read_csv(review_file)
+
+    for column in [gene_column, keep_column]:
+        if column not in review_df.columns:
+            raise ValueError(
+                f"Gene review column {column!r} not found in {review_file}. "
+                f"Available columns: {list(review_df.columns)}"
+            )
+
+    review_df = review_df.dropna(subset=[gene_column]).copy()
+    review_df[gene_column] = review_df[gene_column].astype(str)
+    review_df["keep_for_dotplot_resolved"] = review_df[keep_column].map(
+        is_keep_gene_value
+    )
+
+    dropped_genes = set(
+        review_df.loc[~review_df["keep_for_dotplot_resolved"], gene_column]
+        .drop_duplicates()
+        .tolist()
+    )
+    if not dropped_genes:
+        return df, gene_order, gene_groups
+
+    df = df[~df["gene"].astype(str).isin(dropped_genes)].copy()
+    gene_order = [gene for gene in gene_order if gene not in dropped_genes]
+    if gene_groups:
+        gene_groups = {
+            gene: group for gene, group in gene_groups.items() if gene not in dropped_genes
+        }
+
+    if df.empty or not gene_order:
+        raise ValueError("gene_review_file removed all genes from the plot")
+
+    print(f"Dropped {len(dropped_genes)} genes using {review_file}")
+    return df, gene_order, gene_groups
+
+
+def apply_expression_zscore(df, cfg):
+    """Optionally z-score mean expression values within each gene.
+
+    Args:
+        df: Filtered long-format dotplot summary table after unwanted genes have
+            been removed.
+        cfg: Plot config dictionary.
+
+    Returns:
+        DataFrame with `mean_expression_zscore` added when configured.
+    """
+    if not cfg.get("z_score_expression", False):
+        return df
+
+    expression_column = cfg.get("z_score_expression_column", "mean_expression")
+    if expression_column not in df.columns:
+        raise ValueError(
+            f"Z-score expression column {expression_column!r} was not found. "
+            f"Available columns: {list(df.columns)}"
+        )
+
+    df = df.copy()
+    expression = pd.to_numeric(df[expression_column], errors="coerce")
+    gene_means = expression.groupby(df["gene"]).transform("mean")
+    gene_stds = expression.groupby(df["gene"]).transform(lambda values: values.std(ddof=0))
+    z_scores = (expression - gene_means) / gene_stds.replace(0, pd.NA)
+    z_scores = z_scores.fillna(0.0)
+
+    z_score_clip = cfg.get("z_score_clip")
+    if z_score_clip is not None:
+        z_scores = z_scores.clip(lower=-float(z_score_clip), upper=float(z_score_clip))
+
+    df["mean_expression_zscore"] = z_scores
+    cfg.setdefault("color_value_column", "mean_expression_zscore")
+    cfg.setdefault("colorbar_label", "Mean expression z-score")
+    cfg.setdefault("figure", {})
+    cfg["figure"].setdefault("cmap", "RdBu_r")
+    cfg["figure"].setdefault("color_vmin", -float(z_score_clip or 2.5))
+    cfg["figure"].setdefault("color_vmax", float(z_score_clip or 2.5))
+    print("Z-scored mean_expression within each gene for dotplot colors")
+    return df
+
+
 def resolve_gene_order(df, cfg):
     """Filter genes and determine x-axis order.
 
@@ -331,13 +482,14 @@ def make_cluster_labels(df, cluster_order):
     return labels
 
 
-def add_gene_group_labels(ax, gene_order, gene_groups):
+def add_gene_group_labels(ax, gene_order, gene_groups, figure_cfg):
     """Draw vertical separators and labels for grouped genes.
 
     Args:
         ax: Matplotlib axes containing the dotplot.
         gene_order: Ordered list of genes along the x-axis.
         gene_groups: Optional mapping from gene name to group label.
+        figure_cfg: Plot sizing and style options from the config.
     """
     if not gene_groups or not gene_order:
         return
@@ -365,7 +517,7 @@ def add_gene_group_labels(ax, gene_order, gene_groups):
             ha="center",
             va="bottom",
             rotation=90,
-            fontsize=16,
+            fontsize=figure_cfg["gene_group_fontsize"],
             color="#333333",
             transform=ax.get_xaxis_transform(),
             clip_on=False,
@@ -377,11 +529,28 @@ def add_gene_group_labels(ax, gene_order, gene_groups):
             ha="center",
             va="top",
             rotation=90,
-            fontsize=16,
+            fontsize=figure_cfg["gene_group_fontsize"],
             color="#333333",
             transform=ax.get_xaxis_transform(),
             clip_on=False,
         )
+
+
+def style_highlighted_gene_labels(ax, highlight_genes, figure_cfg):
+    """Highlight selected gene tick labels on the x-axis.
+
+    Args:
+        ax: Matplotlib axes containing the dotplot.
+        highlight_genes: Set of gene symbols to highlight.
+        figure_cfg: Plot style options from the config.
+    """
+    if not highlight_genes:
+        return
+
+    for tick_label in ax.xaxis.get_ticklabels():
+        if tick_label.get_text() in highlight_genes:
+            tick_label.set_color(figure_cfg["highlight_label_color"])
+            tick_label.set_fontweight(figure_cfg["highlight_label_weight"])
 
 
 def add_sample_separators(ax, df, cluster_order):
@@ -399,7 +568,7 @@ def add_sample_separators(ax, df, cluster_order):
         previous_sample = sample
 
 
-def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
+def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cfg):
     """Render and save the multi-sample dotplot.
 
     Args:
@@ -407,6 +576,7 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
         gene_order: Ordered genes for the x-axis.
         cluster_order: Ordered cluster identifiers for the y-axis.
         gene_groups: Optional mapping from gene to group label.
+        highlight_genes: Set of genes whose x-axis labels should be highlighted.
         cfg: Plot config dictionary.
     """
     figure_cfg = {**DEFAULT_FIGURE, **cfg.get("figure", {})}
@@ -414,6 +584,13 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
 
     gene_to_x = {gene: i for i, gene in enumerate(gene_order)}
     cluster_to_y = {cluster: i for i, cluster in enumerate(cluster_order)}
+
+    color_value_column = cfg.get("color_value_column", "mean_expression")
+    if color_value_column not in df.columns:
+        raise ValueError(
+            f"Color value column {color_value_column!r} was not found. "
+            f"Available columns: {list(df.columns)}"
+        )
 
     plot_df = df.copy()
     plot_df["x"] = plot_df["gene"].map(gene_to_x)
@@ -436,33 +613,50 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
         plot_df["x"],
         plot_df["y"],
         s=plot_df["dot_size"],
-        c=plot_df["mean_expression"],
+        c=plot_df[color_value_column],
         cmap=figure_cfg["cmap"],
+        vmin=figure_cfg.get("color_vmin"),
+        vmax=figure_cfg.get("color_vmax"),
         edgecolors="black",
         linewidths=0.25,
     )
 
     ax.set_xticks(range(len(gene_order)))
-    ax.set_xticklabels(gene_order, rotation=90, fontsize=16)
+    ax.set_xticklabels(
+        gene_order, rotation=90, fontsize=figure_cfg["x_tick_fontsize"]
+    )
     ax.tick_params(axis="x", top=True, labeltop=True)
     ax.set_yticks(range(len(cluster_order)))
-    ax.set_yticklabels(make_cluster_labels(df, cluster_order), fontsize=14)
+    ax.set_yticklabels(
+        make_cluster_labels(df, cluster_order),
+        fontsize=figure_cfg["y_tick_fontsize"],
+    )
     ax.set_ylim(-0.75, len(cluster_order) - 0.25)
-    ax.set_xlabel("Gene", fontsize=16)
-    ax.set_ylabel("Sample / resolution / cluster", fontsize=16)
-    ax.tick_params(axis="x", labelsize=16)
-    ax.tick_params(axis="y", labelsize=14)
-    fig.suptitle(cfg.get("title", "Multi-sample dotplot summary"), fontsize=18, y=0.88)
+    ax.set_xlabel("Gene", fontsize=figure_cfg["axis_label_fontsize"])
+    ax.set_ylabel(
+        "Sample / resolution / cluster", fontsize=figure_cfg["axis_label_fontsize"]
+    )
+    ax.tick_params(axis="x", labelsize=figure_cfg["x_tick_fontsize"])
+    ax.tick_params(axis="y", labelsize=figure_cfg["y_tick_fontsize"])
+    style_highlighted_gene_labels(ax, highlight_genes, figure_cfg)
+    fig.suptitle(
+        cfg.get("title", "Multi-sample dotplot summary"),
+        fontsize=figure_cfg["title_fontsize"],
+        y=figure_cfg["title_y"],
+    )
 
-    add_gene_group_labels(ax, gene_order, gene_groups)
+    add_gene_group_labels(ax, gene_order, gene_groups, figure_cfg)
     add_sample_separators(ax, df, cluster_order)
 
     ax.grid(axis="both", color="#e6e6e6", linewidth=0.5)
     ax.set_axisbelow(True)
 
     cbar = fig.colorbar(scatter, ax=ax, pad=0.01)
-    cbar.set_label(cfg.get("colorbar_label", "Mean expression"), fontsize=16)
-    cbar.ax.tick_params(labelsize=16)
+    cbar.set_label(
+        cfg.get("colorbar_label", "Mean expression"),
+        fontsize=figure_cfg["colorbar_fontsize"],
+    )
+    cbar.ax.tick_params(labelsize=figure_cfg["colorbar_fontsize"])
 
     for pct in cfg.get("size_legend_percentages", [25, 50, 75, 100]):
         ax.scatter(
@@ -482,7 +676,7 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, cfg):
         frameon=False,
     )
 
-    fig.tight_layout(rect=[0.03, 0.04, 0.98, 0.88])
+    fig.tight_layout(rect=figure_cfg["tight_layout_rect"])
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
     fig.savefig(output_png, dpi=figure_cfg["dpi"], bbox_inches="tight")
     print(f"Wrote {output_png}")
@@ -511,6 +705,17 @@ def main():
     df = filter_values(df, "resolution", cfg.get("resolutions"))
 
     df, gene_order, gene_groups = resolve_gene_order(df, cfg)
+    df, gene_order, gene_groups = apply_gene_review_filter(
+        df=df,
+        gene_order=gene_order,
+        gene_groups=gene_groups,
+        cfg=cfg,
+    )
+    df = apply_expression_zscore(df, cfg)
+    highlight_genes = load_highlight_genes(
+        cfg.get("highlight_gene_file"),
+        cfg.get("highlight_gene_column", cfg.get("gene_column", "Gene")),
+    )
     cluster_order = build_cluster_order(df, cfg)
     if not cluster_order:
         raise ValueError("No clusters remained after filtering")
@@ -520,6 +725,7 @@ def main():
         gene_order=gene_order,
         cluster_order=cluster_order,
         gene_groups=gene_groups,
+        highlight_genes=highlight_genes,
         cfg=cfg,
     )
 
