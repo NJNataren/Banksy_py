@@ -1,0 +1,38 @@
+{
+    "output_csv": "data/xenium/processed/cluster_label_exports/archive_spatial_cluster_labels.csv",
+    "summary_csv": "data/xenium/processed/cluster_label_exports/archive_spatial_cluster_label_summary.csv",
+    "optional_obs_columns": [
+        "x",
+        "y",
+        "cell type",
+        "nCount_Xenium",
+        "nFeature_Xenium",
+        "cell_area"
+    ],
+    "objects": [
+        {
+            "adata_path": "data/xenium/output/archive/BE_brain_non_res/BE_brain_non_res_clustered_spatial_pc30_nc0.20_r0.50.h5ad"
+        },
+        {
+            "adata_path": "data/xenium/output/archive/CK_bowel_res/CK_bowel_res_clustered_spatial_pc35_nc0.20_r0.50.h5ad"
+        },
+        {
+            "adata_path": "data/xenium/output/archive/EL_skin_res/EL_skin_res_clustered_spatial_pc20_nc0.20_r0.50.h5ad"
+        },
+        {
+            "adata_path": "data/xenium/output/archive/HW_brain_res/HW_brain_res_clustered_spatial_pc30_nc0.20_r0.50.h5ad"
+        },
+        {
+            "adata_path": "data/xenium/output/archive/CK_skin_res/CK_skin_res_clustered_spatial_pc20_nc0.20_r0.50.h5ad"
+        },
+        {
+            "adata_path": "data/xenium/output/archive/MF_skin_non_res_roi/MF_skin_non_res_roi_clustered_spatial_pc20_nc0.20_r0.50.h5ad"
+        },
+        {
+            "adata_path": "data/xenium/output/archive/GR_lung_non_res_roi/GR_lung_non_res_roi_clustered_spatial_pc35_nc0.20_r0.50.h5ad"
+        },
+        {
+            "adata_path": "data/xenium/output/archive/MG_gastric_non_res/MG_gastric_non_res_clustered_spatial_pc35_nc0.20_r0.50.h5ad"
+        }
+    ]
+}

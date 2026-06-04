@@ -1,0 +1,77 @@
+{
+    "old_cluster_labels_csv": "data/xenium/processed/cluster_label_exports/archive_spatial_cluster_labels.csv",
+    "output_csv": "data/xenium/processed/cluster_label_exports/archive_to_current_dotplot_cluster_label_mapping.csv",
+    "summary_csv": "data/xenium/processed/cluster_label_exports/archive_to_current_dotplot_cluster_label_mapping_summary.csv",
+    "dotplot_label_output_csv": "data/xenium/processed/cluster_label_exports/archive_to_current_dotplot_cluster_label_guide.csv",
+    "cell_output_csv": "data/xenium/processed/cluster_label_exports/archive_to_current_dotplot_cell_label_mapping.csv",
+    "min_overlap_fraction": 0.5,
+    "mapping_denominator": "current_cluster",
+    "notes": "Review before running. Current cell-level AnnData objects must exist at current_adata_path. MF_skin_non_res maps to old_sample MF_skin_non_res_roi and uses matched_cells as the mapping denominator because the old object is an ROI subset.",
+    "objects": [
+        {
+            "sample": "CK_skin_res",
+            "old_sample": "CK_skin_res",
+            "current_resolution": "0.7",
+            "current_adata_path": "data/xenium/processed/CK_skin_res/CK_skin_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "current_cluster_column": "labels_scaled_gaussian_pc20_nc0.20_r0.70",
+            "old_labels_are_roi_subset": false
+        },
+        {
+            "sample": "EL_skin_res",
+            "old_sample": "EL_skin_res",
+            "current_resolution": "0.7",
+            "current_adata_path": "data/xenium/processed/EL_skin_res/EL_skin_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "current_cluster_column": "labels_scaled_gaussian_pc20_nc0.20_r0.70",
+            "old_labels_are_roi_subset": false
+        },
+        {
+            "sample": "MF_skin_non_res",
+            "old_sample": "MF_skin_non_res_roi",
+            "current_resolution": "1.1",
+            "current_adata_path": "data/xenium/processed/MF_skin_non_res/MF_skin_non_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "current_cluster_column": "labels_scaled_gaussian_pc20_nc0.20_r1.10",
+            "old_labels_are_roi_subset": true,
+            "mapping_denominator": "matched_cells"
+        },
+        {
+            "sample": "BE_brain_non_res",
+            "old_sample": "BE_brain_non_res",
+            "current_resolution": "0.7",
+            "current_adata_path": "data/xenium/processed/BE_brain_non_res/BE_brain_non_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "current_cluster_column": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+            "old_labels_are_roi_subset": false
+        },
+        {
+            "sample": "HW_brain_res",
+            "old_sample": "HW_brain_res",
+            "current_resolution": "1.1",
+            "current_adata_path": "data/xenium/processed/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "current_cluster_column": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+            "old_labels_are_roi_subset": false
+        },
+        {
+            "sample": "CK_bowel_res",
+            "old_sample": "CK_bowel_res",
+            "current_resolution": "1.1",
+            "current_adata_path": "data/xenium/processed/CK_bowel_res/CK_bowel_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "current_cluster_column": "labels_scaled_gaussian_pc35_nc0.20_r1.10",
+            "old_labels_are_roi_subset": false
+        },
+        {
+            "sample": "MG_gastric_non_res",
+            "old_sample": "MG_gastric_non_res",
+            "current_resolution": "0.7",
+            "current_adata_path": "data/xenium/processed/MG_gastric_non_res/MG_gastric_non_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "current_cluster_column": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
+            "old_labels_are_roi_subset": false
+        },
+        {
+            "sample": "GR_lung_non_res_roi",
+            "old_sample": "GR_lung_non_res_roi",
+            "current_resolution": "0.7",
+            "current_adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
+            "current_cluster_column": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
+            "old_labels_are_roi_subset": false
+        }
+    ]
+}
