@@ -29,8 +29,3 @@ Maintain and extend the config-driven Xenium clustering workflow for BANKSY-base
 - Prefer targeted syntax checks or argument/config smoke tests when feasible.
 
 ## Next Steps
-
-Create a test copy of 01_xenium_clustering.ipynb and to that copy implement the following changes:
-
-- save an clean adata object right after `normalize_total(adata)` and `sc.pp.log1p(adata)` normalisation and log transformation
-- Read the above clean object after generating the cell cluster identity table and transfer the cluster_labels e.g. "labels_scaled_gaussian_pc30_nc0.20_r0.60" to the clean adata object, see script `/home/nnataren/Documents/PhD/Bioinformatics/Banksy_py_fork/Banksy_py/02_create_expression_adata_with_banksy_clusters.py` for examples.
