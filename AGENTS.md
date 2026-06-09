@@ -9,7 +9,7 @@ The lead human bioinformatician for this project is Nathalie.
 ## Repository Shape
 - This is a research analysis fork of `Banksy_py` for spatial transcriptomics workflows, with core BANKSY code in `banksy/` and local analysis helpers in `banksy_utils/`.
 - Xenium analysis notebooks and exported scripts live at the repo root, including `01_xenium_clustering.ipynb` and `01_xenium_clustering.py`.
-- Runtime configuration is stored as JSON under `config/QC/` and `config/clustering/`, split by study/group and sample size.
+- Runtime configuration is stored as JSON under `config/00_QC/` and `config/01_clustering/`, split by study/group and sample size.
 - Slurm entrypoints live at the repo root, for example `run_xenium_clustering_test*.sl` and `run_xenium_QC_array_*.sl`.
 - Data and generated outputs are expected under `data/xenium/`, `figures/`, `logs/`, and `hpc/`; treat these as potentially large or machine-specific.
 

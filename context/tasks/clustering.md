@@ -7,7 +7,7 @@ Maintain and extend the config-driven Xenium clustering workflow for BANKSY-base
 ## Current Status
 
 - Main clustering logic lives in `01_xenium_clustering.py`.
-- Clustering configs live under `config/clustering/`, split by study/group and sample.
+- Clustering configs live under `config/01_clustering/`, split by study/group and sample.
 - Slurm entrypoints for clustering live at the repo root, for example `run_xenium_clustering_test*.sl`.
 - Notebook work may be mirrored in `01_xenium_clustering.ipynb`; check whether script and notebook need to stay aligned before changing analysis logic.
 
@@ -15,7 +15,7 @@ Maintain and extend the config-driven Xenium clustering workflow for BANKSY-base
 
 - `01_xenium_clustering.py`
 - `01_xenium_clustering.ipynb`
-- `config/clustering/`
+- `config/01_clustering/`
 - `run_xenium_clustering_test*.sl`
 - `banksy/`
 - `banksy_utils/`

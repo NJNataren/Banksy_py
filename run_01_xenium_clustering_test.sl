@@ -24,8 +24,8 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 #CONFIG=/hpcfs/users/a1210419/Banksy_py/config/vbct/CK_skin_res.json #local testing
-#CONFIG_DIR="config/clustering/vbct/small"
-CONFIG_DIR="config/clustering/ptmt"
+#CONFIG_DIR="config/01_clustering/vbct/small"
+CONFIG_DIR="config/01_clustering/ptmt"
 CONFIGS=($CONFIG_DIR/*.json)
 CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
 
