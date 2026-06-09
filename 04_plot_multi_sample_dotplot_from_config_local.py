@@ -3,11 +3,12 @@
 
 """
 Title: Plot Multi-Sample Dotplot From Config Local
-Date: 2026-06-02
+Date: 2026-06-09
 Summary: Local-working copy of the multi-sample dotplot renderer. Read one or
 more long-format dotplot summary CSVs produced by
 03_export_dotplot_data_from_config.py and render a combined multi-sample
-dotplot from a JSON config.
+dotplot from a JSON config. Rows can represent BANKSY clusters or any other
+exported grouping, including archived cell-type labels.
 """
 
 import argparse
@@ -117,7 +118,26 @@ def load_export_tables(input_csvs):
         tables.append(df)
 
     combined = pd.concat(tables, ignore_index=True)
-    for column in ["sample", "resolution", "cluster_id", "sample_cluster", "gene"]:
+    if "group_id" not in combined.columns:
+        combined["group_id"] = combined["cluster_id"]
+    if "group_label" not in combined.columns:
+        combined["group_label"] = combined["group_id"]
+    if "sample_group" not in combined.columns:
+        combined["sample_group"] = combined["sample_cluster"]
+    if "groupby_label" not in combined.columns:
+        combined["groupby_label"] = combined.get("groupby", "cluster")
+
+    for column in [
+        "sample",
+        "resolution",
+        "cluster_id",
+        "sample_cluster",
+        "group_id",
+        "group_label",
+        "sample_group",
+        "groupby_label",
+        "gene",
+    ]:
         combined[column] = combined[column].astype(str)
 
     return combined
@@ -449,7 +469,7 @@ def build_cluster_order(df, cfg):
 
     ordered_rows = []
     unique_clusters = df[
-        ["sample", "resolution", "cluster_id", "sample_cluster"]
+        ["sample", "resolution", "group_id", "group_label", "sample_group"]
     ].drop_duplicates()
     for sample in sample_order:
         sample_df = unique_clusters[unique_clusters["sample"] == sample]
@@ -458,27 +478,38 @@ def build_cluster_order(df, cfg):
             if res_df.empty:
                 continue
             res_df["cluster_sort"] = pd.to_numeric(
-                res_df["cluster_id"], errors="coerce"
+                res_df["group_id"], errors="coerce"
             )
             res_df = res_df.sort_values(
-                ["cluster_sort", "cluster_id"], na_position="last"
+                ["cluster_sort", "group_label"], na_position="last"
             )
-            ordered_rows.extend(res_df["sample_cluster"].tolist())
+            ordered_rows.extend(res_df["sample_group"].tolist())
 
     return ordered_rows
 
 
-def make_cluster_labels(df, cluster_order):
-    """Create readable y-axis labels for sample/resolution/cluster rows."""
+def make_cluster_labels(df, cluster_order, cfg):
+    """Create readable y-axis labels for sample/resolution/group rows."""
     label_df = (
-        df[["sample_cluster", "sample", "resolution", "cluster_id"]]
-        .drop_duplicates("sample_cluster")
-        .set_index("sample_cluster")
+        df[["sample_group", "sample", "resolution", "group_label", "groupby_label"]]
+        .drop_duplicates("sample_group")
+        .set_index("sample_group")
+    )
+    label_template = cfg.get(
+        "y_label_template",
+        "{sample} | r{resolution} | {group_label}",
     )
     labels = []
-    for sample_cluster in cluster_order:
-        row = label_df.loc[sample_cluster]
-        labels.append(f"{row['sample']} | r{row['resolution']} | c{row['cluster_id']}")
+    for sample_group in cluster_order:
+        row = label_df.loc[sample_group]
+        labels.append(
+            label_template.format(
+                sample=row["sample"],
+                resolution=row["resolution"],
+                group_label=row["group_label"],
+                groupby_label=row["groupby_label"],
+            )
+        )
     return labels
 
 
@@ -556,13 +587,13 @@ def style_highlighted_gene_labels(ax, highlight_genes, figure_cfg):
 def add_sample_separators(ax, df, cluster_order):
     """Draw horizontal separators between sample blocks on the y-axis."""
     label_df = (
-        df[["sample_cluster", "sample"]]
-        .drop_duplicates("sample_cluster")
-        .set_index("sample_cluster")
+        df[["sample_group", "sample"]]
+        .drop_duplicates("sample_group")
+        .set_index("sample_group")
     )
     previous_sample = None
-    for idx, sample_cluster in enumerate(cluster_order):
-        sample = label_df.loc[sample_cluster, "sample"]
+    for idx, sample_group in enumerate(cluster_order):
+        sample = label_df.loc[sample_group, "sample"]
         if previous_sample is not None and sample != previous_sample:
             ax.axhline(idx - 0.5, color="#555555", linewidth=1.0)
         previous_sample = sample
@@ -594,7 +625,7 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
 
     plot_df = df.copy()
     plot_df["x"] = plot_df["gene"].map(gene_to_x)
-    plot_df["y"] = plot_df["sample_cluster"].map(cluster_to_y)
+    plot_df["y"] = plot_df["sample_group"].map(cluster_to_y)
     plot_df = plot_df.dropna(subset=["x", "y"])
     plot_df["dot_size"] = (
         plot_df["percent_expressing"] / 100
@@ -628,13 +659,14 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
     ax.tick_params(axis="x", top=True, labeltop=True)
     ax.set_yticks(range(len(cluster_order)))
     ax.set_yticklabels(
-        make_cluster_labels(df, cluster_order),
+        make_cluster_labels(df, cluster_order, cfg),
         fontsize=figure_cfg["y_tick_fontsize"],
     )
     ax.set_ylim(-0.75, len(cluster_order) - 0.25)
     ax.set_xlabel("Gene", fontsize=figure_cfg["axis_label_fontsize"])
     ax.set_ylabel(
-        "Sample / resolution / cluster", fontsize=figure_cfg["axis_label_fontsize"]
+        cfg.get("y_axis_label", "Sample / resolution / group"),
+        fontsize=figure_cfg["axis_label_fontsize"],
     )
     ax.tick_params(axis="x", labelsize=figure_cfg["x_tick_fontsize"])
     ax.tick_params(axis="y", labelsize=figure_cfg["y_tick_fontsize"])

@@ -23,5 +23,18 @@
             "annotation_column": "cell type",
             "annotation_output": "labels_scaled_gaussian_pc20_nc0.20_r0.70_annotation"
         }
-    ]
+    ],
+    "archive_labels": {
+        "label_csv": "data/xenium/processed/cluster_label_exports/archive_spatial_cell_type_labels.csv",
+        "sample": "CK_skin_res",
+        "columns": {
+            "cluster_id": "archive_cluster_id",
+            "cell_type_label": "archive_cell_type_label"
+        },
+        "missing_values": {
+            "archive_cluster_id": "missing_archive_cluster",
+            "archive_cell_type_label": "missing_archive_label"
+        },
+        "has_label_column": "has_archive_label"
+    }
 }

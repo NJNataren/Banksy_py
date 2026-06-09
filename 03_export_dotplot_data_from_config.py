@@ -3,11 +3,12 @@
 
 """
 Title: Export Dotplot Data From Config
-Date: 2026-05-29
+Date: 2026-06-09
 Summary: Export long-format dotplot-ready gene expression summaries from clean
 Xenium expression AnnData objects. The config defines marker selection, the
-expression source, cluster columns, and either one combined CSV output or split
-CSV outputs by fields such as resolution.
+expression source, grouping columns, and either one combined CSV output or
+split CSV outputs by fields such as resolution. Missing group labels can be
+kept as an explicit group for archive-label workflows.
 """
 
 import argparse
@@ -155,6 +156,7 @@ def summarize_object(
     marker_genes,
     marker_groups,
     use_all_genes,
+    default_missing_group_label,
 ):
     """Summarize one configured AnnData object for dotplot rendering.
 
@@ -164,6 +166,8 @@ def summarize_object(
         marker_genes: Marker genes to summarize, or `None` in all-gene mode.
         marker_groups: Mapping from gene to marker group label.
         use_all_genes: Whether to summarize every available gene.
+        default_missing_group_label: Label used when cells have missing group
+            metadata.
 
     Returns:
         List of output rows, where each row represents one dotplot dot.
@@ -178,6 +182,11 @@ def summarize_object(
     resolution = str(obj.get("resolution", ""))
     adata_path = obj["adata_path"]
     groupby = obj["groupby"]
+    groupby_label = obj.get("groupby_label", groupby)
+    missing_group_label = obj.get(
+        "missing_group_label",
+        default_missing_group_label,
+    )
 
     print(f"Reading {adata_path}")
     adata = ad.read_h5ad(adata_path)
@@ -205,26 +214,37 @@ def summarize_object(
     if not present_genes:
         return []
 
-    # Subset once per object, then summarize each cluster. Each output row is one
+    # Subset once per object, then summarize each group. Each output row is one
     # dot in a dotplot: color = mean expression, size = percent expressing.
+    # Missing archive labels are retained as their own group so no cells vanish
+    # from old-label summaries.
     expr = to_dense(expr_adata[:, present_genes].X)
-    clusters = adata.obs[groupby].astype(str)
+    group_values = adata.obs[groupby].astype("object")
+    missing_mask = group_values.isna() | group_values.astype(str).str.strip().isin(
+        ["", "nan", "None", "NA", "<NA>"]
+    )
+    groups = group_values.where(~missing_mask, missing_group_label).astype(str)
 
     rows = []
-    for cluster_id in sorted(clusters.unique()):
-        mask = (clusters == cluster_id).to_numpy()
-        cluster_expr = expr[mask, :]
-        mean_expression = np.asarray(cluster_expr.mean(axis=0)).ravel()
-        percent_expressing = np.asarray((cluster_expr > 0).mean(axis=0)).ravel() * 100
+    for group_id in sorted(groups.unique()):
+        mask = (groups == group_id).to_numpy()
+        group_expr = expr[mask, :]
+        mean_expression = np.asarray(group_expr.mean(axis=0)).ravel()
+        percent_expressing = np.asarray((group_expr > 0).mean(axis=0)).ravel() * 100
+        sample_group = f"{sample}__{groupby_label}__{group_id}"
 
         for i, gene in enumerate(present_genes):
             rows.append(
                 {
                     "sample": sample,
                     "resolution": resolution,
-                    "cluster_id": cluster_id,
-                    "sample_cluster": f"{sample}__r{resolution}__cluster_{cluster_id}",
+                    "cluster_id": group_id,
+                    "group_id": group_id,
+                    "group_label": group_id,
+                    "sample_cluster": sample_group,
+                    "sample_group": sample_group,
                     "groupby": groupby,
+                    "groupby_label": groupby_label,
                     "gene": gene,
                     "marker_group": marker_groups.get(
                         gene,
@@ -344,6 +364,10 @@ def export_dotplot_summary(cfg):
     import pandas as pd
 
     expression_source = cfg.get("expression_source", "raw")
+    default_missing_group_label = cfg.get(
+        "missing_group_label",
+        "missing_group",
+    )
     objects = cfg["objects"]
     use_all_genes, marker_genes, marker_groups = load_marker_settings(cfg)
 
@@ -356,6 +380,7 @@ def export_dotplot_summary(cfg):
                 marker_genes,
                 marker_groups,
                 use_all_genes,
+                default_missing_group_label,
             )
         )
 

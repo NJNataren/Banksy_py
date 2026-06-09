@@ -1,0 +1,51 @@
+{
+    "output_png": "figures/dotplots/local_canonical_markers_archive_cell_type_labels_multi_sample_zscore_dotplot.png",
+    "title": "Canonical marker dotplot grouped by archived cell-type labels",
+    "gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "CK_skin_res",
+        "EL_skin_res",
+        "MF_skin_non_res",
+        "BE_brain_non_res",
+        "HW_brain_res",
+        "CK_bowel_res",
+        "MG_gastric_non_res",
+        "GR_lung_non_res_roi"
+    ],
+    "resolutions": [
+        "archive"
+    ],
+    "y_label_template": "{sample} | {group_label}",
+    "y_axis_label": "Sample / archived cell-type label",
+    "figure": {
+        "min_width": 14,
+        "min_height": 10,
+        "width_per_gene": 0.35,
+        "height_per_cluster": 0.42,
+        "max_dot_size": 220,
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/BE_brain_non_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/CK_bowel_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/CK_skin_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/EL_skin_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/GR_lung_non_res_roi_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/HW_brain_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/MF_skin_non_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/MG_gastric_non_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv"
+    ],
+    "gene_review_file": "data/xenium/raw_data/gene_markers/xenium_canonical_gene_review_for_dotplot.csv",
+    "gene_review_gene_column": "Gene",
+    "gene_review_keep_column": "keep_for_dotplot",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score"
+}

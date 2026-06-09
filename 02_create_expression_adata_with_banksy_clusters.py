@@ -3,12 +3,13 @@
 
 """
 Title: Create Expression AnnData With BANKSY Cluster Labels
-Date: 2026-05-28
+Date: 2026-06-09
 Summary: Build a clean gene-expression AnnData object for downstream plotting by
 normalizing the original Xenium expression matrix and copying existing BANKSY
 cluster labels into `.obs`. The output preserves raw counts in a layer,
-log-normalized expression in `.X` and `.raw`, and avoids using BANKSY-expanded
-features as marker-expression values.
+log-normalized expression in `.X` and `.raw`, can attach archived cell-type
+labels from a cell-level CSV, and avoids using BANKSY-expanded features as
+marker-expression values.
 """
 
 import argparse
@@ -181,6 +182,117 @@ def attach_cluster_metadata(expr_adata, objects):
     return expr_adata
 
 
+def resolve_archive_label_config(cfg):
+    """Return archive-label settings from either new or legacy config keys.
+
+    Args:
+        cfg: Script 02 config dictionary.
+
+    Returns:
+        Archive-label config dictionary, or `None` when no archive labels should
+        be attached.
+    """
+    if cfg.get("archive_labels"):
+        return cfg["archive_labels"]
+
+    if cfg.get("archive_label_csv"):
+        return {
+            "label_csv": cfg["archive_label_csv"],
+            "sample": cfg.get("archive_label_sample", cfg.get("sample")),
+            "columns": cfg.get("archive_label_columns"),
+        }
+
+    return None
+
+
+def attach_archive_labels(expr_adata, archive_cfg):
+    """Attach archived cell-level labels to expression AnnData `.obs`.
+
+    Args:
+        expr_adata: Normalized expression AnnData receiving archived metadata.
+        archive_cfg: Config block describing the archived label CSV and columns.
+
+    Returns:
+        The same expression AnnData with archived metadata columns added.
+
+    Raises:
+        ValueError: If required config or CSV columns are missing, or if cell IDs
+            are duplicated within the selected archived sample.
+    """
+    import pandas as pd
+
+    if not archive_cfg:
+        return expr_adata
+
+    label_csv = archive_cfg["label_csv"]
+    sample = archive_cfg.get("sample")
+    cell_id_column = archive_cfg.get("cell_id_column", "cell_id")
+    sample_column = archive_cfg.get("sample_column", "sample")
+    columns = archive_cfg.get(
+        "columns",
+        {
+            "cluster_id": "archive_cluster_id",
+            "cell_type_label": "archive_cell_type_label",
+        },
+    )
+    missing_values = archive_cfg.get(
+        "missing_values",
+        {
+            "archive_cluster_id": "missing_archive_cluster",
+            "archive_cell_type_label": "missing_archive_label",
+        },
+    )
+    add_has_label_column = archive_cfg.get("add_has_label_column", True)
+    has_label_column = archive_cfg.get("has_label_column", "has_archive_label")
+
+    print(f"Reading archived label table: {label_csv}")
+    archive_labels = pd.read_csv(label_csv, low_memory=False)
+
+    required_columns = {cell_id_column, *columns.keys()}
+    if sample:
+        required_columns.add(sample_column)
+    missing_columns = required_columns - set(archive_labels.columns)
+    if missing_columns:
+        raise ValueError(
+            f"{label_csv} is missing required archived label columns: "
+            f"{sorted(missing_columns)}"
+        )
+
+    if sample:
+        archive_labels = archive_labels[
+            archive_labels[sample_column].astype(str) == str(sample)
+        ].copy()
+        if archive_labels.empty:
+            raise ValueError(f"No archived labels for sample {sample!r} in {label_csv}")
+
+    if archive_labels[cell_id_column].duplicated().any():
+        duplicate_count = int(archive_labels[cell_id_column].duplicated().sum())
+        raise ValueError(
+            f"{label_csv} has {duplicate_count} duplicated cell IDs after sample "
+            "filtering; cannot safely align archived labels"
+        )
+
+    archive_labels = archive_labels.set_index(cell_id_column)
+    matched_cells = expr_adata.obs_names.isin(archive_labels.index)
+    print(
+        "Archived label coverage: "
+        f"{int(matched_cells.sum())}/{expr_adata.n_obs} expression cells matched"
+    )
+
+    for source_column, output_column in columns.items():
+        values = archive_labels[source_column].reindex(expr_adata.obs_names)
+        fill_value = missing_values.get(output_column, "missing_archive_label")
+        values = values.fillna(fill_value).astype(str)
+        expr_adata.obs[output_column] = pd.Categorical(values)
+        print(f"Copied archived {source_column!r} to obs[{output_column!r}]")
+
+    if add_has_label_column:
+        expr_adata.obs[has_label_column] = matched_cells
+        print(f"Added obs[{has_label_column!r}]")
+
+    return expr_adata
+
+
 def main():
     """Create and save a clean expression AnnData with BANKSY labels in `.obs`."""
     args = parse_args()
@@ -209,6 +321,10 @@ def main():
         counts_layer,
     )
     expr_adata = attach_cluster_metadata(expr_adata, objects)
+    expr_adata = attach_archive_labels(
+        expr_adata,
+        resolve_archive_label_config(cfg),
+    )
 
     # Save a clean downstream object: log-normalized expression in .X/.raw, raw
     # counts in a layer, and BANKSY cluster labels in obs.
