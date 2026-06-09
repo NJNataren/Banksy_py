@@ -1,0 +1,68 @@
+{
+    "output_png": "figures/dotplots/local_all_genes_archive_cell_type_labels_tier1_canonical_highlight_zscore_dotplot.png",
+    "title": "All genes dotplot grouped by archived cell-type labels, z-scored by gene",
+    "gene_file": "data/xenium/raw_data/gene_markers/xenium_gene_list_annotation_master_v1_May_2026_Tier1_v3.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "CK_skin_res",
+        "EL_skin_res",
+        "MF_skin_non_res",
+        "BE_brain_non_res",
+        "HW_brain_res",
+        "CK_bowel_res",
+        "MG_gastric_non_res",
+        "GR_lung_non_res_roi"
+    ],
+    "figure": {
+        "min_width": 48,
+        "min_height": 10,
+        "width_per_gene": 0.16,
+        "height_per_cluster": 0.42,
+        "max_dot_size": 160,
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "x_tick_fontsize": 7,
+        "y_tick_fontsize": 14,
+        "axis_label_fontsize": 16,
+        "title_fontsize": 18,
+        "title_y": 0.88,
+        "colorbar_fontsize": 16,
+        "tight_layout_rect": [
+            0.03,
+            0.04,
+            0.98,
+            0.88
+        ],
+        "gene_group_fontsize": 11,
+        "highlight_label_color": "#d62728",
+        "highlight_label_weight": "bold",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/BE_brain_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/CK_bowel_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/CK_skin_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/EL_skin_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/GR_lung_non_res_roi_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/HW_brain_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MF_skin_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MG_gastric_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv"
+    ],
+    "highlight_gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
+    "highlight_gene_column": "Gene",
+    "gene_review_file": "data/xenium/raw_data/gene_markers/xenium_gene_review_for_dotplot.csv",
+    "gene_review_gene_column": "Gene",
+    "gene_review_keep_column": "keep_for_dotplot",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score",
+    "resolutions": [
+        "archive"
+    ],
+    "y_label_template": "{sample} | {group_label}",
+    "y_axis_label": "Sample / archived cell-type label"
+}

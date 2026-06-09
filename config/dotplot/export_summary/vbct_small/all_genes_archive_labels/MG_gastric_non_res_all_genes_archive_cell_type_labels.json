@@ -1,0 +1,16 @@
+{
+    "use_all_genes": true,
+    "expression_source": "raw",
+    "missing_group_label": "missing_archive_label",
+    "output_csv": "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MG_gastric_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+    "objects": [
+        {
+            "sample": "MG_gastric_non_res",
+            "resolution": "archive",
+            "adata_path": "data/xenium/processed/MG_gastric_non_res/MG_gastric_non_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "groupby": "archive_cell_type_label",
+            "groupby_label": "archive_cell_type_label",
+            "missing_group_label": "missing_archive_label"
+        }
+    ]
+}
