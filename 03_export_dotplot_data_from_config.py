@@ -12,8 +12,10 @@ kept as an explicit group for archive-label workflows.
 """
 
 import argparse
+from datetime import datetime
 import json
 import os
+import shutil
 
 
 # Import the scientific stack inside main() so `--help` works even when the
@@ -316,9 +318,40 @@ def resolve_output_path(cfg, split_by=None, split_value=None):
     return default_split_output_path(output_csv, split_by, split_value)
 
 
-def write_dotplot_table(out, output_csv):
+def archive_existing_output(output_path, cfg):
+    """Archive an existing output file before overwriting it.
+
+    Args:
+        output_path: Destination path that is about to be written.
+        cfg: Dotplot export config dictionary.
+
+    Returns:
+        Path to the archived file, or `None` if no archive was created.
+    """
+    if not cfg.get("archive_previous_outputs", True):
+        return None
+
+    if not os.path.exists(output_path):
+        return None
+
+    archive_dir = cfg.get(
+        "archive_output_dir",
+        os.path.join(os.path.dirname(output_path), "archive"),
+    )
+    os.makedirs(archive_dir, exist_ok=True)
+
+    root, ext = os.path.splitext(os.path.basename(output_path))
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    archived_path = os.path.join(archive_dir, f"{root}__{timestamp}{ext}")
+    shutil.move(output_path, archived_path)
+    print(f"Archived previous output to {archived_path}")
+    return archived_path
+
+
+def write_dotplot_table(out, output_csv, cfg):
     """Write one dotplot summary table to CSV and return the path."""
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    archive_existing_output(output_csv, cfg)
     out.to_csv(output_csv, index=False)
     print(f"Wrote {output_csv}")
     return output_csv
@@ -336,7 +369,7 @@ def write_dotplot_outputs(out, cfg):
     """
     split_by = cfg.get("split_by")
     if not split_by:
-        return [write_dotplot_table(out, resolve_output_path(cfg))]
+        return [write_dotplot_table(out, resolve_output_path(cfg), cfg)]
 
     if split_by not in out.columns:
         raise ValueError(
@@ -347,7 +380,7 @@ def write_dotplot_outputs(out, cfg):
     written_paths = []
     for split_value, split_df in out.groupby(split_by, sort=True):
         output_csv = resolve_output_path(cfg, split_by=split_by, split_value=split_value)
-        written_paths.append(write_dotplot_table(split_df, output_csv))
+        written_paths.append(write_dotplot_table(split_df, output_csv, cfg))
 
     return written_paths
 

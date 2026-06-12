@@ -12,8 +12,10 @@ exported grouping, including archived cell-type labels.
 """
 
 import argparse
+from datetime import datetime
 import json
 import os
+import shutil
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -711,8 +713,39 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
 
     fig.tight_layout(rect=figure_cfg["tight_layout_rect"])
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
+    archive_existing_output(output_png, cfg)
     fig.savefig(output_png, dpi=figure_cfg["dpi"], bbox_inches="tight")
     print(f"Wrote {output_png}")
+
+
+def archive_existing_output(output_path, cfg):
+    """Archive an existing plot file before overwriting it.
+
+    Args:
+        output_path: Destination image path that is about to be written.
+        cfg: Plot config dictionary.
+
+    Returns:
+        Path to the archived file, or `None` if no archive was created.
+    """
+    if not cfg.get("archive_previous_outputs", True):
+        return None
+
+    if not os.path.exists(output_path):
+        return None
+
+    archive_dir = cfg.get(
+        "archive_output_dir",
+        os.path.join(os.path.dirname(output_path), "archive"),
+    )
+    os.makedirs(archive_dir, exist_ok=True)
+
+    root, ext = os.path.splitext(os.path.basename(output_path))
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    archived_path = os.path.join(archive_dir, f"{root}__{timestamp}{ext}")
+    shutil.move(output_path, archived_path)
+    print(f"Archived previous output to {archived_path}")
+    return archived_path
 
 
 def get_dotplot_summary_csvs(cfg):
