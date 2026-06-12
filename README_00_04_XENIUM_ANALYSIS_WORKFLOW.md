@@ -455,8 +455,8 @@ data/xenium/processed/cluster_label_exports/archive_spatial_cell_type_labels.csv
 This table can be created from archived annotated AnnData objects with:
 
 ```bash
-conda run -n banksy python sankey/export_archive_cell_type_labels.py \
-  --config sankey/config/cluster_label_export/archive_spatial_cluster_labels.json \
+conda run -n banksy python helper_scripts/archive_labels/export_archive_cell_type_labels.py \
+  --config helper_scripts/archive_labels/config/archive_spatial_cluster_labels.json \
   --output-csv data/xenium/processed/cluster_label_exports/archive_spatial_cell_type_labels.csv
 ```
 

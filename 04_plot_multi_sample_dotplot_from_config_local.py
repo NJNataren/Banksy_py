@@ -663,6 +663,7 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
         fontsize=figure_cfg["y_tick_fontsize"],
     )
     ax.set_ylim(-0.75, len(cluster_order) - 0.25)
+    ax.set_xlim(-0.75, len(gene_order) - 0.35)
     ax.set_xlabel("Gene", fontsize=figure_cfg["axis_label_fontsize"])
     ax.set_ylabel(
         cfg.get("y_axis_label", "Sample / resolution / group"),

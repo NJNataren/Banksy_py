@@ -652,7 +652,7 @@ print(f"Min value: {values.min()}")
 #     )
 
 # plt.xlabel("Number of principal components", fontsize=20)
-# plt.ylabel("Number of singular values", fontsize=20)
+# plt.ylabel("Singluar value", fontsize=20)
 
 # plt.savefig(
 #     os.path.join(qc_path, f"singular_values_vs_noise_{dataset_name}.png"),
