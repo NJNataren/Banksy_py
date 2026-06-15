@@ -711,7 +711,7 @@ print(clean_adata)
 # In[78]:
 
 
-banksy_dict[f"{nbr_weight_decay}"][0.2]['adata'] #lambda = 0.20
+#banksy_dict[f"{nbr_weight_decay}"][0.2]['adata'] #lambda = 0.20
 
 
 # In[79]:
