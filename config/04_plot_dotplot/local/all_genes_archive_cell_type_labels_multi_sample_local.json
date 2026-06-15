@@ -1,7 +1,7 @@
 {
     "output_png": "figures/dotplots/local_all_genes_archive_cell_type_labels_tier1_canonical_highlight_zscore_dotplot.png",
     "title": "All genes dotplot grouped by archived cell-type labels, z-scored by gene",
-    "gene_file": "data/xenium/raw_data/gene_markers/xenium_gene_list_annotation_master_v1_May_2026_Tier1_v3.csv",
+    "gene_file": "data/xenium/raw_data/gene_markers/01_xenium_gene_list_annotation_master_v1_May_2026_Tier1_2026-06-15.csv",
     "gene_column": "Gene",
     "gene_group_column": "Tier_1_annotation",
     "sample_order": [
@@ -50,11 +50,11 @@
         "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MF_skin_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
         "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MG_gastric_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv"
     ],
-    "highlight_gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
+    "highlight_gene_file": "data/xenium/raw_data/gene_markers/02_xenium_melanoma_canonical_genes_2026-05-22.csv",
     "highlight_gene_column": "Gene",
-    "gene_review_file": "data/xenium/raw_data/gene_markers/xenium_gene_review_for_dotplot.csv",
+    "gene_review_file": "data/xenium/raw_data/gene_markers/03_xenium_gene_review_for_dotplot_manual_annotation_2026-06-11.csv",
     "gene_review_gene_column": "Gene",
-    "gene_review_keep_column": "keep_for_dotplot",
+    "gene_review_keep_column": "manual_review_True_if_keep",
     "z_score_expression": true,
     "z_score_expression_column": "mean_expression",
     "z_score_clip": 2.5,

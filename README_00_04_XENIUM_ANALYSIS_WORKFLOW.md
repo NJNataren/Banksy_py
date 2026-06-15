@@ -637,6 +637,16 @@ data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/*_ca
 data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/*_all_genes_archive_cell_type_labels_dotplot_summary.csv
 ```
 
+When script 03 overwrites an existing CSV, it archives the previous version
+into a sibling `archive/` directory beside the configured `output_csv`. The
+latest CSV remains at the stable configured path, while older versions are
+renamed with a timestamp such as:
+
+```text
+data/xenium/processed/cross_sample_dotplot_exports/archive/
+EL_skin_res_all_genes_dotplot_summary__2026-06-12_154237.csv
+```
+
 ### Example Runs
 
 All genes:
@@ -869,6 +879,11 @@ Canonical marker archived-label z-score dotplot:
 ```text
 figures/dotplots/local_canonical_markers_archive_cell_type_labels_multi_sample_zscore_dotplot.png
 ```
+
+When script 04 overwrites an existing PNG, it archives the previous version
+into a sibling `archive/` directory beside the configured `output_png`. The
+latest plot remains at the stable configured path, while older versions are
+timestamped automatically.
 
 These local configs currently use 150 DPI.
 
