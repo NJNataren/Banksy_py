@@ -18,6 +18,7 @@ from banksy.labels import plot_connections, Label
 import anndata
 
 import matplotlib.ticker as ticker
+from matplotlib.colors import BoundaryNorm, ListedColormap
 from scipy.sparse import csc_matrix, csr_matrix
 
 
@@ -128,7 +129,7 @@ def plot_results(
         plot_labels_seperately(
             labels, adata_temp.obsm[coord_keys[2]],
             embeddings=umap_temp,
-            cmap_name=c_map,
+            cmap_name=None if color_list else c_map,
             colour_list=color_list,
             default_colour="tab:red",
             plots_per_row=3,
@@ -244,17 +245,24 @@ def _plot_labels(adata_temp: anndata.AnnData,
 
     ax_locs = fig.add_subplot(grid[:, 0])
 
-    # We assign color of points to color_list if they are specified
+    # Use a discrete categorical colormap when a cluster palette is supplied so
+    # integer cluster IDs map one-to-one onto colours and colourbar ticks.
     if color_list:
-        c = [color_list[lbl] for lbl in labels.dense]
+        cmap = ListedColormap(color_list[:max_num_labels])
+        norm = BoundaryNorm(np.arange(max_num_labels + 1) - 0.5, cmap.N)
+        vmin = None
+        vmax = None
     else:
-        c = labels.dense
+        norm = None
+        vmin = 0
+        vmax = max_num_labels - 1
 
     scatterplot = ax_locs.scatter(adata_temp.obsm[key][:, 0],
                                   adata_temp.obsm[key][:, 1],
-                                  c=c,
+                                  c=labels.dense,
                                   cmap=cmap,
-                                  vmin=0, vmax=max_num_labels - 1,
+                                  norm=norm,
+                                  vmin=vmin, vmax=vmax,
                                   s=scatter_dot_size, alpha=1.0)
 
     ax_locs.set_aspect('equal', 'datalim')

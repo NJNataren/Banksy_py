@@ -452,12 +452,65 @@ When using archived labels, script 02 also needs the cell-level archived label t
 data/xenium/processed/cluster_label_exports/archive_spatial_cell_type_labels.csv
 ```
 
-This table can be created from archived annotated AnnData objects with:
+This table can be created from archived annotated AnnData objects with the archive-label helper:
+
+```text
+helper_scripts/archive_labels/export_archive_cell_type_labels.py
+```
+
+The helper reads archived BANKSY spatial `.h5ad` objects listed in a JSON config, extracts cell IDs, archived cluster IDs, and readable cell-type labels from `.obs`, and writes one combined cell-level CSV. Script 02 can then join those archived labels back onto current clean expression objects by `cell_id`.
+
+Key output columns are:
+
+```text
+cell_id
+sample
+resolution
+cluster_id
+cell_type_label
+```
+
+Run with:
 
 ```bash
 conda run -n banksy python helper_scripts/archive_labels/export_archive_cell_type_labels.py \
   --config helper_scripts/archive_labels/config/archive_spatial_cluster_labels.json \
   --output-csv data/xenium/processed/cluster_label_exports/archive_spatial_cell_type_labels.csv
+```
+
+### Additional Helper: Gene Panel Comparison
+
+The helper script below compares the manually reviewed melanoma Xenium gene panel against external designer panels in a pairwise way. It currently compares melanoma-vs-hImmuno and melanoma-vs-hProstate separately, creates one DataFrame for each overlap, concatenates the two DataFrames, and writes one combined CSV. It does not make a three-way comparison.
+
+```text
+helper_scripts/gene_panel_comparison/compare_xenium_gene_panels.py
+```
+
+Default inputs are:
+
+```text
+data/xenium/raw_data/gene_markers/03_xenium_gene_review_for_dotplot_manual_annotation_2026-06-11.csv
+data/xenium/raw_data/gene_markers/prostate_panel_comparison/hImmuno_submitted_to_designer_tier1.csv
+data/xenium/raw_data/gene_markers/prostate_panel_comparison/hProstate_100g_submitted_to_designer.csv
+```
+
+Default output is:
+
+```text
+data/xenium/raw_data/gene_markers/prostate_panel_comparison/outputs/melanoma_pairwise_panel_overlaps.csv
+```
+
+Run locally with:
+
+```bash
+conda run -n banksy python helper_scripts/gene_panel_comparison/compare_xenium_gene_panels.py
+```
+
+To restrict the melanoma side of each comparison to genes marked `manual_review_True_if_keep == TRUE`, add:
+
+```bash
+conda run -n banksy python helper_scripts/gene_panel_comparison/compare_xenium_gene_panels.py \
+  --manual-review-kept-only
 ```
 
 ### Main Outputs

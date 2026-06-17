@@ -58,6 +58,27 @@ np.random.seed(seed)
 random.seed(seed)
 
 
+def make_cluster_palette(n_colors):
+    """Create enough distinct categorical colours for BANKSY cluster plots."""
+    base_cmaps = ["tab20", "tab20b", "tab20c"]
+    colors = []
+
+    for cmap_name in base_cmaps:
+        cmap = plt.get_cmap(cmap_name)
+        colors.extend([mpl.colors.to_hex(cmap(i)) for i in range(cmap.N)])
+
+    if n_colors > len(colors):
+        extra_cmap = plt.get_cmap("nipy_spectral")
+        extra_count = n_colors - len(colors)
+        extra_colors = [
+            mpl.colors.to_hex(extra_cmap(i / max(extra_count - 1, 1)))
+            for i in range(extra_count)
+        ]
+        colors.extend(extra_colors)
+
+    return colors[:n_colors]
+
+
 # In[ ]:
 
 
@@ -476,22 +497,27 @@ log_time(f"Finished Leiden clustering for {dataset_name}.")
 
 from banksy.plot_banksy import plot_results
 
-c_map =  'tab20' # specify color map
-weights_graph =  banksy_dict[f"{nbr_weight_decay}"]['weights'][0]
+## Use enough categorical colours for all cluster IDs. The continuous cmap is
+## still used by helper plots such as UMAP/PCA/connectivity, while color_list
+## drives the main spatial cluster map and per-cluster panels.
+c_map = "nipy_spectral"
+cluster_palette = make_cluster_palette(max_num_labels)
+weights_graph = banksy_dict[f"{nbr_weight_decay}"]["weights"][0]
 
 plot_results(
     results_df,
     weights_graph,
     c_map,
-    match_labels = False,
-    coord_keys = coord_keys,
-    max_num_labels  =  max_num_labels, 
+    match_labels=False,
+    coord_keys=coord_keys,
+    max_num_labels=max_num_labels,
     #save_path = os.path.join(file_path, 'tmp_png'),
-    save_fig = True, # save the spatial map of all clusters
-    save_seperate_fig = True, # save the figure of all clusters plotted seperately
-    dataset_name = f"{dataset_name}",
+    save_fig=True, # save the spatial map of all clusters
+    save_seperate_fig=True, # save the figure of all clusters plotted seperately
+    dataset_name=f"{dataset_name}",
     save_fullfig=True,
-    save_path = output_path
+    save_path=output_path,
+    color_list=cluster_palette,
 )
 
 print(results_df)
