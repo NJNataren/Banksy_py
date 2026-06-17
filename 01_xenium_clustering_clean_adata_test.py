@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+"""
+Title: Xenium BANKSY Clustering With Clean Expression Outputs
+Date: 2026-06-16
+Summary: Run config-driven BANKSY clustering for Xenium samples, save clean
+log-normalized expression AnnData before BANKSY feature expansion, and copy
+BANKSY cluster labels back onto the clean object for marker analysis.
+"""
 # In[43]:
 
 
@@ -108,6 +115,7 @@ nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much ne
 # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
 # across regions if cells are pack more closely or loosely in different regions
 coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
+raw_subdir = cfg.get("raw_subdir", "") # Optional subdirectory under data/xenium/raw_data, e.g. ptmt/Run_1
 max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", 4)) # Parameter for the run_Leiden_partition_parallel() clustering function 
 
 
@@ -122,12 +130,16 @@ max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", 4)) # Parameter for the 
 ## Create a base path
 base_dir = "data/xenium"
 
-## Create a path to the raw data e.g., unprocessed anndata files, if it does not already exist
-raw_path = os.path.join(base_dir, "raw_data")
+## Create a path to the raw data e.g., unprocessed anndata files.
+## `raw_subdir` lets each config point to a run-specific folder while keeping
+## older configs valid when the raw files live directly under raw_data.
+raw_path = os.path.join(base_dir, "raw_data", raw_subdir)
 
 if not os.path.isdir(raw_path):
-    os.makedirs(raw_path)
-    print(f"Directory '{raw_path} successfully.")
+    raise FileNotFoundError(
+        f"Raw input directory '{raw_path}' does not exist. "
+        "Check the config raw_subdir value and mounted data location."
+    )
     
 else:
     print(f"Directory '{raw_path} exists.")
@@ -178,7 +190,14 @@ def log_time(step):
 ###########################
 
 ## Read in the raw AnnData file
-adata = ad.read_h5ad(os.path.join(raw_path, f"{dataset_name}_raw.h5ad"))
+raw_adata_path = os.path.join(raw_path, f"{dataset_name}_raw.h5ad")
+if not os.path.isfile(raw_adata_path):
+    raise FileNotFoundError(
+        f"Raw AnnData file '{raw_adata_path}' does not exist. "
+        "Check dataset_name and raw_subdir in the config."
+    )
+
+adata = ad.read_h5ad(raw_adata_path)
 log_time(f"Loading in data for {dataset_name}")
 
 ## Create 'xy' spatial coordinates from adata.obs

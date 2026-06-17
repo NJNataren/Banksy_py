@@ -1,5 +1,5 @@
 {
-    "dataset_name": "10722_run_1_DMSO",
+    "dataset_name": "10827_run_2_1818",
     "pc_label": "35",
     "lambda_label": "0.20",
     "res_label": [
@@ -17,5 +17,5 @@
         "y",
         "xy"
     ],
-    "raw_subdir": "ptmt/Run_1"
+    "raw_subdir": "ptmt/Run_2"
 }
