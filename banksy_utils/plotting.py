@@ -60,6 +60,8 @@ def plot_2d_embeddings(embedding: np.ndarray,
                        cmap_name: str = "Spectral",
                        figsize: tuple = (8, 8),
                        title_fontsize: int = 12,
+                       color_list: list = None,
+                       max_num_labels: int = None,
                        **kwargs,
                        ) -> None:
     """
@@ -67,8 +69,20 @@ def plot_2d_embeddings(embedding: np.ndarray,
 
     :param embedding: the embedding matrix (only 1st 2 columns are used)
     :param labels: integer labels for each point
+    :param color_list: optional categorical palette aligned to integer labels
+    :param max_num_labels: optional maximum number of labels for shared colour scaling
     """
     num_labels = len(np.unique(labels))
+
+    if color_list:
+        max_num_labels = max_num_labels or int(np.max(labels)) + 1
+        cmap_name = mpl.colors.ListedColormap(color_list[:max_num_labels])
+        norm = mpl.colors.BoundaryNorm(
+            np.arange(max_num_labels + 1) - 0.5,
+            cmap_name.N,
+        )
+    else:
+        norm = None
 
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
@@ -80,6 +94,7 @@ def plot_2d_embeddings(embedding: np.ndarray,
         embedding[:, 0], embedding[:, 1],
         c=labels,
         cmap=cmap_name,
+        norm=norm,
         s=0.2, alpha=0.5,
         **kwargs,
     )
@@ -94,10 +109,11 @@ def plot_2d_embeddings(embedding: np.ndarray,
     print(f"number of labels: {num_labels}")
 
     if plot_cmap:
+        colorbar_label_count = max_num_labels if color_list else num_labels
         fig.colorbar(
             scatterplot,
-            boundaries=np.arange(num_labels + 1) - 0.5
-        ).set_ticks(np.arange(num_labels))
+            boundaries=np.arange(colorbar_label_count + 1) - 0.5
+        ).set_ticks(np.arange(colorbar_label_count))
 
 
 @timer

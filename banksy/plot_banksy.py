@@ -152,6 +152,8 @@ def plot_results(
                            ax=ax_umap,
                            cmap_name=c_map,
                            plot_cmap=False,
+                           color_list=color_list,
+                           max_num_labels=max_num_labels,
                            )
 
         # Plot 1st 2 dimensions of PCA
@@ -170,7 +172,9 @@ def plot_results(
                                ax=ax,
                                cmap_name=c_map,
                                plot_cmap=False,
-                               title_fontsize=9)
+                               title_fontsize=9,
+                               color_list=color_list,
+                               max_num_labels=max_num_labels)
 
         # Plot connectivity between labels
         # --------------------------------
