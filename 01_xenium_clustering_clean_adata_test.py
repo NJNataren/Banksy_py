@@ -79,6 +79,13 @@ def make_cluster_palette(n_colors):
     return colors[:n_colors]
 
 
+def make_numeric_cluster_category(labels):
+    """Return BANKSY cluster labels as an ordered numeric categorical."""
+    label_strings = labels.astype(int).astype(str)
+    categories = [str(label) for label in sorted(label_strings.astype(int).unique())]
+    return pd.Categorical(label_strings, categories=categories, ordered=True)
+
+
 # In[ ]:
 
 
@@ -741,7 +748,9 @@ for cluster_label_col in cluster_label_cols:
             f"a BANKSY label from {cluster_label_col!r}"
         )
 
-    clean_adata.obs[cluster_label_col] = labels.astype("category")
+    # Store cluster IDs as an ordered categorical sorted numerically so Scanpy
+    # plots groups as 0, 1, 2, ..., 10 instead of lexical order 0, 1, 10, ... .
+    clean_adata.obs[cluster_label_col] = make_numeric_cluster_category(labels)
     print(f"Copied {cluster_label_col} to clean expression AnnData obs")
 
 clean_clustered_h5ad = os.path.join(

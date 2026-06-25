@@ -1,5 +1,5 @@
 {
-    "output_png": "figures/dotplots/local_all_genes_archive_cell_type_labels_tier1_canonical_highlight_zscore_dotplot.png",
+    "output_png": "figures/dotplots/manually_curated_canonical_highlight_zscore_archive_labels_dotplot.png",
     "title": "All genes dotplot grouped by archived cell-type labels, z-scored by gene",
     "gene_file": "data/xenium/raw_data/gene_markers/01_xenium_gene_list_annotation_master_v1_May_2026_Tier1_2026-06-15.csv",
     "gene_column": "Gene",
