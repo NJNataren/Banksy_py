@@ -41,14 +41,14 @@
         "color_vmax": 2.5
     },
     "dotplot_summary_csvs": [
-        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/BE_brain_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/CK_bowel_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/CK_skin_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/EL_skin_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/GR_lung_non_res_roi_all_genes_archive_cell_type_labels_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/HW_brain_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MF_skin_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MG_gastric_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv"
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/BE_brain_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/CK_bowel_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/CK_skin_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/EL_skin_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/GR_lung_non_res_roi_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/HW_brain_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MF_skin_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/MG_gastric_non_res_all_genes_archive_cell_type_labels_dotplot_summary.csv"
     ],
     "highlight_gene_file": "data/xenium/raw_data/gene_markers/02_xenium_melanoma_canonical_genes_2026-05-22.csv",
     "highlight_gene_column": "Gene",
@@ -64,5 +64,6 @@
         "archive"
     ],
     "y_label_template": "{sample} | {group_label}",
-    "y_axis_label": "Sample / archived cell-type label"
+    "y_axis_label": "Sample / archived cell-type label",
+    "project": "vbct"
 }

@@ -1,4 +1,5 @@
 {
+    "project": "vbct",
     "output_png": "figures/dotplots/vbct_small_canonical_markers_multi_sample_dotplot.png",
     "title": "VBCT small canonical marker dotplot",
     "gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
@@ -23,9 +24,8 @@
         "cmap": "viridis"
     },
     "dotplot_summary_csvs": [
-        "data/xenium/processed/cross_sample_dotplot_exports/MF_skin_non_res_r1p10_canonical_markers_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/HW_brain_res_r1p10_canonical_markers_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/CK_bowel_res_r1p10_canonical_markers_dotplot_summary.csv"
-
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/MF_skin_non_res_r1p10_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/HW_brain_res_r1p10_canonical_markers_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/CK_bowel_res_r1p10_canonical_markers_dotplot_summary.csv"
     ]
 }

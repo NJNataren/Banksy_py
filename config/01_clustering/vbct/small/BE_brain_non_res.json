@@ -1,10 +1,20 @@
 {
+    "project": "vbct",
     "dataset_name": "BE_brain_non_res",
     "pc_label": "30",
     "lambda_label": "0.20",
-    "res_label": ["0.80", "0.90", "1.00"],
+    "res_label": [
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00"
+    ],
     "nbr_weight_decay": "scaled_gaussian",
-    "coord_keys": ["x", "y", "xy"],
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
     "new_labels": {
         "0": "M2-like_tumour_associated_macrophages_0",
         "1": "Myeloid_cells_(low_confidence)_1",

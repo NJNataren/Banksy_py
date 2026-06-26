@@ -1,14 +1,15 @@
 {
+    "project": "vbct",
     "marker_file": "data/xenium/raw_data/gene_markers/table_s2_genes_in_xenium_gene_list.csv",
     "gene_column": "Gene",
     "marker_group_column": "Cell_type",
     "expression_source": "raw",
-    "output_csv": "data/xenium/processed/cross_sample_dotplot_exports/local_test_CK_skin_res_0p5_dotplot_summary.csv",
+    "output_csv": "data/xenium/processed/vbct/cross_sample_dotplot_exports/local_test_CK_skin_res_0p5_dotplot_summary.csv",
     "objects": [
         {
             "sample": "CK_skin_res",
             "resolution": "0.50",
-            "adata_path": "data/xenium/processed/CK_skin_res/CK_skin_res_normalised_log1p_with_banksy_clusters_local_test.h5ad",
+            "adata_path": "data/xenium/processed/vbct/CK_skin_res/CK_skin_res_normalised_log1p_with_banksy_clusters_local_test.h5ad",
             "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.50"
         }
     ]

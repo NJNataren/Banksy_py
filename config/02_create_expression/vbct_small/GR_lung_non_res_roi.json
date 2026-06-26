@@ -1,31 +1,32 @@
 {
-    "expression_adata_path": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_float_32.h5ad",
-    "output_h5ad": "data/xenium/processed/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
+    "project": "vbct",
+    "expression_adata_path": "data/xenium/processed/vbct/GR_lung_non_res_roi/GR_lung_non_res_roi_float_32.h5ad",
+    "output_h5ad": "data/xenium/processed/vbct/GR_lung_non_res_roi/GR_lung_non_res_roi_normalised_log1p_with_banksy_clusters.h5ad",
     "filter_obs_key": "nCount_Xenium",
     "filter_min": 0,
     "counts_layer": "counts",
     "objects": [
         {
-            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/adata_spatial_GR_lung_non_res_roi_0p5.h5ad",
+            "adata_path": "data/xenium/processed/vbct/GR_lung_non_res_roi/adata_spatial_GR_lung_non_res_roi_0p5.h5ad",
             "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.50",
             "annotation_column": "cell type",
             "annotation_output": "labels_scaled_gaussian_pc35_nc0.20_r0.50_annotation"
         },
         {
-            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/adata_spatial_GR_lung_non_res_roi_0p6.h5ad",
+            "adata_path": "data/xenium/processed/vbct/GR_lung_non_res_roi/adata_spatial_GR_lung_non_res_roi_0p6.h5ad",
             "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.60",
             "annotation_column": "cell type",
             "annotation_output": "labels_scaled_gaussian_pc35_nc0.20_r0.60_annotation"
         },
         {
-            "adata_path": "data/xenium/processed/GR_lung_non_res_roi/adata_spatial_GR_lung_non_res_roi_0p7.h5ad",
+            "adata_path": "data/xenium/processed/vbct/GR_lung_non_res_roi/adata_spatial_GR_lung_non_res_roi_0p7.h5ad",
             "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
             "annotation_column": "cell type",
             "annotation_output": "labels_scaled_gaussian_pc35_nc0.20_r0.70_annotation"
         }
     ],
     "archive_labels": {
-        "label_csv": "data/xenium/processed/cluster_label_exports/archive_spatial_cell_type_labels.csv",
+        "label_csv": "data/xenium/processed/vbct/cluster_label_exports/archive_spatial_cell_type_labels.csv",
         "sample": "GR_lung_non_res_roi",
         "columns": {
             "cluster_id": "archive_cluster_id",

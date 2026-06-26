@@ -1,4 +1,5 @@
 {
+    "project": "ptmt",
     "dataset_name": "10707_run_1_DMSO",
     "pc_label": "35",
     "lambda_label": "0.20",

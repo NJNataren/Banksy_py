@@ -88,6 +88,7 @@ random.seed(seed)
 import argparse
 import json
 
+
 parser = argparse.ArgumentParser(prog="used to parse arguments form 00_QC_xenium_spatial.py to run on slurm") # Initialise the parser
 parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True) # This defines the flag and tells the script to look for a JSON config
 # in the form of a string config file path
@@ -109,6 +110,8 @@ nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much ne
 # across regions if cells are pack more closely or loosely in different regions
 
 coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
+project = cfg.get("project", "")
+raw_subdir = cfg.get("raw_subdir", "")
 new_labels = cfg["new_labels"] # These are the cluster labels for cell types
 
 
@@ -125,7 +128,7 @@ base_dir = "data/xenium"
 #base_dir = "/home/nnataren/Documents/PhD/Bioinformatics/Banksy_py_fork/Banksy_py/hpc"
 
 ## Create a path to the raw data e.g., unprocessed anndata files, if it does not already exist
-raw_path = os.path.join(base_dir, "raw_data")
+raw_path = os.path.join(base_dir, "raw_data", raw_subdir)
 
 if not os.path.isdir(raw_path):
     os.makedirs(raw_path)
@@ -135,7 +138,7 @@ else:
     print(f"Directory '{raw_path} exists.")
 
 ## Create path for processed data e.g., the pre-clustered but unfiltered anndata files, if it does not already exist
-processed_path = os.path.join(base_dir, "processed", f"{dataset_name}")
+processed_path = os.path.join(base_dir, "processed", project, dataset_name)
 
 if not os.path.isdir(processed_path):
     os.makedirs(processed_path)
@@ -145,7 +148,7 @@ else:
     print(f"Directory '{processed_path}' already exists.")
 
 ## Create a path for output data, if it does not already exist
-output_path = os.path.join(base_dir, "output", f"{dataset_name}")
+output_path = os.path.join(base_dir, "output", project, dataset_name)
 
 if not os.path.isdir(output_path):
     os.makedirs(output_path)
@@ -155,7 +158,7 @@ else:
     print(f"Directory '{output_path}' already exists.")
 
 ## Create a path for QC results, if it does not already exist
-qc_path = os.path.join(base_dir, "output", "QC_testing", f"{dataset_name}")
+qc_path = os.path.join(base_dir, "output", project, "QC_testing", dataset_name)
 
 if not os.path.isdir(qc_path):
     os.makedirs(qc_path)
@@ -1190,7 +1193,7 @@ plt.show()
 # ---------------------------------------------------------------------------- #
 
 ## Create a path for gene of interest UMAP plots
-umap_path = os.path.join(base_dir,f"output/{dataset_name}/umap/")
+umap_path = os.path.join(output_path, "umap")
 
 if not os.path.isdir(umap_path):
     os.makedirs(umap_path)
@@ -1201,7 +1204,7 @@ else:
 
 
 ## Create a path for gene of interest violin plots
-violin_path = os.path.join(base_dir,f"output/{dataset_name}/violin/")
+violin_path = os.path.join(output_path, "violin")
 
 if not os.path.isdir(violin_path):
     os.makedirs(violin_path)
@@ -1211,7 +1214,7 @@ else:
     print(f"Directory '{violin_path}' already exists.")
 
 ## Create a path for gene of interest dot plots
-dotplot_path = os.path.join(base_dir,f"output/{dataset_name}/dotplot/")
+dotplot_path = os.path.join(output_path, "dotplot")
 
 if not os.path.isdir(dotplot_path):
     os.makedirs(dotplot_path)
@@ -1221,7 +1224,7 @@ else:
     print(f"Directory '{dotplot_path}' already exists.")
 
 ## Create a path for gene of interest UMAP plots
-neighbour_path = os.path.join(base_dir,f"output/{dataset_name}/neighbourhood_centrality_co-occurence/")
+neighbour_path = os.path.join(output_path, "neighbourhood_centrality_co-occurence")
 
 if not os.path.isdir(neighbour_path):
     os.makedirs(neighbour_path)
@@ -1232,7 +1235,7 @@ else:
 
 
 ## Create a path for gene of interest spatial scatter plots
-spatial_scatter_path = os.path.join(base_dir,f"output/{dataset_name}/spatial_scatter/")
+spatial_scatter_path = os.path.join(output_path, "spatial_scatter")
 
 if not os.path.isdir(spatial_scatter_path):
     os.makedirs(spatial_scatter_path)

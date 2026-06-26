@@ -1,10 +1,15 @@
 {
+    "project": "vbct",
     "dataset_name": "BE_brain_non_res",
     "pc_label": "30",
     "lambda_label": "0.20",
     "res_label": "0.50",
     "nbr_weight_decay": "scaled_gaussian",
-    "coord_keys": ["x", "y", "xy"],
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
     "new_labels": {
         "0": "M2-like_tumour_associated_macrophages_0",
         "1": "Myeloid_cells_(low_confidence)_1",
@@ -20,5 +25,9 @@
         "11": "DC-like_TAMs_or_Inflammatory_macrophages_11",
         "12": "M2-like_tumour_associated_macrophages_(Immuneregulatory)_12"
     },
-    "resolutions": ["0.5", "0.6", "0.7"]
+    "resolutions": [
+        "0.5",
+        "0.6",
+        "0.7"
+    ]
 }

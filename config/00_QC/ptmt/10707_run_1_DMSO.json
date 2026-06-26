@@ -1,8 +1,13 @@
 {
+    "project": "ptmt",
     "dataset_name": "10707_run_1_DMSO",
     "pc_label": "20",
     "lambda_label": "0.20",
     "res_label": "0.50",
     "nbr_weight_decay": "scaled_gaussian",
-    "coord_keys": ["x", "y", "xy"]
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ]
 }

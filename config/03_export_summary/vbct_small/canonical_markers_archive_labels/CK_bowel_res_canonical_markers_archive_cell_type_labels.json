@@ -1,15 +1,16 @@
 {
+    "project": "vbct",
     "marker_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
     "gene_column": "Gene",
     "marker_group_column": "Tier_1_annotation",
     "expression_source": "raw",
     "missing_group_label": "missing_archive_label",
-    "output_csv": "data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/CK_bowel_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
+    "output_csv": "data/xenium/processed/vbct/cross_sample_dotplot_exports/archive_cell_type_labels/CK_bowel_res_canonical_markers_archive_cell_type_labels_dotplot_summary.csv",
     "objects": [
         {
             "sample": "CK_bowel_res",
             "resolution": "archive",
-            "adata_path": "data/xenium/processed/CK_bowel_res/CK_bowel_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "adata_path": "data/xenium/processed/vbct/CK_bowel_res/CK_bowel_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "archive_cell_type_label",
             "groupby_label": "archive_cell_type_label",
             "missing_group_label": "missing_archive_label"

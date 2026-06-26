@@ -41,14 +41,14 @@
         "color_vmax": 2.5
     },
     "dotplot_summary_csvs": [
-        "data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/CK_skin_res_all_genes_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/EL_skin_res_all_genes_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/MF_skin_non_res_all_genes_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/BE_brain_non_res_all_genes_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/HW_brain_res_all_genes_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/CK_bowel_res_all_genes_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/MG_gastric_non_res_all_genes_dotplot_summary.csv",
-        "data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/GR_lung_non_res_roi_all_genes_dotplot_summary.csv"
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/CK_skin_res_all_genes_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/EL_skin_res_all_genes_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/MF_skin_non_res_all_genes_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/BE_brain_non_res_all_genes_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/HW_brain_res_all_genes_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/CK_bowel_res_all_genes_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/MG_gastric_non_res_all_genes_dotplot_summary.csv",
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/GR_lung_non_res_roi_all_genes_dotplot_summary.csv"
     ],
     "sample_filters": [
         {
@@ -93,5 +93,6 @@
     "z_score_expression_column": "mean_expression",
     "z_score_clip": 2.5,
     "color_value_column": "mean_expression_zscore",
-    "colorbar_label": "Mean expression z-score"
+    "colorbar_label": "Mean expression z-score",
+    "project": "vbct"
 }

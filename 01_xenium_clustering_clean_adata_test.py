@@ -144,6 +144,7 @@ nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much ne
 # across regions if cells are pack more closely or loosely in different regions
 coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
 raw_subdir = cfg.get("raw_subdir", "") # Optional subdirectory under data/xenium/raw_data, e.g. ptmt/Run_1
+project = cfg.get("project", "")
 max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", 4)) # Parameter for the run_Leiden_partition_parallel() clustering function 
 
 
@@ -173,7 +174,7 @@ else:
     print(f"Directory '{raw_path} exists.")
 
 ## Create path for processed data e.g., the pre-clustered but unfiltered anndata files, if it does not already exist
-processed_path = os.path.join(base_dir, "processed", f"{dataset_name}")
+processed_path = os.path.join(base_dir, "processed", project, dataset_name)
 
 if not os.path.isdir(processed_path):
     os.makedirs(processed_path)
@@ -183,7 +184,7 @@ else:
     print(f"Directory '{processed_path}' already exists.")
 
 ## Create a path for output data, if it does not already exist
-output_path = os.path.join(base_dir, "output", f"{dataset_name}")
+output_path = os.path.join(base_dir, "output", project, dataset_name)
 
 if not os.path.isdir(output_path):
     os.makedirs(output_path)
@@ -193,7 +194,7 @@ else:
     print(f"Directory '{output_path}' already exists.")
 
 ## Create a path for QC results, if it does not already exist
-qc_path = os.path.join(base_dir, "output", "QC_testing", f"{dataset_name}")
+qc_path = os.path.join(base_dir, "output", project, "QC_testing", dataset_name)
 
 if not os.path.isdir(qc_path):
     os.makedirs(qc_path)
@@ -782,9 +783,7 @@ marker_method = "wilcoxon"
 n_marker_genes = 20
 
 marker_table_path = os.path.join(
-    base_dir,
-    "output",
-    dataset_name,
+    output_path,
     "top_marker_tables",
 )
 os.makedirs(marker_table_path, exist_ok=True)
@@ -862,9 +861,7 @@ for res, markers_key in ranked_marker_keys.items():
 
 ## Create a path for top marker plots generated from the clean expression object.
 top_marker_plot_path = os.path.join(
-    base_dir,
-    "output",
-    dataset_name,
+    output_path,
     "top_marker_plot",
 )
 os.makedirs(top_marker_plot_path, exist_ok=True)
@@ -872,9 +869,7 @@ print(f"Top marker plots will be written to: {top_marker_plot_path}")
 
 ## Create a path for cluster counts plots.
 cluster_count_plot_path = os.path.join(
-    base_dir,
-    "output",
-    dataset_name,
+    output_path,
     "cluster_count_plot",
 )
 os.makedirs(cluster_count_plot_path, exist_ok=True)
@@ -882,9 +877,7 @@ print(f"Cluster count plots will be written to: {cluster_count_plot_path}")
 
 ## Create a path for cluster heatmaps.
 heatmap_path = os.path.join(
-    base_dir,
-    "output",
-    dataset_name,
+    output_path,
     "heatmap_path",
 )
 os.makedirs(heatmap_path, exist_ok=True)

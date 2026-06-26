@@ -1,31 +1,32 @@
 {
-    "expression_adata_path": "data/xenium/processed/MF_skin_non_res/MF_skin_non_res_float_32.h5ad",
-    "output_h5ad": "data/xenium/processed/MF_skin_non_res/MF_skin_non_res_normalised_log1p_with_banksy_clusters.h5ad",
+    "project": "vbct",
+    "expression_adata_path": "data/xenium/processed/vbct/MF_skin_non_res/MF_skin_non_res_float_32.h5ad",
+    "output_h5ad": "data/xenium/processed/vbct/MF_skin_non_res/MF_skin_non_res_normalised_log1p_with_banksy_clusters.h5ad",
     "filter_obs_key": "nCount_Xenium",
     "filter_min": 0,
     "counts_layer": "counts",
     "objects": [
         {
-            "adata_path": "data/xenium/processed/MF_skin_non_res/adata_spatial_MF_skin_non_res_0p9.h5ad",
+            "adata_path": "data/xenium/processed/vbct/MF_skin_non_res/adata_spatial_MF_skin_non_res_0p9.h5ad",
             "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.90",
             "annotation_column": "cell type",
             "annotation_output": "labels_scaled_gaussian_pc20_nc0.20_r0.90_annotation"
         },
         {
-            "adata_path": "data/xenium/processed/MF_skin_non_res/adata_spatial_MF_skin_non_res_1p0.h5ad",
+            "adata_path": "data/xenium/processed/vbct/MF_skin_non_res/adata_spatial_MF_skin_non_res_1p0.h5ad",
             "groupby": "labels_scaled_gaussian_pc20_nc0.20_r1.00",
             "annotation_column": "cell type",
             "annotation_output": "labels_scaled_gaussian_pc20_nc0.20_r1.00_annotation"
         },
         {
-            "adata_path": "data/xenium/processed/MF_skin_non_res/adata_spatial_MF_skin_non_res_1p1.h5ad",
+            "adata_path": "data/xenium/processed/vbct/MF_skin_non_res/adata_spatial_MF_skin_non_res_1p1.h5ad",
             "groupby": "labels_scaled_gaussian_pc20_nc0.20_r1.10",
             "annotation_column": "cell type",
             "annotation_output": "labels_scaled_gaussian_pc20_nc0.20_r1.10_annotation"
         }
     ],
     "archive_labels": {
-        "label_csv": "data/xenium/processed/cluster_label_exports/archive_spatial_cell_type_labels.csv",
+        "label_csv": "data/xenium/processed/vbct/cluster_label_exports/archive_spatial_cell_type_labels.csv",
         "sample": "MF_skin_non_res_roi",
         "columns": {
             "cluster_id": "archive_cluster_id",

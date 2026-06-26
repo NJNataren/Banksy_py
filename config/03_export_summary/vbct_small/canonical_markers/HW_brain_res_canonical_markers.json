@@ -1,26 +1,27 @@
 {
+    "project": "vbct",
     "marker_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
     "gene_column": "Gene",
     "marker_group_column": "Tier_1_annotation",
     "expression_source": "raw",
-    "output_csv": "data/xenium/processed/cross_sample_dotplot_exports/HW_brain_res_canonical_markers_dotplot_summary.csv",
+    "output_csv": "data/xenium/processed/vbct/cross_sample_dotplot_exports/HW_brain_res_canonical_markers_dotplot_summary.csv",
     "objects": [
         {
             "sample": "HW_brain_res",
             "resolution": "0.90",
-            "adata_path": "data/xenium/processed/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "adata_path": "data/xenium/processed/vbct/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.90"
         },
         {
             "sample": "HW_brain_res",
             "resolution": "1.00",
-            "adata_path": "data/xenium/processed/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "adata_path": "data/xenium/processed/vbct/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.00"
         },
         {
             "sample": "HW_brain_res",
             "resolution": "1.10",
-            "adata_path": "data/xenium/processed/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
+            "adata_path": "data/xenium/processed/vbct/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
             "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.10"
         }
     ]

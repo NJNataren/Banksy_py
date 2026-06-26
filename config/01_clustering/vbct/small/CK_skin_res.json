@@ -1,16 +1,26 @@
 {
-	"dataset_name": "CK_skin_res",
-	"pc_label": "20",
-	"lambda_label": "0.20",
-	"res_label": ["0.80", "0.90", "1.00"],
-	"nbr_weight_decay": "scaled_gaussian",
-	"coord_keys": ["x", "y", "xy"],
-	"new_labels": {
-    "0" : "Differentiated_melanoma_cells_(MITF+)_0",
-    "1" : "Cancer_associated_fibroblasts_1",
-    "2" : "M2-like_tumour_associated_macrophages_2",
-    "3" : "Myofibroblasts_3",
-    "4" : "Vascular_endothelial_cells_4",
-    "5" : "C8+_T_cells_(ITGA4)_5"
-}
+    "project": "vbct",
+    "dataset_name": "CK_skin_res",
+    "pc_label": "30",
+    "lambda_label": "0.20",
+    "res_label": [
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00"
+    ],
+    "nbr_weight_decay": "scaled_gaussian",
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
+    "new_labels": {
+        "0": "Differentiated_melanoma_cells_(MITF+)_0",
+        "1": "Cancer_associated_fibroblasts_1",
+        "2": "M2-like_tumour_associated_macrophages_2",
+        "3": "Myofibroblasts_3",
+        "4": "Vascular_endothelial_cells_4",
+        "5": "C8+_T_cells_(ITGA4)_5"
+    }
 }
