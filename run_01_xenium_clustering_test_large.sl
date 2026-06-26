@@ -44,6 +44,6 @@ echo "================================="
 #	Run the QC script	#
 #########################
 
-python 01_xenium_clustering.py --config $CONFIG
+python 01_xenium_clustering_clean_adata_test.py --config $CONFIG
 
 echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')"
