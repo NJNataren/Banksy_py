@@ -1,5 +1,6 @@
 {
     "project": "vbct",
+    "raw_subdir": "vbct",
     "dataset_name": "CK_bowel_res",
     "pc_label": "35",
     "lambda_label": "0.20",

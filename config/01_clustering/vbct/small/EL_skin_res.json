@@ -1,5 +1,6 @@
 {
     "project": "vbct",
+    "raw_subdir": "vbct",
     "dataset_name": "EL_skin_res",
     "pc_label": "30",
     "lambda_label": "0.20",

@@ -1,5 +1,6 @@
 {
     "project": "vbct",
+    "raw_subdir": "vbct",
     "dataset_name": "MF_skin_non_res_roi",
     "pc_label": "20",
     "lambda_label": "0.20",

@@ -10,6 +10,8 @@ Maintain and extend the config-driven Xenium clustering workflow for BANKSY-base
 - The older `01_xenium_clustering.py` and `01_xenium_clustering.ipynb` are no longer the active implementation in this working tree.
 - The active script reads one JSON config via `--config`.
 - Clustering configs live under `config/01_clustering/`, split by study/group and sample.
+- Processed and output paths are now explicitly project-scoped in configs and scripts, for example `data/xenium/processed/vbct/<dataset_name>/` and `data/xenium/output/ptmt/<dataset_name>/`.
+- The previous helper-function approach for inferring/scoping project paths was removed; configs should state the project/path intent directly.
 - PTMT configs currently live under `config/01_clustering/ptmt/` and include `raw_subdir` so samples can read raw files from run-specific folders such as `ptmt/Run_1`, `ptmt/Run_2`, and `ptmt/Run_3`.
 - Main PTMT Slurm entrypoint: `run_01_xenium_clustering_test.sl`.
 - That Slurm script currently uses `CONFIG_DIR="config/01_clustering/ptmt"` and runs `python 01_xenium_clustering_clean_adata_test.py --config $CONFIG`.
@@ -34,6 +36,7 @@ Each clustering config should define:
 - `res_label`: list of Leiden/BANKSY resolutions as strings.
 - `nbr_weight_decay`: neighbour weighting scheme, commonly `"scaled_gaussian"`.
 - `coord_keys`: coordinate columns/obsm key, usually `["x", "y", "xy"]`.
+- `project`: project/study folder used for processed and output paths, usually `"vbct"` or `"ptmt"`.
 - `raw_subdir`: optional subdirectory under `data/xenium/raw_data/`, for example `"ptmt/Run_2"`.
 
 The script reads raw input from:
@@ -46,6 +49,13 @@ If `raw_subdir` is omitted, the script falls back to:
 
 ```text
 data/xenium/raw_data/<dataset_name>_raw.h5ad
+```
+
+The script writes project-scoped outputs to:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/
+data/xenium/output/<project>/<dataset_name>/
 ```
 
 ## Workflow Outputs
@@ -65,10 +75,22 @@ For each sample, the active script:
 - runs `sc.tl.rank_genes_groups()` on clean expression values, not on the BANKSY-expanded spatial object;
 - saves marker CSVs, marker plots, total-count violin plots, and the clean AnnData with BANKSY labels/marker rankings.
 
+Important saved clean AnnData outputs:
+
+- clean pre-BANKSY expression object: `data/xenium/processed/<project>/<dataset_name>/adata_clean_<dataset_name>.h5ad`;
+- clean expression object with all transferred BANKSY labels and marker-ranking results: `data/xenium/processed/<project>/<dataset_name>/adata_clean_with_banksy_labels_<dataset_name>.h5ad`.
+
+Plotting details fixed recently:
+
+- BANKSY labels are treated as ordered categorical labels so cluster ordering is numeric rather than lexicographic, preventing `0, 1, 10, ...` ordering in count and marker plots.
+- Full-figure spatial, UMAP, PCA, and connection plots use a shared categorical colour mapping so cluster colours stay consistent across panels.
+- The colour mapping supports more than 20 clusters, tested with `10850_run_3_1818_AMACR_neg` at resolution `1.10`.
+
 ## Constraints
 
 - Keep clustering config-driven via `--config path/to/sample.json`.
-- Use `raw_subdir` or another config field for run-specific raw data locations; do not hard-code run folders in the script.
+- Use `raw_subdir` for run-specific raw data locations; do not hard-code run folders in the script.
+- Keep processed/output project routing explicit in JSON configs or simple script path construction using `project`; do not reintroduce hidden helper functions for path rewriting.
 - Avoid hard-coding sample names or paths when configs already provide them.
 - Treat `data/xenium/`, `figures/`, `logs/`, and `hpc/` as machine-specific or potentially large.
 - Do not run full clustering jobs locally unless explicitly requested.
@@ -80,3 +102,4 @@ For each sample, the active script:
 - Rename or promote `01_xenium_clustering_clean_adata_test.py` once the clean-AnnData workflow is considered production-ready.
 - Before running a Slurm array, check that `#SBATCH --array` matches the number of intended configs.
 - Consider reducing leftover notebook-export inspection cells/comments in the active script when stabilizing it.
+- Re-run clustering for any samples whose downstream workflows need the new project-scoped processed paths or the latest colour/order fixes.
