@@ -126,22 +126,20 @@ def copy_obsm_aligned(source_adata, target_adata, source_key, target_key):
 # #   ** LOCAL TESTING BLOCK **    #
 # ##################################
 
-# ## Set the dataset_name and related settings to use during this analysis
+# ## These values mirror config/01_clustering/vbct/small/CK_skin_res.json.
+# ## Leave this block commented when using --config from Slurm/the shell.
 # dataset_name = "CK_skin_res" # sample name
-# #dataset_name = "BE_brain_non_res" # sample name
-# pc_label = "20" # Label for the number of principal components used for the purpose of filenames
-# pc_dims = [20] # The number of principal components stored a list for analyses
-# lambda_label = "0.20" # File name label for Lambda setting, see comment below. 
-# lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-# res_label = ["0.50", "0.60", "0.70"] # BANKSY clustering resolution label for resolution chosen to produce plots
-
-# resolutions = [float(res) for res in res_label] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-# #resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
-# nbr_weight_decay = "scaled_gaussian" # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
-# # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
-# # across regions if cells are pack more closely or loosely in different regions
-# coord_keys = ('x', 'y', 'xy') # Keys to specify coordinate indexes in the anndata Object
-# max_workers=8 # maximum CPUs for Leiden clustering
+# pc_label = "30" # Label for the number of principal components used for filenames
+# pc_dims = [int(pc_label)] # Number of principal components stored as a list
+# lambda_label = "0.20" # BANKSY lambda label
+# lambda_list = [float(lambda_label)] # BANKSY lambda as a float
+# res_label = ["0.70", "0.80", "0.90", "1.00"] # BANKSY clustering resolutions
+# resolutions = [float(res) for res in res_label]
+# nbr_weight_decay = "scaled_gaussian"
+# coord_keys = ("x", "y", "xy") # Coordinate keys in .obs/.obsm
+# project = "vbct" # Project/study output folder
+# raw_subdir = "vbct" # Subdirectory under data/xenium/raw_data
+# max_workers = 8 # Maximum CPUs for Leiden clustering
 
 
 # In[ ]:
@@ -156,13 +154,27 @@ def copy_obsm_aligned(source_adata, target_adata, source_key, target_key):
 import argparse
 import json
 
-parser = argparse.ArgumentParser(prog="used to parse arguments form xenium_clustering.py to run on slurm") # Initialise the parser
-parser.add_argument("--config", type=str, help="Provide a JSON config file for each Xenium sample", required=True) # This defines the flag and tells the script to look for a JSON config
-# in the form of a string config file path
-args = parser.parse_args() # Looks at what is passed throught the terminal (in the slurm script in this case) after --config and stores it 
+parser = argparse.ArgumentParser(prog="used to parse arguments from 00_xenium_clustering_clean_adata.py") # Initialise the parser
+parser.add_argument("--config", type=str, help="Optional JSON config file for each Xenium sample", required=False) # This defines the flag and tells the script to look for a JSON config
+# parse_known_args keeps notebook/kernel arguments from breaking local runs.
+args, _unknown_args = parser.parse_known_args()
 
-with open(args.config) as f: # Opens the file path provided by the user
-    cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
+if args.config:
+    with open(args.config) as f: # Opens the file path provided by the user
+        cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
+else:
+    print("No --config supplied; using CK_skin_res local testing defaults.")
+    cfg = {
+        "project": "vbct",
+        "raw_subdir": "vbct",
+        "dataset_name": "CK_skin_res",
+        "pc_label": "30",
+        "lambda_label": "0.20",
+        "res_label": ["0.70", "0.80", "0.90", "1.00"],
+        "nbr_weight_decay": "scaled_gaussian",
+        "coord_keys": ["x", "y", "xy"],
+        "max_workers": 8,
+    }
 
 ## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
 dataset_name = cfg["dataset_name"] # sample name
@@ -178,7 +190,7 @@ nbr_weight_decay = cfg["nbr_weight_decay"] # This parameter dictates how much ne
 coord_keys = tuple(cfg["coord_keys"]) # Keys to specify coordinate indexes in the anndata Object
 raw_subdir = cfg.get("raw_subdir", "") # Optional subdirectory under data/xenium/raw_data, e.g. ptmt/Run_1
 project = cfg.get("project", "")
-max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", 4)) # Parameter for the run_Leiden_partition_parallel() clustering function 
+max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", cfg.get("max_workers", 4))) # Parameter for the run_Leiden_partition_parallel() clustering function 
 
 
 # In[47]:

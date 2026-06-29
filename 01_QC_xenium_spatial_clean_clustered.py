@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+"""
+Title: Clean Clustered Xenium QC And Inspection
+Date: 2026-06-29
+Summary: Run QC and exploratory spatial plots from clean expression AnnData
+objects that already contain BANKSY cluster labels and embeddings.
+"""
+
 # In[178]:
 
 
@@ -47,34 +54,33 @@ random.seed(seed)
 # #                              LOCAL TESTING BLOCK                             #
 # # ---------------------------------------------------------------------------- #
 
-# ## Set the dataset_name and related settings to use during this analysis
-# dataset_name = "GR_lung_non_res_roi" # sample name
-# pc_label = "35" # Label for the number of principal components used for the purpose of filenames
-# pc_dims = [int(pc_label)] # The number of principal components stored a list for analyses
-# lambda_label = "0.20" # File name label for Lambda setting, see comment below. 
-# lambda_list = [float(lambda_label)] # Lambda setting to tune BANKSY clustering, lambda = 0 is non-spatial, 0.2 is for cell typing, 0.8 if for domain segmentation 
-# res_label = "0.50" # BANKSY clustering resolution label for resolution chosen to produce plots
-# resolutions = [float(res_label)] # BANSY can take a list of resolutions and perform clustering at each which is saved in the BANKSY dictionary
+# ## These values mirror config/01_clustering/vbct/small/CK_skin_res.json.
+# ## Leave this block commented when using --config from Slurm/the shell.
+# dataset_name = "CK_skin_res"
+# pc_label = "30"
+# pc_dims = [int(pc_label)]
+# lambda_label = "0.20"
+# lambda_list = [float(lambda_label)]
+# res_label = ["0.70", "0.80", "0.90", "1.00"]
+# res_label_list = res_label
+# resolutions = [float(res) for res in res_label_list]
+# plot_res_label = "1.00"
+# nbr_weight_decay = "scaled_gaussian"
+# coord_keys = ("x", "y", "xy")
+# project = "vbct"
+# raw_subdir = "vbct"
+# res_str = "_".join(res_label_list)
+# cluster_col = "labels_scaled_gaussian_pc30_nc0.20_r1.00"
+# cluster_ann_col = f"{cluster_col}_ann"
 
-# nbr_weight_decay = "scaled_gaussian" # This parameter dictates how much neighbouring cells impact to the neighbourhood expression calculations. Using scaled gaussian, the 
-# # close neigbours contribute more and this decays as you move out to cells further away in the neighbourhood window. It is scaled for local cell density so that weighting doesn't change
-# # across regions if cells are pack more closely or loosely in different regions
-# coord_keys = ('x', 'y', 'xy') # Keys to specify coordinate indexes in the anndata Object
-
-# new_labels = { # These are the cluster labels for cell types
-#     "0" : "Differentiated_or_Melanocytic melanoma cells (MITF+)_0",
-#     "1" : "Cycling melanoma cells_1",
-#     "2" : "Invasive melanoma cells (MITF+)_2",
-#     "3" : "M2-like Tumour Associated Macrophages (CXCL12+)_3",
-#     "4" : "Dedifferentiated melanoma (angiogenic_or_hypoxic)_4",
-#     "5" : "Invasive neural crest-like melanoma cells_5", 
-#     "6" : "Mesenchymal-like melanoma cells_6",
-#     "7" : "M2-like Tumour Associated Macrophages (CXCL16)_7",
-#     "8" : "Vascular endothelial cells_8",
-#     "9" : "Cancer associated fibroblasts (ECM-remodelling)_9",
-#     "10" : "Melanocytic Melanoma Cells (MITF+ PKHD1L1+)_10",
-#     "11" : "Skin epithelial cells_11",
-#     "12" : "Stromal cells_12"}	
+# new_labels = {
+#     "0": "Differentiated_melanoma_cells_(MITF+)_0",
+#     "1": "Cancer_associated_fibroblasts_1",
+#     "2": "M2-like_tumour_associated_macrophages_2",
+#     "3": "Myofibroblasts_3",
+#     "4": "Vascular_endothelial_cells_4",
+#     "5": "C8+_T_cells_(ITGA4)_5",
+# }
 
 
 # In[ ]:
@@ -89,15 +95,16 @@ import argparse
 import json
 
 
-parser = argparse.ArgumentParser(prog="used to parse arguments form 00_QC_xenium_spatial.py to run on slurm") # Initialise the parser
+parser = argparse.ArgumentParser(prog="used to parse arguments from 01_QC_xenium_spatial_clean_clustered.py") # Initialise the parser
 parser.add_argument("--config", type=str, help="Optional JSON config file for each Xenium sample", required=False) # This defines the flag and tells the script to look for a JSON config
-# in the form of a string config file path
-args = parser.parse_args() # Looks at what is passed throught the terminal (in the slurm script in this case) after --config and stores it 
+# parse_known_args keeps notebook/kernel arguments from breaking local runs.
+args, _unknown_args = parser.parse_known_args()
 
 if args.config:
     with open(args.config) as f: # Opens the file path provided by the user
         cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
 else:
+    print("No --config supplied; using CK_skin_res local testing defaults.")
     cfg = {
         "project": "vbct",
         "raw_subdir": "vbct",
@@ -109,8 +116,16 @@ else:
         "nbr_weight_decay": "scaled_gaussian",
         "coord_keys": ["x", "y", "xy"],
         "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.00",
-        "new_labels": {},
+        "new_labels": {
+            "0": "Differentiated_melanoma_cells_(MITF+)_0",
+            "1": "Cancer_associated_fibroblasts_1",
+            "2": "M2-like_tumour_associated_macrophages_2",
+            "3": "Myofibroblasts_3",
+            "4": "Vascular_endothelial_cells_4",
+            "5": "C8+_T_cells_(ITGA4)_5",
+        },
     }
+
 
 ## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
 dataset_name = cfg["dataset_name"] # sample name
@@ -214,6 +229,18 @@ adata = adata_clean
 ## Create 'xy' spatial coordinates from adata.obs if they are not already present.
 if 'xy' not in adata_clean.obsm:
     adata_clean.obsm['xy'] = np.vstack([adata_clean.obs['x'], adata_clean.obs['y']]).T
+
+## Scanpy plotting helpers expect generic X_umap/X_pca keys. Keep the
+## explicit BANKSY keys, but add generic aliases for this QC script.
+banksy_umap_key = f"X_umap_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}"
+if banksy_umap_key in adata_clean.obsm and "X_umap" not in adata_clean.obsm:
+    adata_clean.obsm["X_umap"] = adata_clean.obsm[banksy_umap_key]
+    print(f"Aliased {banksy_umap_key} to adata_clean.obsm['X_umap']")
+
+banksy_pca_key = f"X_pca_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}"
+if banksy_pca_key in adata_clean.obsm and "X_pca" not in adata_clean.obsm:
+    adata_clean.obsm["X_pca"] = adata_clean.obsm[banksy_pca_key]
+    print(f"Aliased {banksy_pca_key} to adata_clean.obsm['X_pca']")
 
 
 # In[184]:
@@ -699,9 +726,18 @@ sc.tl.dendrogram(
     key_added=cluster_col
 )
 
-## Determine vmin and vmax dynamically based on gene expression
+## Determine vmin and vmax dynamically based on gene expression.
+## Convert matrix-like/sparse values to a plain ndarray so NumPy percentiles
+## do not inherit np.matrix multiplication semantics.
 expr_values = adata_clean.X
-vmax_dynamic = np.percentile(expr_values[expr_values > 0], 99)
+if hasattr(expr_values, "toarray"):
+    expr_values = expr_values.toarray()
+expr_values = np.asarray(expr_values).ravel()
+positive_expr_values = expr_values[expr_values > 0]
+if positive_expr_values.size == 0:
+    vmax_dynamic = 0
+else:
+    vmax_dynamic = np.percentile(positive_expr_values, 99)
 vmin_dynamic = np.percentile(expr_values, 1)
 
 sc.pl.rank_genes_groups_heatmap(
@@ -796,7 +832,23 @@ top_markers = top_markers.sort_values(by='cluster', ascending=False)
 
 ## Read in the master annotation file which contains all the curated cell type labels for each marker gene
 #master_markers_file = pd.read_csv(f"{raw_path}/xenium_gene_list_annotation_master.csv")
-master_markers_file = pd.read_csv(f"{raw_path}/xenium_gene_list_annotation_master_v1_March_2026_Tier1.csv")
+master_marker_candidates = [
+    os.path.join(raw_path, "xenium_gene_list_annotation_master_v1_March_2026_Tier1.csv"),
+    os.path.join(base_dir, "raw_data", "xenium_panel_gene_lists", "xenium_gene_list_annotation_master_v1_March_2026_Tier1.csv"),
+    os.path.join(base_dir, "raw_data", "gene_markers", "archive", "xenium_gene_list_annotation_master_v1_March_2026_Tier1.csv"),
+    os.path.join(base_dir, "raw_data", "gene_markers", "01_xenium_gene_list_annotation_master_v1_May_2026_Tier1_2026-06-15.csv"),
+]
+master_marker_path = next(
+    (candidate for candidate in master_marker_candidates if os.path.isfile(candidate)),
+    None,
+)
+if master_marker_path is None:
+    raise FileNotFoundError(
+        "Could not find marker annotation master file. Checked: "
+        f"{master_marker_candidates}"
+    )
+print(f"Reading marker annotation master file: {master_marker_path}")
+master_markers_file = pd.read_csv(master_marker_path)
 
 ## Create a data frame of the genes and their corresponding primary and secondary cell type annotations 
 cell_annotations = master_markers_file[["Gene", "primary_annotation", "secondary_annotation"]]
@@ -909,7 +961,7 @@ sc.pl.umap(
 plt.legend(fontsize=20, title_fontsize=50)
 
 color_vars = [
-"threshold_passed_cat"
+"min_trans_passed_cat"
 ]
 
 #with rc_context({"figure.figsize": (3,3)}):
