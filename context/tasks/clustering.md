@@ -6,23 +6,23 @@ Maintain and extend the config-driven Xenium clustering workflow for BANKSY-base
 
 ## Current Status
 
-- Active clustering script: `01_xenium_clustering_clean_adata_test.py`.
+- Active clustering script: `00_xenium_clustering_clean_adata.py`.
 - The older `01_xenium_clustering.py` and `01_xenium_clustering.ipynb` are no longer the active implementation in this working tree.
 - The active script reads one JSON config via `--config`.
 - Clustering configs live under `config/01_clustering/`, split by study/group and sample.
 - Processed and output paths are now explicitly project-scoped in configs and scripts, for example `data/xenium/processed/vbct/<dataset_name>/` and `data/xenium/output/ptmt/<dataset_name>/`.
 - The previous helper-function approach for inferring/scoping project paths was removed; configs should state the project/path intent directly.
 - PTMT configs currently live under `config/01_clustering/ptmt/` and include `raw_subdir` so samples can read raw files from run-specific folders such as `ptmt/Run_1`, `ptmt/Run_2`, and `ptmt/Run_3`.
-- Main PTMT Slurm entrypoint: `run_01_xenium_clustering_test.sl`.
-- That Slurm script currently uses `CONFIG_DIR="config/01_clustering/ptmt"` and runs `python 01_xenium_clustering_clean_adata_test.py --config $CONFIG`.
+- Main PTMT Slurm entrypoint: `run_01_xenium_clustering_test.sl` (legacy wrapper name; runs script 00).
+- That Slurm script currently uses `CONFIG_DIR="config/01_clustering/ptmt"` and runs `python 00_xenium_clustering_clean_adata.py --config $CONFIG`.
 - If running all current PTMT configs, update/check the Slurm array range against the number of JSON files in `config/01_clustering/ptmt/`.
 
 ## Key Files
 
-- `01_xenium_clustering_clean_adata_test.py`
+- `00_xenium_clustering_clean_adata.py`
 - `config/01_clustering/`
 - `config/01_clustering/ptmt/`
-- `run_01_xenium_clustering_test.sl`
+- `run_01_xenium_clustering_test.sl` (legacy wrapper name; runs script 00)
 - `banksy/`
 - `banksy_utils/`
 
@@ -88,7 +88,7 @@ Plotting details fixed recently:
 
 ## Clean Object Transfer Recommendations
 
-When updating `01_xenium_clustering_clean_adata_test.py`, use it as the place where BANKSY-derived metadata is copied onto the clean expression AnnData, because this script has access to the clean object, `banksy_dict`, `results_df`, and per-resolution spatial objects at the same time.
+When updating `00_xenium_clustering_clean_adata.py`, use it as the place where BANKSY-derived metadata is copied onto the clean expression AnnData, because this script has access to the clean object, `banksy_dict`, `results_df`, and per-resolution spatial objects at the same time.
 
 Recommended metadata to copy into the clean object:
 
@@ -114,7 +114,6 @@ Do not copy BANKSY-expanded expression values into the clean expression matrix. 
 
 ## Next Steps
 
-- Rename or promote `01_xenium_clustering_clean_adata_test.py` once the clean-AnnData workflow is considered production-ready.
 - Before running a Slurm array, check that `#SBATCH --array` matches the number of intended configs.
 - Consider reducing leftover notebook-export inspection cells/comments in the active script when stabilizing it.
 - Re-run clustering for any samples whose downstream workflows need the new project-scoped processed paths or the latest colour/order fixes.

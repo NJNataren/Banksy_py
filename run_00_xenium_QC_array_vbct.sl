@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-#SBATCH --job-name=00_QC_testing_xenium_spatial
+#SBATCH --job-name=01_QC_testing_xenium_spatial
 #SBATCH --array=0-7%2 #number of samples to process
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -40,5 +40,5 @@ echo "================================="
 #	Run the QC script	#
 #########################
 
-python 00_QC_testing_xenium_spatial.py --config $CONFIG
+python 01_QC_xenium_spatial.py --config $CONFIG
 echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=01_xenium_clustering
+#SBATCH --job-name=00_xenium_clustering
 #SBATCH --array=0-4%2 #limit to 2 so you're not using all the nodes
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
@@ -41,10 +41,10 @@ cat $CONFIG
 echo "================================="
 
 #########################
-#	Run the QC script	#
+#	Run clustering	#
 #########################
 
-#python 01_xenium_clustering.py --config $CONFIG
-python 01_xenium_clustering_clean_adata_test.py --config $CONFIG
+#python 00_xenium_clustering_clean_adata.py --config $CONFIG
+python 00_xenium_clustering_clean_adata.py --config $CONFIG
 
 echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')"

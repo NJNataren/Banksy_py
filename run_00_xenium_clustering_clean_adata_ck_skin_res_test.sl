@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=01_ck_skin_res_clean_test
+#SBATCH --job-name=00_ck_skin_res_clean_test
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
@@ -22,8 +22,8 @@ RUN_DIR="${OUTPUT_DIR}/slurm_test_runs/${RUN_TIMESTAMP}_${SLURM_JOB_ID}"
 
 mkdir -p "${RUN_DIR}"
 
-exec > >(tee "${RUN_DIR}/01_xenium_clustering_clean_adata_test.out") \
-     2> >(tee "${RUN_DIR}/01_xenium_clustering_clean_adata_test.err" >&2)
+exec > >(tee "${RUN_DIR}/00_xenium_clustering_clean_adata.out") \
+     2> >(tee "${RUN_DIR}/00_xenium_clustering_clean_adata.err" >&2)
 
 echo "================================="
 echo "Job started: $(date '+%Y-%m-%d %H:%M:%S')"
@@ -40,7 +40,7 @@ echo "================================="
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-python 01_xenium_clustering_clean_adata_test.py --config "${CONFIG}"
+python 00_xenium_clustering_clean_adata.py --config "${CONFIG}"
 
 echo "================================="
 echo "Inspecting clean AnnData metadata transfer"

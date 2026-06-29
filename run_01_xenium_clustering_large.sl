@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=01_xenium_clustering
+#SBATCH --job-name=00_xenium_clustering
 #SBATCH --array=0-2%2 # runs at most 2 tasks at a time out of 3
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16 # increase from 8 - parallelisation of Leiden clustering will benefit
@@ -41,9 +41,9 @@ cat $CONFIG
 echo "================================="
 
 #########################
-#	Run the QC script	#
+#	Run clustering	#
 #########################
 
-python 01_xenium_clustering_clean_adata_test.py --config $CONFIG
+python 00_xenium_clustering_clean_adata.py --config $CONFIG
 
 echo "Sample finished: $(date '+%Y-%m-%d %H:%M:%S')"

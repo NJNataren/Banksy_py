@@ -799,15 +799,31 @@ for cluster_label_col in cluster_label_cols:
 
 embedding_source = spatial_adatas[resolutions[0]]
 umap_target_key = f"X_umap_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}"
-copy_obsm_aligned(
-    source_adata=embedding_source,
-    target_adata=clean_adata,
-    source_key="X_umap",
-    target_key=umap_target_key,
-)
+umap_source_keys = [
+    "X_umap",
+    f"reduced_pc_{pc_dims[0]}_umap",
+    f"reduced_pc_{pc_label}_umap",
+]
+for source_key in umap_source_keys:
+    if copy_obsm_aligned(
+        source_adata=embedding_source,
+        target_adata=clean_adata,
+        source_key=source_key,
+        target_key=umap_target_key,
+    ):
+        break
+else:
+    print("No UMAP embedding found to copy")
 
 pca_target_key = f"X_pca_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}"
-for source_key in ["X_pca", "pca", "X_pca_banksy"]:
+pca_source_keys = [
+    "X_pca",
+    "pca",
+    "X_pca_banksy",
+    f"reduced_pc_{pc_dims[0]}",
+    f"reduced_pc_{pc_label}",
+]
+for source_key in pca_source_keys:
     if copy_obsm_aligned(
         source_adata=embedding_source,
         target_adata=clean_adata,
