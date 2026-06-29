@@ -86,6 +86,21 @@ Plotting details fixed recently:
 - Full-figure spatial, UMAP, PCA, and connection plots use a shared categorical colour mapping so cluster colours stay consistent across panels.
 - The colour mapping supports more than 20 clusters, tested with `10850_run_3_1818_AMACR_neg` at resolution `1.10`.
 
+## Clean Object Transfer Recommendations
+
+When updating `01_xenium_clustering_clean_adata_test.py`, use it as the place where BANKSY-derived metadata is copied onto the clean expression AnnData, because this script has access to the clean object, `banksy_dict`, `results_df`, and per-resolution spatial objects at the same time.
+
+Recommended metadata to copy into the clean object:
+
+- BANKSY cluster labels for each configured resolution, already stored as columns such as `labels_scaled_gaussian_pc30_nc0.20_r1.00`.
+- BANKSY UMAP embeddings, stored in `.obsm` with explicit names such as `X_umap_scaled_gaussian_pc30_nc0.20`. Resolution usually should not be part of the UMAP key unless the embedding itself is resolution-specific.
+- BANKSY PCA embeddings, if available and useful for debugging/reproducibility, with explicit `.obsm` keys such as `X_pca_scaled_gaussian_pc30_nc0.20`.
+- Spatial coordinates standardized as `clean_adata.obsm["spatial"] = clean_adata.obs[["x", "y"]].to_numpy()` while preserving the existing `xy` convention.
+- Human-readable cluster annotation columns when `new_labels` is available, for example `labels_scaled_gaussian_pc30_nc0.20_r1.00_ann`.
+- QC-relevant `.obs` columns such as `nCount_Xenium`, `nFeature_Xenium`, `transcript_counts`, `cell_area`, `nucleus_area`, and aggregate control/codeword count columns.
+
+Do not copy BANKSY-expanded expression values into the clean expression matrix. In particular, do not replace `clean_adata.X` with `adata_spatial.X`, and do not add neighbour-derived `_nbr_0`/`_nbr_1` features as biological expression values. Avoid storing large BANKSY graphs or full `banksy_dict` contents in the clean object unless a downstream workflow explicitly needs them.
+
 ## Constraints
 
 - Keep clustering config-driven via `--config path/to/sample.json`.

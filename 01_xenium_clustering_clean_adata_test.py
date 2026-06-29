@@ -3,10 +3,10 @@
 
 """
 Title: Xenium BANKSY Clustering With Clean Expression Outputs
-Date: 2026-06-16
+Date: 2026-06-29
 Summary: Run config-driven BANKSY clustering for Xenium samples, save clean
 log-normalized expression AnnData before BANKSY feature expansion, and copy
-BANKSY cluster labels back onto the clean object for marker analysis.
+BANKSY metadata back onto the clean object for marker analysis.
 """
 # In[43]:
 
@@ -84,6 +84,39 @@ def make_numeric_cluster_category(labels):
     label_strings = labels.astype(int).astype(str)
     categories = [str(label) for label in sorted(label_strings.astype(int).unique())]
     return pd.Categorical(label_strings, categories=categories, ordered=True)
+
+
+def make_banksy_label_col(nbr_weight_decay, pc_label, lambda_label, resolution):
+    """Build the BANKSY cluster-label column name for one resolution."""
+    return (
+        f"labels_{nbr_weight_decay}"
+        f"_pc{pc_label}"
+        f"_nc{lambda_label}"
+        f"_r{resolution:.2f}"
+    )
+
+
+def copy_obsm_aligned(source_adata, target_adata, source_key, target_key):
+    """Copy an embedding between AnnData objects after aligning by cell ID."""
+    if source_key not in source_adata.obsm:
+        print(f"Skipping {target_key}: {source_key!r} not found in source obsm")
+        return False
+
+    source_positions = pd.Series(
+        np.arange(source_adata.n_obs),
+        index=source_adata.obs_names,
+    )
+    missing_cells = target_adata.obs_names.difference(source_positions.index)
+    if len(missing_cells) > 0:
+        raise ValueError(
+            f"{len(missing_cells)} cells in clean_adata are missing from "
+            f"source embedding {source_key!r}"
+        )
+
+    aligned_idx = source_positions.loc[target_adata.obs_names].to_numpy()
+    target_adata.obsm[target_key] = np.asarray(source_adata.obsm[source_key])[aligned_idx, :]
+    print(f"Copied {source_key!r} to clean_adata.obsm[{target_key!r}]")
+    return True
 
 
 # In[ ]:
@@ -701,9 +734,15 @@ raw_cell_ids = raw_cell_ids[['index']]
 merged = raw_cell_ids.copy()
 
 for res in resolutions:
+    cluster_label_col = make_banksy_label_col(
+        nbr_weight_decay,
+        pc_label,
+        lambda_label,
+        res,
+    )
     df = spatial_adatas[res].obs.reset_index()
-    df = df[['index', f'labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res:.2f}']]
-    merged = pd.merge(merged, df, on = 'index', how = 'left')
+    df = df[["index", cluster_label_col]]
+    merged = pd.merge(merged, df, on="index", how="left")
 print(merged)
 
 merged.to_csv(os.path.join(processed_path, f"{dataset_name}_cell_cluster_id_across_clustering_res_{res_str}.csv"))
@@ -713,12 +752,13 @@ merged.to_csv(os.path.join(processed_path, f"{dataset_name}_cell_cluster_id_acro
 
 
 #####################################################################
-#       COPY BANKSY CLUSTER LABELS TO CLEAN EXPRESSION ANNDATA       #
+#       COPY BANKSY METADATA TO CLEAN EXPRESSION ANNDATA              #
 #####################################################################
 
 ## Read the clean expression object saved before BANKSY feature expansion.
-## Cluster labels are aligned by cell ID, following the pattern used in
-## 02_create_expression_adata_with_banksy_clusters.py.
+## Cluster labels and embeddings are aligned by cell ID so metadata remains
+## correct even if object row order changes. Clean expression values are not
+## replaced with BANKSY-expanded features.
 try:
     clean_expression_h5ad
 except NameError:
@@ -728,9 +768,12 @@ except NameError:
     )
 
 clean_adata = ad.read_h5ad(clean_expression_h5ad)
+clean_shape_before = clean_adata.shape
+clean_var_names_before = clean_adata.var_names.copy()
+
 cluster_label_table = merged.set_index("index")
 cluster_label_cols = [
-    f"labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res:.2f}"
+    make_banksy_label_col(nbr_weight_decay, pc_label, lambda_label, res)
     for res in resolutions
 ]
 
@@ -754,12 +797,76 @@ for cluster_label_col in cluster_label_cols:
     clean_adata.obs[cluster_label_col] = make_numeric_cluster_category(labels)
     print(f"Copied {cluster_label_col} to clean expression AnnData obs")
 
+embedding_source = spatial_adatas[resolutions[0]]
+umap_target_key = f"X_umap_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}"
+copy_obsm_aligned(
+    source_adata=embedding_source,
+    target_adata=clean_adata,
+    source_key="X_umap",
+    target_key=umap_target_key,
+)
+
+pca_target_key = f"X_pca_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}"
+for source_key in ["X_pca", "pca", "X_pca_banksy"]:
+    if copy_obsm_aligned(
+        source_adata=embedding_source,
+        target_adata=clean_adata,
+        source_key=source_key,
+        target_key=pca_target_key,
+    ):
+        break
+else:
+    print("No PCA embedding found to copy")
+
+required_spatial_cols = ["x", "y"]
+missing_spatial_cols = [
+    col for col in required_spatial_cols
+    if col not in clean_adata.obs.columns
+]
+if missing_spatial_cols:
+    raise KeyError(
+        f"Cannot create spatial coordinates. Missing obs columns: {missing_spatial_cols}"
+    )
+
+spatial_coords = clean_adata.obs[["x", "y"]].to_numpy()
+clean_adata.obsm["xy"] = spatial_coords
+clean_adata.obsm["spatial"] = spatial_coords
+print("Stored clean spatial coordinates in obsm['xy'] and obsm['spatial']")
+
+recommended_qc_cols = [
+    "nCount_Xenium",
+    "nFeature_Xenium",
+    "transcript_counts",
+    "cell_area",
+    "nucleus_area",
+    "total_counts",
+]
+control_patterns = ["control", "codeword", "negative", "blank"]
+present_qc_cols = [col for col in recommended_qc_cols if col in clean_adata.obs.columns]
+missing_qc_cols = [col for col in recommended_qc_cols if col not in clean_adata.obs.columns]
+control_qc_cols = [
+    col for col in clean_adata.obs.columns
+    if any(pattern in col.lower() for pattern in control_patterns)
+]
+print(f"QC columns present: {present_qc_cols}")
+print(f"QC columns missing: {missing_qc_cols}")
+print(f"Control/codeword-like columns present: {control_qc_cols}")
+
+if clean_adata.shape != clean_shape_before:
+    raise RuntimeError(
+        "clean_adata shape changed during BANKSY metadata transfer"
+    )
+if not clean_adata.var_names.equals(clean_var_names_before):
+    raise RuntimeError(
+        "clean_adata variables changed during BANKSY metadata transfer"
+    )
+
 clean_clustered_h5ad = os.path.join(
     processed_path,
     f"adata_expression_clean_{dataset_name}_with_banksy_clusters_{res_str}.h5ad",
 )
 clean_adata.write_h5ad(clean_clustered_h5ad)
-print(f"Wrote clean expression AnnData with BANKSY labels: {clean_clustered_h5ad}")
+print(f"Wrote clean expression AnnData with BANKSY metadata: {clean_clustered_h5ad}")
 print(clean_adata)
 
 
@@ -792,7 +899,7 @@ ranked_marker_keys = {}
 
 for res in resolutions:
     res_str_single = str(res).replace(".", "p")
-    groupby_key = f"labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res:.2f}"
+    groupby_key = make_banksy_label_col(nbr_weight_decay, pc_label, lambda_label, res)
     markers_key = f"{groupby_key}_markers_{marker_method}"
 
     if groupby_key not in clean_adata.obs.columns:
@@ -924,7 +1031,7 @@ sc.settings.figdir = cluster_count_plot_path
 
 for res in resolutions:
     res_str_single = str(res).replace(".", "p")
-    groupby_key = f"labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res:.2f}"
+    groupby_key = make_banksy_label_col(nbr_weight_decay, pc_label, lambda_label, res)
 
     if groupby_key not in clean_adata.obs.columns:
         raise KeyError(
@@ -959,7 +1066,7 @@ for res in resolutions:
 #     ad_res = spatial_adatas[res]
 #     #markers_key = f"labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res:.2f}_raw"
 
-#     groupby_key = f"labels_scaled_gaussian_pc{pc_label}_nc{lambda_label}_r{res:.2f}"
+#     groupby_key = make_banksy_label_col(nbr_weight_decay, pc_label, lambda_label, res)
 #     markers_key = f"{groupby_key}_raw"
 #     print(markers_key)
 #     sc.tl.dendrogram(
