@@ -1,11 +1,11 @@
 #!/bin/bash
 
-#SBATCH --job-name=00_xenium_clustering
-#SBATCH --array=0-4%2 #limit to 2 so you're not using all the nodes
+#SBATCH --job-name=00_xenium_s_clustering
+#SBATCH --array=0-4 #limit to 2 so you're not using all the nodes
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=128G
-#SBATCH --time=08:00:00
+#SBATCH --mem=180G
+#SBATCH --time=24:00:00
 #SBATCH --output=logs/xenium_clustering_%x_%A_%a.out
 #SBATCH --error=logs/xenium_clustering_%x_%A_%a.err
 #SBATCH --partition=sacgf
@@ -24,8 +24,8 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 #CONFIG=/hpcfs/users/a1210419/Banksy_py/config/vbct/CK_skin_res.json #local testing
-#CONFIG_DIR="config/01_clustering/vbct/small"
-CONFIG_DIR="config/01_clustering/ptmt"
+CONFIG_DIR="config/01_clustering/vbct/small"
+#CONFIG_DIR="config/01_clustering/ptmt"
 CONFIGS=($CONFIG_DIR/*.json)
 CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
 
