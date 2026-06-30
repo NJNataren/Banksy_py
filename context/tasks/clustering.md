@@ -7,22 +7,44 @@ Maintain and extend the config-driven Xenium clustering workflow for BANKSY-base
 ## Current Status
 
 - Active clustering script: `00_xenium_clustering_clean_adata.py`.
+- Active clean-clustered QC script: `01_QC_xenium_spatial_clean_clustered.py`.
+- Workflow order is now:
+  - `00_xenium_clustering_clean_adata.py`: clustering plus clean AnnData generation/metadata transfer.
+  - `01_QC_xenium_spatial_clean_clustered.py`: QC/inspection of the clean clustered AnnData object.
 - The older `01_xenium_clustering.py` and `01_xenium_clustering.ipynb` are no longer the active implementation in this working tree.
-- The active script reads one JSON config via `--config`.
+- Both active scripts can read one JSON config via `--config`; recent notebook-friendly updates also allow no-config local CK testing fallbacks.
 - Clustering configs live under `config/01_clustering/`, split by study/group and sample.
 - Processed and output paths are now explicitly project-scoped in configs and scripts, for example `data/xenium/processed/vbct/<dataset_name>/` and `data/xenium/output/ptmt/<dataset_name>/`.
 - The previous helper-function approach for inferring/scoping project paths was removed; configs should state the project/path intent directly.
 - PTMT configs currently live under `config/01_clustering/ptmt/` and include `raw_subdir` so samples can read raw files from run-specific folders such as `ptmt/Run_1`, `ptmt/Run_2`, and `ptmt/Run_3`.
-- Main PTMT Slurm entrypoint: `run_01_xenium_clustering_test.sl` (legacy wrapper name; runs script 00).
-- That Slurm script currently uses `CONFIG_DIR="config/01_clustering/ptmt"` and runs `python 00_xenium_clustering_clean_adata.py --config $CONFIG`.
+- Main clustering Slurm entrypoints include `run_00_xenium_clustering.sl` and `run_00_xenium_clustering_large.sl`.
+- `run_00_xenium_clustering.sl` now anchors execution to the HPC repository path before running Python, then prints working-directory and required-directory diagnostics.
 - If running all current PTMT configs, update/check the Slurm array range against the number of JSON files in `config/01_clustering/ptmt/`.
+
+## Session Handoff
+
+Recent work focused on making the clean AnnData object the central handoff between clustering and QC, then making both scripts easier to run as notebooks for local analysis.
+
+- Script order/name convention was changed so clustering is step 00 and clean-clustered QC is step 01.
+- Slurm wrappers and README mentions were updated earlier to point at the renamed scripts; some wrapper names may still contain legacy words, but commands should point to the active scripts.
+- `00_xenium_clustering_clean_adata.py` now transfers BANKSY-derived metadata back onto the clean expression AnnData without replacing clean expression values.
+- `01_QC_xenium_spatial_clean_clustered.py` was locally tested on `CK_skin_res` using the clean clustered object and completed successfully.
+- Notebook versions were generated for local interactive analysis: `00_xenium_clustering_clean_adata.ipynb` and `01_QC_xenium_spatial_clean_clustered.ipynb`.
+- Both active scripts were syntax-checked with `python -m py_compile`.
+- Current git status at the end of the session included modified `00_xenium_clustering_clean_adata.py`, modified `run_00_xenium_clustering.sl`, deleted `config/01_clustering/vbct/large/MF_skin_non_res_roi.json`, and untracked `config/01_clustering/vbct/large/MF_skin_non_res.json`.
+- The `MF_skin_non_res_roi.json` to `MF_skin_non_res.json` change appears to be an intentional user rename; do not revert it.
 
 ## Key Files
 
 - `00_xenium_clustering_clean_adata.py`
+- `00_xenium_clustering_clean_adata.ipynb`
+- `01_QC_xenium_spatial_clean_clustered.py`
+- `01_QC_xenium_spatial_clean_clustered.ipynb`
 - `config/01_clustering/`
 - `config/01_clustering/ptmt/`
-- `run_01_xenium_clustering_test.sl` (legacy wrapper name; runs script 00)
+- `run_00_xenium_clustering.sl`
+- `run_00_xenium_clustering_large.sl`
+- `run_01_xenium_QC_array_ptmt.sl`
 - `banksy/`
 - `banksy_utils/`
 
@@ -38,6 +60,7 @@ Each clustering config should define:
 - `coord_keys`: coordinate columns/obsm key, usually `["x", "y", "xy"]`.
 - `project`: project/study folder used for processed and output paths, usually `"vbct"` or `"ptmt"`.
 - `raw_subdir`: optional subdirectory under `data/xenium/raw_data/`, for example `"ptmt/Run_2"`.
+- `new_labels`: used by the 01 QC script for human-readable cluster annotations. Do not use `new_labels` in the 00 clustering script.
 
 The script reads raw input from:
 
@@ -78,7 +101,15 @@ For each sample, the active script:
 Important saved clean AnnData outputs:
 
 - clean pre-BANKSY expression object: `data/xenium/processed/<project>/<dataset_name>/adata_clean_<dataset_name>.h5ad`;
-- clean expression object with all transferred BANKSY labels and marker-ranking results: `data/xenium/processed/<project>/<dataset_name>/adata_clean_with_banksy_labels_<dataset_name>.h5ad`.
+- clean expression object with transferred BANKSY labels/embeddings: `data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_with_banksy_clusters_<resolutions>.h5ad`.
+
+For `CK_skin_res`, the clean clustered object was confirmed locally at:
+
+```text
+data/xenium/processed/vbct/CK_skin_res/adata_expression_clean_CK_skin_res_with_banksy_clusters_0.70_0.80_0.90_1.00.h5ad
+```
+
+It contained label columns such as `labels_scaled_gaussian_pc30_nc0.20_r0.70`, `labels_scaled_gaussian_pc30_nc0.20_r0.80`, `labels_scaled_gaussian_pc30_nc0.20_r0.90`, and `labels_scaled_gaussian_pc30_nc0.20_r1.00`, plus `.obsm` keys `xy`, `spatial`, `X_umap_scaled_gaussian_pc30_nc0.20`, and `X_pca_scaled_gaussian_pc30_nc0.20`.
 
 Plotting details fixed recently:
 
@@ -90,16 +121,92 @@ Plotting details fixed recently:
 
 When updating `00_xenium_clustering_clean_adata.py`, use it as the place where BANKSY-derived metadata is copied onto the clean expression AnnData, because this script has access to the clean object, `banksy_dict`, `results_df`, and per-resolution spatial objects at the same time.
 
-Recommended metadata to copy into the clean object:
+Current implemented transfer behavior:
 
-- BANKSY cluster labels for each configured resolution, already stored as columns such as `labels_scaled_gaussian_pc30_nc0.20_r1.00`.
-- BANKSY UMAP embeddings, stored in `.obsm` with explicit names such as `X_umap_scaled_gaussian_pc30_nc0.20`. Resolution usually should not be part of the UMAP key unless the embedding itself is resolution-specific.
-- BANKSY PCA embeddings, if available and useful for debugging/reproducibility, with explicit `.obsm` keys such as `X_pca_scaled_gaussian_pc30_nc0.20`.
-- Spatial coordinates standardized as `clean_adata.obsm["spatial"] = clean_adata.obs[["x", "y"]].to_numpy()` while preserving the existing `xy` convention.
-- Human-readable cluster annotation columns when `new_labels` is available, for example `labels_scaled_gaussian_pc30_nc0.20_r1.00_ann`.
-- QC-relevant `.obs` columns such as `nCount_Xenium`, `nFeature_Xenium`, `transcript_counts`, `cell_area`, `nucleus_area`, and aggregate control/codeword count columns.
+- `make_banksy_label_col()` builds dynamic BANKSY label names.
+- `copy_obsm_aligned()` copies embeddings by matching observation names.
+- BANKSY labels are copied to clean `.obs` for each configured resolution.
+- UMAP/PCA are copied from source keys such as `reduced_pc_30_umap` and `reduced_pc_30` into clean object keys such as `.obsm["X_umap_scaled_gaussian_pc30_nc0.20"]` and `.obsm["X_pca_scaled_gaussian_pc30_nc0.20"]`.
+- Spatial coordinates are standardized as `.obsm["xy"]` and `.obsm["spatial"]`.
+- The script prints availability of key QC/control `.obs` columns.
+- Shape and `var_names` guards confirm the clean expression object is not changed during transfer.
 
 Do not copy BANKSY-expanded expression values into the clean expression matrix. In particular, do not replace `clean_adata.X` with `adata_spatial.X`, and do not add neighbour-derived `_nbr_0`/`_nbr_1` features as biological expression values. Avoid storing large BANKSY graphs or full `banksy_dict` contents in the clean object unless a downstream workflow explicitly needs them.
+
+Do not add `new_labels` handling to the 00 clustering script. `new_labels` belongs in the 01 QC config/script layer where human-readable labels are used for interpretation and plotting.
+
+## Notebook-Friendly Config Handling
+
+Both active scripts were adjusted to work in notebooks and command-line runs.
+
+For `00_xenium_clustering_clean_adata.py`:
+
+- `--config` is optional.
+- `parse_known_args()` avoids Jupyter kernel argument failures.
+- No-config fallback targets local `CK_skin_res` testing with `project="vbct"`, `raw_subdir="vbct"`, `pc_label="30"`, `lambda_label="0.20"`, resolutions `["0.70", "0.80", "0.90", "1.00"]`, `nbr_weight_decay="scaled_gaussian"`, `coord_keys=["x", "y", "xy"]`, and `max_workers=8`.
+- `max_workers` is resolved with `SLURM_CPUS_PER_TASK` first, then config `max_workers`, then default `4`.
+
+For `01_QC_xenium_spatial_clean_clustered.py`:
+
+- `--config` is optional.
+- `parse_known_args()` avoids Jupyter kernel argument failures.
+- No-config fallback also targets local `CK_skin_res` testing.
+- The local fallback includes `new_labels` for the CK test clusters.
+- Generic Scanpy aliases are created after loading the clean object: `X_umap_scaled_gaussian_pc30_nc0.20` to `X_umap` and `X_pca_scaled_gaussian_pc30_nc0.20` to `X_pca`.
+
+The QC script also includes fixes from the successful local CK run:
+
+- sparse/matrix-like `.X` values are flattened safely before percentile heatmap calculations;
+- marker annotation master file fallback paths include the current May 2026 Tier 1 marker file;
+- stale `threshold_passed_cat` references were replaced with existing `min_trans_passed_cat`.
+
+## Local Validation
+
+Useful commands that passed during this session:
+
+```bash
+python -m py_compile 00_xenium_clustering_clean_adata.py
+python -m py_compile 01_QC_xenium_spatial_clean_clustered.py
+MPLBACKEND=Agg python 01_QC_xenium_spatial_clean_clustered.py --config config/01_clustering/vbct/small/CK_skin_res.json
+bash -n run_00_xenium_clustering.sl
+```
+
+The full local 01 QC run generated outputs under:
+
+```text
+data/xenium/output/vbct/QC_testing/CK_skin_res/
+data/xenium/output/vbct/CK_skin_res/
+data/xenium/processed/vbct/CK_skin_res/
+```
+
+## HPC Large-Sample Write Issue
+
+A larger sample failed during `write_h5ad()` in `00_xenium_clustering_clean_adata.py` with h5py reporting:
+
+```text
+error message = 'No such file or directory', flags = 13, o_flags = 242
+```
+
+The failure occurred while creating a spatial AnnData `.h5ad`, not while reading the config. `config/01_clustering/vbct/large/CK_bowel_res.json` appears complete and includes the expected fields: `project`, `raw_subdir`, `dataset_name`, `pc_label`, `lambda_label`, `res_label`, `nbr_weight_decay`, `coord_keys`, and `new_labels`.
+
+Most likely explanation: the Slurm job was running from the wrong working directory or hitting an HPC filesystem/mount/path issue. The script uses relative paths under `data/xenium`, so the working directory matters.
+
+Implemented diagnostics:
+
+- `run_00_xenium_clustering.sl` sets `REPO_DIR="/scratchdata1/users/a1210419/Banksy_py"` and `cd`s there before running Python.
+- The wrapper prints submit directory, working directory, and `ls -ld data data/xenium data/xenium/processed`.
+- The 00 script prints the spatial output path and whether the parent directory exists before writing.
+- The 00 script raises a clearer `FileNotFoundError` if the spatial output parent directory is missing.
+
+Next log lines to check after rerunning on HPC:
+
+```text
+Running from: /scratchdata1/users/a1210419/Banksy_py
+Writing spatial AnnData to: data/xenium/processed/vbct/CK_bowel_res/adata_spatial_CK_bowel_res_1p1.h5ad
+Spatial output parent directory exists: True
+```
+
+If the parent exists and h5py still reports no such file or directory, suspect a compute-node filesystem/HDF5 issue rather than a missing config key.
 
 ## Constraints
 
@@ -117,3 +224,5 @@ Do not copy BANKSY-expanded expression values into the clean expression matrix. 
 - Before running a Slurm array, check that `#SBATCH --array` matches the number of intended configs.
 - Consider reducing leftover notebook-export inspection cells/comments in the active script when stabilizing it.
 - Re-run clustering for any samples whose downstream workflows need the new project-scoped processed paths or the latest colour/order fixes.
+- Re-run the large-sample HPC job and inspect the new directory diagnostics before making further code changes.
+- Keep `new_labels` config handling in 01 QC only unless the workflow explicitly changes.

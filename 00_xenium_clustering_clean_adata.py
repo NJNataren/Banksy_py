@@ -3,7 +3,7 @@
 
 """
 Title: Xenium BANKSY Clustering With Clean Expression Outputs
-Date: 2026-06-29
+Date: 2026-06-30
 Summary: Run config-driven BANKSY clustering for Xenium samples, save clean
 log-normalized expression AnnData before BANKSY feature expansion, and copy
 BANKSY metadata back onto the clean object for marker analysis.
@@ -119,6 +119,12 @@ def copy_obsm_aligned(source_adata, target_adata, source_key, target_key):
     return True
 
 
+def ensure_directory(path, label):
+    """Create `path` and any missing parent directories, then log its location."""
+    os.makedirs(path, exist_ok=True)
+    print(f"{label} directory ready: {os.path.abspath(path)}")
+
+
 # In[ ]:
 
 
@@ -218,34 +224,18 @@ if not os.path.isdir(raw_path):
 else:
     print(f"Directory '{raw_path} exists.")
 
-## Create path for processed data e.g., the pre-clustered but unfiltered anndata files, if it does not already exist
+## Create sample-specific processed/output folders before any writes. This
+## protects HPC and notebook runs where project or QC_testing parents are absent.
 processed_path = os.path.join(base_dir, "processed", project, dataset_name)
-
-if not os.path.isdir(processed_path):
-    os.makedirs(processed_path)
-    print(f"Directory '{processed_path}' created successfully.")
-    
-else:
-    print(f"Directory '{processed_path}' already exists.")
+ensure_directory(processed_path, "Processed sample")
 
 ## Create a path for output data, if it does not already exist
 output_path = os.path.join(base_dir, "output", project, dataset_name)
-
-if not os.path.isdir(output_path):
-    os.makedirs(output_path)
-    print(f"Directory '{output_path}' created successfully.")
-    
-else:
-    print(f"Directory '{output_path}' already exists.")
+ensure_directory(output_path, "Output sample")
 
 ## Create a path for QC results, if it does not already exist
 qc_path = os.path.join(base_dir, "output", project, "QC_testing", dataset_name)
-
-if not os.path.isdir(qc_path):
-    os.makedirs(qc_path)
-    print(f"Directory '{qc_path}' created successfully.")
-else:
-    print(f"Directory '{qc_path}' already exists.")
+ensure_directory(qc_path, "QC testing sample")
 
 
 # In[48]:
@@ -707,7 +697,18 @@ for res, adatas in adata_dict.items():
 # Save individaul anndata objects at each resolution
 for res in resolutions:
     res_str  = str(res).replace(".", "p")
-    spatial_adatas[res].write_h5ad(os.path.join(processed_path, f"adata_spatial_{dataset_name}_{res_str}.h5ad"))
+    spatial_output_path = os.path.join(
+        processed_path,
+        f"adata_spatial_{dataset_name}_{res_str}.h5ad",
+    )
+    spatial_output_dir = os.path.dirname(spatial_output_path)
+    print(f"Writing spatial AnnData to: {spatial_output_path}")
+    print(f"Spatial output parent directory exists: {os.path.isdir(spatial_output_dir)}")
+    if not os.path.isdir(spatial_output_dir):
+        raise FileNotFoundError(
+            f"Spatial output parent directory does not exist: {spatial_output_dir}"
+        )
+    spatial_adatas[res].write_h5ad(spatial_output_path)
 
 
 # In[75]:
