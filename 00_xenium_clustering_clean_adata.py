@@ -125,6 +125,18 @@ def ensure_directory(path, label):
     print(f"{label} directory ready: {os.path.abspath(path)}")
 
 
+def resolve_obs_column(adata, candidates, column_label):
+    """Return the first available `.obs` column from a list of candidates."""
+    for column in candidates:
+        if column in adata.obs.columns:
+            return column
+
+    raise KeyError(
+        f"No {column_label} column found. Checked candidates: {candidates}. "
+        f"Available obs columns: {list(adata.obs.columns)}"
+    )
+
+
 # In[ ]:
 
 
@@ -1057,6 +1069,12 @@ clean_adata.obs
 # ------------------ Total counts across clean BANKSY clusters ------------------ #
 
 sc.settings.figdir = cluster_count_plot_path
+count_obs_key = resolve_obs_column(
+    clean_adata,
+    ["total_counts", "nCount_Xenium", "transcript_counts"],
+    "total-count/QC",
+)
+print(f"Using {count_obs_key!r} for cluster count violin plots")
 
 for res in resolutions:
     res_str_single = str(res).replace(".", "p")
@@ -1067,15 +1085,10 @@ for res in resolutions:
             f"{groupby_key!r} was not found in clean_adata.obs. "
             f"Available obs columns: {list(clean_adata.obs.columns)}"
         )
-    if "total_counts" not in clean_adata.obs.columns:
-        raise KeyError(
-            "'total_counts' was not found in clean_adata.obs. "
-            f"Available obs columns: {list(clean_adata.obs.columns)}"
-        )
 
     sc.pl.violin(
         clean_adata,
-        "total_counts",
+        count_obs_key,
         groupby=groupby_key,
         save=f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str_single}.png",
     )
