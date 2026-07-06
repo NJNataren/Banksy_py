@@ -1,0 +1,31 @@
+{
+    "project": "vbct",
+    "marker_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
+    "gene_column": "Gene",
+    "marker_group_column": "Tier_1_annotation",
+    "expression_source": "raw",
+    "output_csv": "data/xenium/processed/vbct/cross_sample_dotplot_exports/BE_brain_non_res_canonical_markers_dotplot_summary.csv",
+    "samples": [
+        {
+            "sample": "BE_brain_non_res",
+            "adata_path": "data/xenium/processed/vbct/BE_brain_non_res/adata_expression_clean_BE_brain_non_res_with_banksy_clusters_0.50_0.60_0.70.h5ad",
+            "groupbys": [
+                {
+                    "resolution": "0.50",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.50",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r0.50"
+                },
+                {
+                    "resolution": "0.60",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.60",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r0.60"
+                },
+                {
+                    "resolution": "0.70",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r0.70"
+                }
+            ]
+        }
+    ]
+}

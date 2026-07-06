@@ -1,0 +1,41 @@
+{
+    "project": "vbct",
+    "expression_adata_path": "data/xenium/processed/vbct/HW_brain_res/HW_brain_res_float_32.h5ad",
+    "output_h5ad": "data/xenium/processed/vbct/HW_brain_res/HW_brain_res_normalised_log1p_with_banksy_clusters.h5ad",
+    "filter_obs_key": "nCount_Xenium",
+    "filter_min": 0,
+    "counts_layer": "counts",
+    "objects": [
+        {
+            "adata_path": "data/xenium/processed/vbct/HW_brain_res/adata_spatial_HW_brain_res_0p9.h5ad",
+            "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.90",
+            "annotation_column": "cell type",
+            "annotation_output": "labels_scaled_gaussian_pc30_nc0.20_r0.90_annotation"
+        },
+        {
+            "adata_path": "data/xenium/processed/vbct/HW_brain_res/adata_spatial_HW_brain_res_1p0.h5ad",
+            "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.00",
+            "annotation_column": "cell type",
+            "annotation_output": "labels_scaled_gaussian_pc30_nc0.20_r1.00_annotation"
+        },
+        {
+            "adata_path": "data/xenium/processed/vbct/HW_brain_res/adata_spatial_HW_brain_res_1p1.h5ad",
+            "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+            "annotation_column": "cell type",
+            "annotation_output": "labels_scaled_gaussian_pc30_nc0.20_r1.10_annotation"
+        }
+    ],
+    "archive_labels": {
+        "label_csv": "data/xenium/processed/vbct/cluster_label_exports/archive_spatial_cell_type_labels.csv",
+        "sample": "HW_brain_res",
+        "columns": {
+            "cluster_id": "archive_cluster_id",
+            "cell_type_label": "archive_cell_type_label"
+        },
+        "missing_values": {
+            "archive_cluster_id": "missing_archive_cluster",
+            "archive_cell_type_label": "missing_archive_label"
+        },
+        "has_label_column": "has_archive_label"
+    }
+}
