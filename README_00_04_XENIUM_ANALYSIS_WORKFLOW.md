@@ -31,6 +31,9 @@ Archived cell-type labels from older annotated AnnData objects
 3. `03_export_dotplot_data_from_config.py`
    Export long-format dotplot summary CSVs from clean expression objects.
 
+3a. `03_export_dotplot_data_from_clean_script00_config.py`
+   Export long-format dotplot summary CSVs directly from the clean clustered AnnData objects created by script 00, without running script 02 or reading `adata_spatial_*` objects. This is the current preferred path for current BANKSY cluster dotplots when script 00 already contains the needed `.obs` label columns.
+
 4. `04_plot_multi_sample_dotplot_from_config_local.py`
    Render multi-sample dotplots from exported CSVs. The local script is the current plotting/tuning entrypoint.
 
@@ -57,8 +60,9 @@ The current workflow is split between HPC computation and local plotting:
 ```text
 HPC:   00_xenium_clustering_clean_adata.py
 HPC:   01_QC_xenium_spatial_clean_clustered.py
-HPC:   02_create_expression_adata_with_banksy_clusters.py
-HPC:   03_export_dotplot_data_from_config.py
+HPC:   02_create_expression_adata_with_banksy_clusters.py                  archived-label or legacy clean-object creation
+HPC:   03_export_dotplot_data_from_config.py                               script 02 output or archived-label exports
+HPC:   03_export_dotplot_data_from_clean_script00_config.py                current script 00 clean-object exports
 Local: 04_plot_multi_sample_dotplot_from_config_local.py
 ```
 
@@ -69,9 +73,9 @@ Typical full order:
 ```text
 1. Run script 00 on the HPC for BANKSY clustering and clean expression object creation.
 2. Run script 01 on the HPC for QC/inspection using the clean clustered object.
-3. Ensure archive_spatial_cell_type_labels.csv exists on the HPC when archived labels are needed.
-4. Run script 02 on the HPC if a separate clean expression object needs to be regenerated from existing BANKSY labels.
-5. Run script 03 on the HPC to export dotplot summaries.
+3. For current BANKSY cluster dotplots, run `03_export_dotplot_data_from_clean_script00_config.py` on the HPC directly from the clean script 00 objects.
+4. Run script 02 on the HPC only when a separate clean expression object needs to be regenerated from existing BANKSY objects or when archived labels need to be attached.
+5. Ensure archive_spatial_cell_type_labels.csv exists on the HPC when archived labels are needed.
 6. Copy the script 03 summary CSVs locally.
 7. Run script 04 locally with the desired plot config.
 ```
@@ -301,7 +305,7 @@ run_00_xenium_QC_array_ptmt.sl -> 01_QC_xenium_spatial_PTMT_v2.py
 
 Creates a clean expression AnnData object for dotplot export. It starts from the original expression matrix, filters cells consistently with clustering, saves raw count-like values in a layer, normalizes/log-transforms expression, stores log-normalized expression in `.X` and `.raw`, and copies BANKSY cluster labels from one or more `adata_spatial_*.h5ad` files into `.obs`.
 
-Script 02 can also attach archived cell-level labels exported from older annotated AnnData objects. In the current `vbct_small` configs, archived metadata are added as:
+Script 02 can also attach archived cell-level labels exported from older annotated AnnData objects. In the current `vbct_archive` configs, archived metadata are added as:
 
 ```text
 archive_cluster_id
@@ -327,7 +331,8 @@ config/02_create_expression/
 Current examples include:
 
 ```text
-config/02_create_expression/vbct_small/*.json
+config/02_create_expression/vbct/*.json
+config/02_create_expression/vbct_archive/*.json
 config/02_create_expression/testing/*.json
 ```
 
@@ -475,15 +480,21 @@ For one sample/config:
 
 ```bash
 conda run -n banksy python 02_create_expression_adata_with_banksy_clusters.py \
-  --config config/02_create_expression/vbct_small/CK_skin_res.json
+  --config config/02_create_expression/vbct/CK_skin_res.json
 ```
 
-For the full `vbct_small` config set, use the Slurm wrapper:
+For the full `vbct` config set, use the Slurm wrapper:
 
 ```bash
 sbatch --array=0-7 \
-  --export=CONFIG_DIR=config/02_create_expression/vbct_small \
+  --export=CONFIG_DIR=config/02_create_expression/vbct \
   run_02_create_expression_adata_with_banksy_clusters.sl
+```
+
+Archived-label variants are kept separately under:
+
+```text
+config/02_create_expression/vbct_archive/
 ```
 
 Script 02 must be rerun after changing metadata transfer logic, because script 03 can only group by columns that already exist in the clean `.h5ad` objects.
@@ -714,6 +725,133 @@ sbatch --array=0-7 \
 
 Make sure the Slurm array range matches the number of JSON configs in the chosen directory. If there are eight configs, valid task IDs are `0-7`.
 
+## Script 03 Clean Script 00 Path: Export Dotplot Summary CSVs Directly From Clean Clustered Objects
+
+### Script
+
+```text
+03_export_dotplot_data_from_clean_script00_config.py
+```
+
+Slurm wrapper:
+
+```text
+run_03_xenium_dotplot_export_from_clean_script00_config.sl
+```
+
+### Purpose
+
+This is the preferred current-cluster dotplot export path when script 00 has already created the clean clustered expression object. It reads clean clustered AnnData objects such as:
+
+```text
+data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_with_banksy_clusters_<resolutions>.h5ad
+```
+
+and summarizes clean expression from `.raw` or `.X` while grouping by BANKSY cluster columns that already exist in `.obs`. It does not read `adata_spatial_*` objects, does not use BANKSY-expanded matrices as expression, and does not rerun script 02.
+
+The script validates that:
+
+```text
+- each configured AnnData object has cells and genes
+- every requested `.obs` grouping column exists
+- every requested grouping column has at least one non-null label
+```
+
+### Compact Config Shape
+
+Configs use one clean object per sample plus a list of grouping columns:
+
+```json
+{
+  "project": "ptmt",
+  "marker_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_markers.csv",
+  "gene_column": "Gene",
+  "marker_group_column": "Tier_1_annotation",
+  "expression_source": "raw",
+  "output_csv": "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10329_run_1_DMSO_ptmt_panel_dotplot_summary.csv",
+  "samples": [
+    {
+      "sample": "10329_run_1_DMSO",
+      "adata_path": "data/xenium/processed/ptmt/10329_run_1_DMSO/adata_expression_clean_10329_run_1_DMSO_with_banksy_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10.h5ad",
+      "groupbys": [
+        {
+          "resolution": "0.50",
+          "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.50",
+          "groupby_label": "labels_scaled_gaussian_pc35_nc0.20_r0.50"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Current Configs
+
+Current clean script 00 export configs live under:
+
+```text
+config/03_export_summary/vbct_clean_script00/all_genes/*.json
+config/03_export_summary/vbct_clean_script00/canonical_markers/*.json
+config/03_export_summary/ptmt_clean_script00/ptmt_panel/*.json
+```
+
+The PTMT configs use the combined PTMT panel marker file:
+
+```text
+data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_markers.csv
+```
+
+The associated review scaffold is:
+
+```text
+data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv
+```
+
+The PTMT combined marker file contains the columns required by script 03 and script 04:
+
+```text
+Gene
+Tier_1_annotation
+```
+
+and also keeps review/source metadata:
+
+```text
+gene_id
+panel_source
+Tier_1_by_panel
+```
+
+Genes present in both PTMT source panels are collapsed to one row, with source panels and Tier 1 annotations joined by `;` for review.
+
+### How To Run On The HPC
+
+For the eight VBC/T canonical-marker clean script 00 configs:
+
+```bash
+sbatch --array=0-7 \
+  --export=CONFIG_DIR=config/03_export_summary/vbct_clean_script00/canonical_markers \
+  run_03_xenium_dotplot_export_from_clean_script00_config.sl
+```
+
+For the eight VBC/T all-gene clean script 00 configs:
+
+```bash
+sbatch --array=0-7 \
+  --export=CONFIG_DIR=config/03_export_summary/vbct_clean_script00/all_genes \
+  run_03_xenium_dotplot_export_from_clean_script00_config.sl
+```
+
+For the 24 PTMT panel configs:
+
+```bash
+sbatch --array=0-23%3 \
+  --export=CONFIG_DIR=config/03_export_summary/ptmt_clean_script00/ptmt_panel \
+  run_03_xenium_dotplot_export_from_clean_script00_config.sl
+```
+
+The wrapper defaults to `config/03_export_summary/vbct_clean_script00/canonical_markers` when `CONFIG_DIR` is not provided. Always check that the `#SBATCH --array` range matches the number of JSON configs in the selected directory.
+
 ## Script 04: Render Multi-Sample Dotplots
 
 ### Scripts
@@ -745,6 +883,7 @@ config/04_plot_dotplot/local/all_genes_multi_sample_local.json
 config/04_plot_dotplot/local/canonical_markers_multi_sample_local.json
 config/04_plot_dotplot/local/all_genes_archive_cell_type_labels_multi_sample_local.json
 config/04_plot_dotplot/local/canonical_markers_archive_cell_type_labels_multi_sample_local.json
+config/04_plot_dotplot/local/ptmt_panel_multi_sample_local.json
 ```
 
 HPC examples:
@@ -798,6 +937,7 @@ Gene annotation/grouping files:
 ```text
 data/xenium/raw_data/gene_markers/xenium_gene_list_annotation_master_v1_May_2026_Tier1_v3.csv
 data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv
+data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_markers.csv
 ```
 
 Review/exclusion CSVs:
@@ -805,6 +945,25 @@ Review/exclusion CSVs:
 ```text
 data/xenium/raw_data/gene_markers/xenium_gene_review_for_dotplot.csv
 data/xenium/raw_data/gene_markers/xenium_canonical_gene_review_for_dotplot.csv
+data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv
+```
+
+The PTMT local plotting config is:
+
+```text
+config/04_plot_dotplot/local/ptmt_panel_multi_sample_local.json
+```
+
+It expects script 03 PTMT panel summary CSVs at:
+
+```text
+data/xenium/processed/ptmt/cross_sample_dotplot_exports/*_ptmt_panel_dotplot_summary.csv
+```
+
+The initial PTMT plot config filters every sample to resolution `0.7` and writes:
+
+```text
+figures/dotplots/local_ptmt_panel_multi_sample_r0p70_zscore_dotplot.png
 ```
 
 ### Gene Review Files
@@ -924,6 +1083,13 @@ conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
   --config config/04_plot_dotplot/local/canonical_markers_archive_cell_type_labels_multi_sample_local.json
 ```
 
+PTMT panel, current clusters at resolution 0.7:
+
+```bash
+conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
+  --config config/04_plot_dotplot/local/ptmt_panel_multi_sample_local.json
+```
+
 ### HPC Slurm Entrypoint
 
 A Slurm wrapper exists:
@@ -1012,6 +1178,8 @@ has_archive_label
 
 ### Script 03 Outputs Used Later
 
+Legacy/script 02 and archived-label exports commonly use:
+
 ```text
 data/xenium/processed/cross_sample_dotplot_exports/all_genes_all_res/*_all_genes_dotplot_summary.csv
 data/xenium/processed/cross_sample_dotplot_exports/canonical_all_res/*_canonical_markers_dotplot_summary.csv
@@ -1019,10 +1187,18 @@ data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels/*_ca
 data/xenium/processed/cross_sample_dotplot_exports/archive_cell_type_labels_all_genes/*_all_genes_archive_cell_type_labels_dotplot_summary.csv
 ```
 
+Project-scoped clean script 00 exports currently write to:
+
+```text
+data/xenium/processed/vbct/cross_sample_dotplot_exports/*_dotplot_summary.csv
+data/xenium/processed/ptmt/cross_sample_dotplot_exports/*_ptmt_panel_dotplot_summary.csv
+```
+
 ### Script 04 Outputs
 
 ```text
 figures/dotplots/*.png
+figures/dotplots/local_ptmt_panel_multi_sample_r0p70_zscore_dotplot.png
 ```
 
 ## Validation Commands
@@ -1036,6 +1212,7 @@ python -m py_compile 00_xenium_clustering_clean_adata.py \
   01_QC_xenium_spatial_PTMT_v2.py \
   02_create_expression_adata_with_banksy_clusters.py \
   03_export_dotplot_data_from_config.py \
+  03_export_dotplot_data_from_clean_script00_config.py \
   04_plot_multi_sample_dotplot_from_config_local.py
 ```
 
@@ -1066,6 +1243,7 @@ conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
 - Do not use BANKSY-expanded `adata_spatial.X` values for biological marker dotplots.
 - Avoid hard-coding sample names or paths when configs already define them.
 - Full script 00/01 and multi-sample script 02/03 runs can be compute-heavy; run locally only with a clear sample/test config.
+- Current-cluster dotplot exports should prefer `03_export_dotplot_data_from_clean_script00_config.py` when script 00 clean clustered objects already exist.
 - Archived-label script 02 runs require `data/xenium/processed/cluster_label_exports/archive_spatial_cell_type_labels.csv` to exist on the machine running script 02.
 - Files under `data/xenium/`, `figures/`, `logs/`, and `hpc/` may be large or machine-specific.
 - Review CSVs currently live under `data/xenium/raw_data/gene_markers/`; check whether they are git-ignored before relying on git to track them.

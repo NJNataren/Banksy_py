@@ -1,0 +1,193 @@
+{
+    "output_png": "figures/dotplots/local_ptmt_panel_multi_sample_r0p70_zscore_dotplot.png",
+    "title": "PTMT panel dotplot, r0.70 clusters, z-scored by gene",
+    "gene_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_markers.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "10329_run_1_DMSO",
+        "10331_run_1_1644",
+        "10707_run_1_DMSO",
+        "10708_run_1_1644",
+        "10722_run_1_DMSO",
+        "10723_run_1_1644",
+        "10733_run_1_DMSO",
+        "10734_run_1_1644",
+        "10818_run_2_1818",
+        "10819_run_2_1818",
+        "10826_run_2_1818",
+        "10827_run_2_1818",
+        "10850_run_3_1818_AMACR_neg",
+        "10851_run_3_1818_AMACR_neg",
+        "10861_run_2_1818",
+        "10862_run_2_1818",
+        "10871_run_3_1818_AMACR_neg",
+        "10872_run_3_1818_AMACR_neg",
+        "10883_run_3_1818_AMACR_neg",
+        "10884_run_3_1818_AMACR_neg",
+        "10887_run_3_1818_AMACR_neg",
+        "10888_run_3_1818_AMACR_neg",
+        "10895_run_2_1818",
+        "10896_run_2_1818"
+    ],
+    "figure": {
+        "min_width": 64,
+        "min_height": 14,
+        "width_per_gene": 0.13,
+        "height_per_cluster": 0.36,
+        "max_dot_size": 120,
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "x_tick_fontsize": 6,
+        "y_tick_fontsize": 9,
+        "axis_label_fontsize": 13,
+        "title_fontsize": 16,
+        "title_y": 0.9,
+        "colorbar_fontsize": 12,
+        "tight_layout_rect": [
+            0.03,
+            0.04,
+            0.98,
+            0.9
+        ],
+        "gene_group_fontsize": 9,
+        "highlight_label_color": "#d62728",
+        "highlight_label_weight": "bold",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10329_run_1_DMSO_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10331_run_1_1644_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10707_run_1_DMSO_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10708_run_1_1644_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10722_run_1_DMSO_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10723_run_1_1644_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10733_run_1_DMSO_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10734_run_1_1644_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10818_run_2_1818_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10819_run_2_1818_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10826_run_2_1818_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10827_run_2_1818_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10850_run_3_1818_AMACR_neg_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10851_run_3_1818_AMACR_neg_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10861_run_2_1818_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10862_run_2_1818_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10871_run_3_1818_AMACR_neg_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10872_run_3_1818_AMACR_neg_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10883_run_3_1818_AMACR_neg_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10884_run_3_1818_AMACR_neg_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10887_run_3_1818_AMACR_neg_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10888_run_3_1818_AMACR_neg_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10895_run_2_1818_ptmt_panel_dotplot_summary.csv",
+        "data/xenium/processed/ptmt/cross_sample_dotplot_exports/10896_run_2_1818_ptmt_panel_dotplot_summary.csv"
+    ],
+    "sample_filters": [
+        {
+            "sample": "10329_run_1_DMSO",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10331_run_1_1644",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10707_run_1_DMSO",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10708_run_1_1644",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10722_run_1_DMSO",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10723_run_1_1644",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10733_run_1_DMSO",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10734_run_1_1644",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10818_run_2_1818",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10819_run_2_1818",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10826_run_2_1818",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10827_run_2_1818",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10850_run_3_1818_AMACR_neg",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10851_run_3_1818_AMACR_neg",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10861_run_2_1818",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10862_run_2_1818",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10871_run_3_1818_AMACR_neg",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10872_run_3_1818_AMACR_neg",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10883_run_3_1818_AMACR_neg",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10884_run_3_1818_AMACR_neg",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10887_run_3_1818_AMACR_neg",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10888_run_3_1818_AMACR_neg",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10895_run_2_1818",
+            "resolution": "0.7"
+        },
+        {
+            "sample": "10896_run_2_1818",
+            "resolution": "0.7"
+        }
+    ],
+    "gene_review_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv",
+    "gene_review_gene_column": "Gene",
+    "gene_review_keep_column": "keep_for_dotplot",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score",
+    "y_axis_label": "PTMT sample / r0.70 cluster",
+    "project": "ptmt"
+}
