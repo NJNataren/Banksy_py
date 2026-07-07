@@ -3,12 +3,13 @@
 
 """
 Title: Plot Multi-Sample Dotplot From Config Local
-Date: 2026-06-09
+Date: 2026-07-06
 Summary: Local-working copy of the multi-sample dotplot renderer. Read one or
 more long-format dotplot summary CSVs produced by
 03_export_dotplot_data_from_config.py and render a combined multi-sample
-dotplot from a JSON config. Rows can represent BANKSY clusters or any other
-exported grouping, including archived cell-type labels.
+dotplot from a JSON config using a compact local layout. Rows can represent
+BANKSY clusters or any other exported grouping, including archived cell-type
+labels.
 """
 
 import argparse
@@ -55,6 +56,13 @@ DEFAULT_FIGURE = {
     "highlight_label_weight": "bold",
     "tight_layout_rect": [0.03, 0.04, 0.98, 0.88],
 }
+
+
+# Local plotting is intentionally dense so large panels such as PTMT can show
+# many genes without requiring config-only micromanagement of dot spacing.
+DOTPLOT_WIDTH_COMPRESSION = 0.68
+DOTPLOT_HEIGHT_COMPRESSION = 0.82
+DOTPLOT_SIZE_BOOST = 1.12
 
 
 def parse_args():
@@ -253,12 +261,23 @@ def load_gene_file(gene_file, gene_column, gene_group_column):
     return requested_genes, gene_groups
 
 
-def load_highlight_genes(highlight_gene_file, highlight_gene_column):
+def is_true_flag_value(value):
+    """Return whether a table value is an explicit TRUE-style flag."""
+    if pd.isna(value):
+        return False
+
+    return str(value).strip().lower() in {"true", "t", "yes", "y", "1"}
+
+
+def load_highlight_genes(highlight_gene_file, highlight_gene_column, gene_column="Gene"):
     """Load genes whose x-axis labels should be visually highlighted.
 
     Args:
         highlight_gene_file: Optional CSV containing genes to highlight.
-        highlight_gene_column: Column containing gene symbols.
+        highlight_gene_column: Column containing either gene symbols or a
+            TRUE/FALSE-style flag marking rows to highlight.
+        gene_column: Column containing gene symbols when `highlight_gene_column`
+            is a boolean-style flag column.
 
     Returns:
         Set of gene symbols to highlight.
@@ -272,6 +291,28 @@ def load_highlight_genes(highlight_gene_file, highlight_gene_column):
             f"Highlight gene column {highlight_gene_column!r} not found in "
             f"{highlight_gene_file}. Available columns: {list(highlight_df.columns)}"
         )
+
+    highlight_flags = highlight_df[highlight_gene_column].map(is_true_flag_value)
+    if highlight_flags.any():
+        if gene_column not in highlight_df.columns:
+            raise ValueError(
+                f"Gene column {gene_column!r} is needed when "
+                f"{highlight_gene_column!r} contains TRUE/FALSE highlight flags. "
+                f"Available columns: {list(highlight_df.columns)}"
+            )
+
+        highlighted_genes = set(
+            highlight_df.loc[highlight_flags, gene_column]
+            .dropna()
+            .astype(str)
+            .drop_duplicates()
+            .tolist()
+        )
+        print(
+            f"Highlighted {len(highlighted_genes)} genes using "
+            f"{highlight_gene_column!r} flags from {highlight_gene_file}"
+        )
+        return highlighted_genes
 
     return set(
         highlight_df[highlight_gene_column]
@@ -632,14 +673,19 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
     plot_df = plot_df.dropna(subset=["x", "y"])
     plot_df["dot_size"] = (
         plot_df["percent_expressing"] / 100
-    ) * figure_cfg["max_dot_size"]
+    ) * figure_cfg["max_dot_size"] * DOTPLOT_SIZE_BOOST
 
-    fig_width = max(
-        figure_cfg["min_width"], len(gene_order) * figure_cfg["width_per_gene"]
+    compact_min_width = figure_cfg["min_width"] * DOTPLOT_WIDTH_COMPRESSION
+    compact_width_per_gene = figure_cfg["width_per_gene"] * DOTPLOT_WIDTH_COMPRESSION
+    compact_min_height = figure_cfg["min_height"] * DOTPLOT_HEIGHT_COMPRESSION
+    compact_height_per_cluster = (
+        figure_cfg["height_per_cluster"] * DOTPLOT_HEIGHT_COMPRESSION
     )
+
+    fig_width = max(compact_min_width, len(gene_order) * compact_width_per_gene)
     fig_height = max(
-        figure_cfg["min_height"],
-        len(cluster_order) * figure_cfg["height_per_cluster"],
+        compact_min_height,
+        len(cluster_order) * compact_height_per_cluster,
     )
     fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
@@ -698,7 +744,7 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
         ax.scatter(
             [],
             [],
-            s=(pct / 100) * figure_cfg["max_dot_size"],
+            s=(pct / 100) * figure_cfg["max_dot_size"] * DOTPLOT_SIZE_BOOST,
             c="white",
             edgecolors="black",
             linewidths=0.25,
@@ -782,6 +828,7 @@ def main():
     highlight_genes = load_highlight_genes(
         cfg.get("highlight_gene_file"),
         cfg.get("highlight_gene_column", cfg.get("gene_column", "Gene")),
+        cfg.get("gene_column", "Gene"),
     )
     cluster_order = build_cluster_order(df, cfg)
     if not cluster_order:
