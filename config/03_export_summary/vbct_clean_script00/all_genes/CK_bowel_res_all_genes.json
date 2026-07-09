@@ -6,12 +6,12 @@
     "samples": [
         {
             "sample": "CK_bowel_res",
-            "adata_path": "data/xenium/processed/vbct/CK_bowel_res/adata_expression_clean_CK_skin_res_with_banksy_clusters_1.10.h5ad",
+            "adata_path": "data/xenium/processed/vbct/CK_bowel_res/adata_expression_clean_CK_bowel_res_with_banksy_clusters_1.10.h5ad",
             "groupbys": [
                 {
                     "resolution": "1.10",
-                    "groupby": "labels_scaled_gaussian_pc35_nc0.20_r1.10",
-                    "groupby_label": "labels_scaled_gaussian_pc35_nc0.20_r1.10"
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r1.10"
                 }
             ]
         }
