@@ -12,8 +12,8 @@
             "groupbys": [
                 {
                     "resolution": "1.10",
-                    "groupby": "labels_scaled_gaussian_pc20_nc0.20_r1.10",
-                    "groupby_label": "labels_scaled_gaussian_pc20_nc0.20_r1.10"
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r1.10"
                 }
             ]
         }
