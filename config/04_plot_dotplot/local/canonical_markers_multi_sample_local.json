@@ -1,5 +1,5 @@
 {
-    "output_png": "figures/dotplots/local_canonical_markers_multi_sample_zscore_dotplot.png",
+    "output_png": "figures/dotplots/2026-07-09_vbct_local_canonical_markers_multi_sample_zscore_dotplot.png",
     "title": "Canonical marker dotplot, z-scored by gene",
     "gene_file": "data/xenium/raw_data/gene_markers/xenium_melanoma_canonical_genes_May_2026.csv",
     "gene_column": "Gene",
