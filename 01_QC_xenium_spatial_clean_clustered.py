@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[65]:
+# In[4]:
 
 
 #!/usr/bin/env python
@@ -16,7 +16,7 @@ objects that already contain BANKSY cluster labels and embeddings.
 
 
 
-# In[66]:
+# In[5]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -28,7 +28,7 @@ objects that already contain BANKSY cluster labels and embeddings.
 
 
 
-# In[67]:
+# In[6]:
 
 
 ### Import packages
@@ -59,7 +59,7 @@ random.seed(seed)
 
 
 
-# In[68]:
+# In[7]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -97,7 +97,7 @@ random.seed(seed)
 
 
 
-# In[69]:
+# In[8]:
 
 
 # --------------------- PARSE ARGUMENTS FROM JSON CONFIG --------------------- #
@@ -172,7 +172,7 @@ new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell t
 
 
 
-# In[70]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -264,7 +264,7 @@ def cluster_qc_violin(data, qc_metric, sample_name):
         log_scale=10, 
         color="lightblue",
         hue=cluster_ann_col,
-        palette="tab20")
+        palette=palette)
 
     sns.stripplot(data=data.obs, y=data.obs["nCount_Xenium"], x=data.obs[cluster_ann_col], hue =data.obs[f"{qc_metric}"], size=4)
 
@@ -299,6 +299,7 @@ def plot_umap_qc_metric(
     vmax="p99",
     add_outline=True,
     legend_fontsize=10,
+    filename_tag=None,
     show=True
 ):
     """
@@ -404,7 +405,20 @@ def plot_umap_qc_metric(
             .replace(" ", "_")
             .replace("/", "_")
         )
-        filename = f"umap_{dataset_name}_{safe_metric_name}.png"
+
+        filename_parts = ["umap", dataset_name]
+
+        if filename_tag is not None:
+            safe_filename_tag = (
+                str(filename_tag)
+                .replace(" ", "_")
+                .replace("/", "_")
+                .replace(".", "p")
+            )
+            filename_parts.append(safe_filename_tag)
+
+        filename_parts.append(safe_metric_name)
+        filename = "_".join(filename_parts) + ".png"
         output_file = os.path.join(qc_path, filename)
 
         fig.savefig(
@@ -423,7 +437,7 @@ def plot_umap_qc_metric(
     return fig, axes
 
 
-# In[71]:
+# In[10]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -483,7 +497,7 @@ else:
 
 
 
-# In[72]:
+# In[11]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -519,7 +533,7 @@ if banksy_pca_key in adata.obsm and "X_pca" not in adata.obsm:
 
 
 
-# In[73]:
+# In[12]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -533,7 +547,7 @@ adata = adata
 
 
 
-# In[74]:
+# In[13]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -566,7 +580,7 @@ plt.show()
 
 
 
-# In[75]:
+# In[14]:
 
 
 ## Check to compare nCount_Xenium, adata.X and adata.layers["counts"]
@@ -596,7 +610,7 @@ comparison = pd.DataFrame(
 comparison
 
 
-# In[76]:
+# In[15]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -663,7 +677,7 @@ print(f"Number of negative-control probes: {len(negative_control_probes)}")
 print(negative_control_probes.tolist())
 
 
-# In[77]:
+# In[16]:
 
 
 ## Create a mask for cells with at least 1 negative probe counts
@@ -728,7 +742,7 @@ print("Unique transcript cell IDs:", tx_subset["cell_id"].nunique())
 print("AnnData cells:", adata.n_obs)
 
 
-# In[78]:
+# In[17]:
 
 
 ## Subset transcripts parquet to negative probe transcripts
@@ -839,7 +853,7 @@ plt.show()
 print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")    
 
 
-# In[79]:
+# In[18]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -859,7 +873,7 @@ adata.obs["negative_control_probe_greater_equal_1_cat"] = (
 )
 
 
-# In[80]:
+# In[19]:
 
 
 # ------- Plot location of cell with >= 1 negative control probe count ------- #
@@ -872,7 +886,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[81]:
+# In[20]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -911,7 +925,7 @@ print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee
 
 
 
-# In[82]:
+# In[21]:
 
 
 # ---------------- Apply the minimum transcripts per cell mask --------------- #
@@ -933,7 +947,7 @@ adata.obs['min_trans_passed'] = adata.obs['nCount_Xenium'] > threshold #True = p
 
 
 
-# In[83]:
+# In[22]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
@@ -947,7 +961,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[84]:
+# In[23]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -974,7 +988,7 @@ plt.savefig(
 plt.show() 
 
 
-# In[85]:
+# In[24]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -1005,7 +1019,7 @@ plt.show()
 
 
 
-# In[86]:
+# In[25]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1025,7 +1039,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 
 
 
-# In[87]:
+# In[26]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1040,7 +1054,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 print("All files saved to:", qc_path)
 
 
-# In[88]:
+# In[27]:
 
 
 # # ----------- Calculate the total counts for genes across all cells ---------- #
@@ -1060,7 +1074,7 @@ print("All files saved to:", qc_path)
 
 
 
-# In[89]:
+# In[28]:
 
 
 # # --------------------------- Plot the top 50 genes -------------------------- #
@@ -1080,7 +1094,7 @@ print("All files saved to:", qc_path)
 
 
 
-# In[90]:
+# In[29]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1099,7 +1113,7 @@ adata.obs['max_trans_threshold_passed'] = max_trans_threshold_passed['max_transc
 
 
 
-# In[91]:
+# In[30]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
@@ -1113,7 +1127,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[92]:
+# In[31]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1134,7 +1148,7 @@ else:
 
 
 
-# In[93]:
+# In[32]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1155,7 +1169,7 @@ adata.obs["max_area_threshold_99_cat"] = (
 )
 
 
-# In[94]:
+# In[33]:
 
 
 # Plot the cell with negative controls on the tissue spatial plot
@@ -1180,7 +1194,7 @@ plt.show()
 print(f"tissue_spatial_scatter_max_area_threshold_99_{dataset_name}.png to {qc_path}") 
 
 
-# In[95]:
+# In[34]:
 
 
 # Create a category to colour plots
@@ -1198,7 +1212,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[96]:
+# In[35]:
 
 
 # ------------------------- Top 2% cells by cell area ------------------------ #
@@ -1216,7 +1230,7 @@ adata.obs["max_area_threshold_98_cat"] = (
 )
 
 
-# In[97]:
+# In[36]:
 
 
 ## Tissue plot of cells with max transcripts threshold 
@@ -1227,7 +1241,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[98]:
+# In[37]:
 
 
 # ----------------------- Bottom 1% cells by cell area ----------------------- #
@@ -1244,7 +1258,7 @@ adata.obs["min_area_threshold_1_cat"] = (
 )
 
 
-# In[99]:
+# In[38]:
 
 
 ## Tissue plot of cells with max transcripts threshold 
@@ -1255,7 +1269,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[100]:
+# In[39]:
 
 
 # ----------------------- Bottom 2% cells by cell area ----------------------- #
@@ -1272,7 +1286,7 @@ adata.obs["min_area_threshold_2_cat"] = (
 )
 
 
-# In[101]:
+# In[40]:
 
 
 ## Tissue plot of cells with 
@@ -1283,7 +1297,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[102]:
+# In[41]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1291,7 +1305,7 @@ plot_qc_spatial_tissue(
 # ---------------------------------------------------------------------------- #
 
 
-# In[103]:
+# In[42]:
 
 
 # ------------- Plot the per cluster plots coloured by qc metrics ------------ #
@@ -1346,7 +1360,7 @@ cluster_qc_violin(
 )
 
 
-# In[104]:
+# In[43]:
 
 
 # Set the figure directory to your desired location
@@ -1381,14 +1395,14 @@ plt.savefig(
 plt.show()
 
 
-# In[105]:
+# In[44]:
 
 
 adata.obs[cluster_col].astype(str).value_counts().sort_index()
 adata.obs[cluster_ann_col].value_counts(dropna=False)
 
 
-# In[106]:
+# In[45]:
 
 
 print(cluster_col)
@@ -1397,7 +1411,7 @@ print(adata.obs[cluster_col].nunique())
 print(adata.obs[cluster_ann_col].nunique())
 
 
-# In[107]:
+# In[46]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -1417,7 +1431,7 @@ print(adata.obs[cluster_ann_col].nunique())
 
 
 
-# In[108]:
+# In[47]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -1464,7 +1478,7 @@ print(adata.obs[cluster_ann_col].nunique())
 
 
 
-# In[109]:
+# In[48]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1488,7 +1502,7 @@ sc.pl.correlation_matrix(
 )
 
 
-# In[110]:
+# In[49]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1520,7 +1534,7 @@ with rc_context({"figure.figsize": (5,5)}):
 
 
 
-# In[ ]:
+# In[50]:
 
 
 # ---------- Plot the UMAP coloured by negative control probe counts --------- #
@@ -1534,7 +1548,7 @@ fig, axes = plot_umap_qc_metric(
 )
 
 
-# In[113]:
+# In[51]:
 
 
 # --------------- Plot the UMAP coloured by minimum transcripts -------------- #
@@ -1548,7 +1562,7 @@ fig, axes = plot_umap_qc_metric(
 )
 
 
-# In[ ]:
+# In[52]:
 
 
 # --------------- Plot the UMAP coloured by maximum transcripts -------------- #
@@ -1562,7 +1576,7 @@ fig, axes = plot_umap_qc_metric(
 )
 
 
-# In[ ]:
+# In[53]:
 
 
 # ------------ Plot the UMAP coloured by top 2% cells by cell area ----------- #
@@ -1576,7 +1590,7 @@ fig, axes = plot_umap_qc_metric(
 )
 
 
-# In[117]:
+# In[54]:
 
 
 # ------------ Plot the UMAP coloured by top 1% cells by cell area ----------- #
@@ -1590,7 +1604,7 @@ fig, axes = plot_umap_qc_metric(
 )
 
 
-# In[119]:
+# In[55]:
 
 
 # ---------- Plot the UMAP coloured by bottom 1% cells by cell area ---------- #
@@ -1604,7 +1618,7 @@ fig, axes = plot_umap_qc_metric(
 )
 
 
-# In[120]:
+# In[56]:
 
 
 # ---------- Plot the UMAP coloured by bottom 2% cells by cell area ---------- #
@@ -1618,7 +1632,45 @@ fig, axes = plot_umap_qc_metric(
 )
 
 
-# In[ ]:
+# In[57]:
+
+
+# ----------------------- Plot UMAPs for all qc metrics ---------------------- #
+
+## Define the qc_metric and qc_title pairs
+
+qc_umap_plots = [
+    ("negative_control_probe_greater_equal_1_cat", "Negative-control probe count >= 1"),
+    ("min_trans_passed_cat", "Minimum transcript threshold"),
+    ("max_trans_passed_cat", "Top 2% transcript count threshold"),
+    ("max_area_threshold_99_cat", "Top 1% of cells by cell area"),
+    ("max_area_threshold_98_cat", "Top 2% of cells by cell area"),
+    ("min_area_threshold_1_cat", "Bottom 1% of cells by cell area"),
+    ("min_area_threshold_2_cat", "Bottom 2% of cells by cell area")
+]
+
+for res in res_label_list:
+    cluster_col_for_res = (
+        f"labels_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}_r{float(res):.2f}"
+    )
+
+    for qc_metric, qc_title in qc_umap_plots:
+        if qc_metric not in adata.obs.columns:
+            print(f"Skipping missing QC metric: {qc_metric}")
+            continue
+
+        plot_umap_qc_metric(
+            adata=adata,
+            cluster_col=cluster_ann_col,
+            qc_metric=qc_metric,
+            dataset_name=dataset_name,
+            qc_path=qc_path,
+            qc_title=qc_title
+        )
+
+
+
+# In[58]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1678,7 +1730,7 @@ else:
     print(f"Directory '{spatial_scatter_path}' already exists.")
 
 
-# In[ ]:
+# In[59]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1718,7 +1770,7 @@ def plot_goi_umaps (
 
 
 
-# In[ ]:
+# In[60]:
 
 
 ## DSG2 UMAP
@@ -1730,7 +1782,7 @@ s=20, )
 
 
 
-# In[ ]:
+# In[61]:
 
 
 ## SERPINE1 UMAP
@@ -1742,7 +1794,7 @@ s=20, )
 
 
 
-# In[ ]:
+# In[62]:
 
 
 ### DKK1
@@ -1755,7 +1807,7 @@ s=20, )
 
 
 
-# In[ ]:
+# In[63]:
 
 
 ### T cell markers
@@ -1768,7 +1820,7 @@ s=20, )
 
 
 
-# In[ ]:
+# In[64]:
 
 
 ### Integrin genes
@@ -1787,7 +1839,7 @@ ncols=2
 
 
 
-# In[ ]:
+# In[65]:
 
 
 # ### TPD52 family
@@ -1806,7 +1858,7 @@ ncols=2
 
 
 
-# In[ ]:
+# In[66]:
 
 
 #### Selectins
@@ -1825,7 +1877,7 @@ ncols=2
 
 
 
-# In[ ]:
+# In[67]:
 
 
 # ### Fucosyltransferase genes
@@ -1842,7 +1894,7 @@ s=20
 
 
 
-# In[ ]:
+# In[68]:
 
 
 # ### Adhesion molecules
@@ -1859,7 +1911,7 @@ s=20
 
 
 
-# In[ ]:
+# In[69]:
 
 
 # ### ICI response genes
@@ -1877,7 +1929,7 @@ s=20
 
 
 
-# In[ ]:
+# In[70]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1901,7 +1953,7 @@ with rc_context({"figure.figsize": (10, 8)}):
 
 
 
-# In[ ]:
+# In[71]:
 
 
 #### DSG2
@@ -1932,7 +1984,7 @@ plt.savefig(
 
 
 
-# In[ ]:
+# In[72]:
 
 
 #### SERPINE1
@@ -1962,7 +2014,7 @@ plt.savefig(
 
 
 
-# In[ ]:
+# In[73]:
 
 
 #### DKK1
@@ -1992,7 +2044,7 @@ plt.savefig(
 
 
 
-# In[ ]:
+# In[74]:
 
 
 #### T cell markers
@@ -2028,7 +2080,7 @@ plt.savefig(
 
 
 
-# In[ ]:
+# In[75]:
 
 
 #### Integrins
@@ -2051,7 +2103,7 @@ with rc_context({"figure.figsize": (6, 5)}):
 
 
 
-# In[ ]:
+# In[76]:
 
 
 #### TPD52 genes
@@ -2072,7 +2124,7 @@ with rc_context({"figure.figsize": (6, 5)}):
 
 
 
-# In[ ]:
+# In[77]:
 
 
 ##### Selectins
@@ -2093,7 +2145,7 @@ with rc_context({"figure.figsize": (6,5)}):
 
 
 
-# In[ ]:
+# In[78]:
 
 
 #### Fucosyltransferase genes
@@ -2113,7 +2165,7 @@ with rc_context({"figure.figsize": (6, 5)}):
 
 
 
-# In[ ]:
+# In[79]:
 
 
 # ### Adhesion genes
@@ -2133,7 +2185,7 @@ with rc_context({"figure.figsize": (6,5 )}):
 
 
 
-# In[ ]:
+# In[80]:
 
 
 # ### ICI response genes
@@ -2154,7 +2206,7 @@ with rc_context({"figure.figsize": (6, 5)}):
 
 
 
-# In[ ]:
+# In[81]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -2168,62 +2220,7 @@ adata.obs[cluster_ann_col]
 
 
 
-# In[ ]:
-
-
-# --------------------------- Top 20 gene dotplots --------------------------- #
-
-## cycle through the cluster labels and create dotplot for each element
-from banksy_utils.annotation_utils import extract_marker_genes_dict
-
-## Ensure that the patch line edge colopur is set to black in global matplotlib rcparams so that the bracket to group genes per cluster is shown
-plt.rcParams['patch.edgecolor'] = 'black'
-
-cluster_keys = list(new_labels.keys())
-values = list(new_labels.values())
-
-## Compute the dendrogram for clusters
-sc.tl.dendrogram(
-    adata,
-    groupby=cluster_ann_col
-    )
-
-for i in range(len(cluster_keys)):
-    key = cluster_keys[i]
-    subset_cluster= new_labels[key]
-    cluster_label = values[i]
-
-
-    marker_genes_dict=extract_marker_genes_dict(
-    adata=adata, 
-    filtered_key=key_filtered, 
-    gene_type='raw', 
-    groupby = cluster_ann_col,
-    subset_cluster= subset_cluster,
-    top_n=20
-    )
-    marker_genes_dict
-
-    # Skip if no marker genes found
-    if not marker_genes_dict or all(len(v) == 0 for v in marker_genes_dict.values()):
-        print(f"Skipping {cluster_label} — no marker genes found")
-        continue
-
-## Generate dot plot
-    with rc_context({"figure.figsize": (10,10)}):
-        sc.pl.dotplot(
-            adata, 
-            #marker_genes_list,
-            marker_genes_dict,
-            groupby=cluster_ann_col,
-            #dendrogram=True,
-            save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_{cluster_label}_dot_plot.png"
-            )
-
-
-
-
-# In[ ]:
+# In[82]:
 
 
 # --------------------------- Tier gene 1 dotplots --------------------------- #
@@ -2249,7 +2246,7 @@ def plot_goi_dotplot (
 
 
 
-# In[ ]:
+# In[83]:
 
 
 # Set the figure directory to your desired location
@@ -2258,604 +2255,7 @@ sc.settings.figdir = dotplot_path
 
 
 
-# In[ ]:
-
-
-#### B cell Tier 1 dotplot
-B_cell_markers = {"B_cells" : [
-"CD79A",
-"LTB",
-"MEF2C",
-"MZB1",
-"PKHD1L1",
-"TNFRSF17",
-"CD274"]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "B_cells_Tier_1",
-    marker_genes_dict= B_cell_markers
-)
-
-
-
-
-# In[ ]:
-
-
-#### Cycling cell dotplot
-cycling_cell_marker = {"Cycling_Cells_Tier_1" : [
-"BIRC5",
-"CDC20",
-"CDK1",
-"CENPF",
-"HIST1H4C",
-"HMGB2",
-"MKI67",
-"NUSAP1",
-"PTTG1",
-"RRM2",
-"STMN1",
-"TOP2A",
-"TYMS",
-"UBE2C"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Cycling_Cells_Tier_1",
-    marker_genes_dict= cycling_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Cycling cell dotplot
-dendritic_cell_marker = {"Dendritic_Cells_Tier_1" : [
-"AXL",
-"BIRC3",
-"CBFA2T3",
-"CCR7",
-"CLEC10A",
-"CLEC9A",
-"ENPP1",
-"FCER1A",
-"FSCN1",
-"GPR157",
-"ID2",
-"IDO1",
-"IL3RA",
-"IL4I1",
-"IRF8",
-"MARCKSL1",
-"MNDA",
-"PKIB",
-"RGCC",
-"S100B",
-"SLC8A1",
-"SYNPO2",
-"TFPI2",
-"TMEM150C",
-"TMEM176A",
-"TUBB2B",
-"WDFY4",
-"CD1A",
-"CD1B",
-"CLDN1",
-"PTGER3"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Dendritic_Cells_Tier_1",
-    marker_genes_dict= dendritic_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Eccrine dotplot
-eccrine_cell_marker = {"Eccrine_Tier_1" : [
-"CLDN4",
-"KRT18"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Eccrine_Tier_1",
-    marker_genes_dict= eccrine_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Erythrocyte dotplot
-erythrocyte_cell_marker = {"Erythrocyte_Tier_1" : [
-"FAM210B",
-"FBXO7",
-"FKBP8",
-"GYPC",
-"HBD",
-"SLC25A37",
-"SLC25A39",
-"SNCA",
-"STRADB"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Erythrocyte_Tier_1",
-    marker_genes_dict= erythrocyte_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Fibroblast dotplot
-fibroblast_cell_marker = {"Fibroblast_Tier_1" : [
-"ADAM12",
-"AKR1C1",
-"APCDD1",
-"APOD",
-"ASPN",
-"CCL19",
-"COCH",
-"COL5A2",
-"COL6A1",
-"COL6A2",
-"COL6A3",
-"CXCL12",
-"FBLN1",
-"GEM",
-"HAPLN1",
-"HTRA1",
-"IGFBP2",
-"IGFBP5",
-"LEPR",
-"LSAMP",
-"LUM",
-"MFAP4",
-"MFAP5",
-"MGP",
-"MMP2",
-"MMP27",
-"PDGFRA",
-"PLAC9",
-"POSTN",
-"PTGDS",
-"SFRP2",
-"SLPI",
-"SOD3",
-"THBS2",
-"THY1",
-"VIM",
-"DKK1",
-"ITGA5"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Fibroblast_Tier_1",
-    marker_genes_dict= fibroblast_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Fibroblast dotplot
-keratinocyte_cell_marker = {"Keratinocyte_Tier_1" : [
-"ACER1",
-"AHNAK2",
-"AQP3",
-"AREG",
-"COL17A1",
-"CXADR",
-"DEFB1",
-"DSC1",
-"ENAH",
-"FGFBP1",
-"HES1",
-"IGFBP3",
-"IL33",
-"LAMB3",
-"LY6D",
-"MAL2",
-"MT1X",
-"PCDH7",
-"PTGR1",
-"RHOV",
-"S100A13",
-"S100A14",
-"SERPINB5",
-"SFRP1",
-"SOX15",
-"DSC2",
-"DSG1",
-"DSG3",
-"GALNT6",
-"DST",
-"ITGA6",
-"ITGB1",
-"KRT15",
-"KRT5",
-"MIR205HG",
-"SERPINB2",
-"TACSTD2",
-"TFAP2A",
-"TP63",
-"KRTDAP",
-"LYPD3",
-"KRT2",
-"NOTCH3"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Keratinocyte_Tier_1",
-    marker_genes_dict= keratinocyte_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Lymphatic endothelial cells
-lymphatic_endothelial_cell_marker = {"Lymphatic_endothelial_Tier_1" : [
-"CALCRL",
-"ECSCR",
-"FABP4",
-"LINC00636",
-"LYVE1",
-"MMRN1",
-"PROX1",
-"TFPI"
-
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Lymphatic_endothelial_cell_Tier_1",
-    marker_genes_dict= lymphatic_endothelial_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Macrophage endothelial cells
-macrophage_cell_marker = {"Macrophage_Tier_1" : [
-"AIF1",
-"C5AR1",
-"IL1B",
-"IRF4",
-"CCL3",
-"CCL4",
-"NOS2",
-"TNF",
-"CD163",
-"CXCL16",
-"MRC1",
-"BASP1",
-"C15orf48",
-"C1QA",
-"C1orf54",
-"CCL22",
-"CD68",
-"CD83",
-"COTL1",
-"CPVL",
-"CTSZ",
-"FCER1G",
-"GPR183",
-"HMGN2",
-"INHBA",
-"INSIG1",
-"LGALS2",
-"LST1",
-"LYZ",
-"RGS1",
-"TSPAN33",
-"TYROBP",
-"MMP9"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Macrophage_Tier_1",
-    marker_genes_dict= macrophage_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Melanocyte cells
-melanocyte_cell_marker = {"Melanocytes_Tier_1" : [
-"BCAN",
-"CRYAB",
-"CYB561A3",
-"DCT",
-"EDNRB",
-"FRZB",
-"MLANA",
-"NSG1",
-"PMEL",
-"QPCT",
-"TFAP2B",
-"TRPM1",
-"TYR",
-"TYRP1",
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Melanocytes_Tier_1",
-    marker_genes_dict= melanocyte_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Melanocyte cells
-melanoma_cell_marker = {"Melanoma_Tier_1" : [
-"ATF3",
-"CCND1",
-"MITF",
-"MYC",
-"PLP1",
-"DSG2",
-"EIF4E",
-"ICAM1",
-"ID1",
-"PRAME",
-"SERPINE1",
-"TPD52",
-"TPD52L1",
-"TPD52L2",
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Melanoma_Tier_1",
-    marker_genes_dict= melanoma_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Myofibroblast cells
-myofibroblast_cell_marker = {"Myofibroblast_Tier_1" : [
-"CALD1",
-"GPR4",
-"IGFBP7",
-"MYL9",
-"NDUFA4L2",
-"TAGLN"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Myofibroblast_Tier_1",
-    marker_genes_dict= myofibroblast_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### NK cells
-nk_cell_marker = {"NK_Tier_1" : [
-"CTSW",
-"KLRB1",
-"ZNF667-AS1"
-]
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "NK_Tier_1",
-    marker_genes_dict= nk_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Pericytes
-pericyte_marker = {"Pericyte_Tier_1" : [
-"C11orf96",
-"CPE",
-"ID4",
-"IFITM1",
-"NR2F2",
-"RGS5",
-"ACTA2",
-"MYH11"
-]
-
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Pericyte_Tier_1",
-    marker_genes_dict= pericyte_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Pilosebaceous Cells
-pilosebaceous_marker = {"Pilosebaceous_cells_Tier_1" : [
-"CAPNS2",
-"CRABP2",
-"PTN",
-"SOSTDC1",
-"TMEM45A"
-]
-
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Pilosebaceous_cells_Tier_1",
-    marker_genes_dict= pilosebaceous_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### T Cells
-T_cell_marker = {"T_cells_Tier_1" : [
-"IL2RA",
-"ENTPD1",
-"FOXP3",
-"ALOX5AP",
-"ARHGDIB",
-"BHLHE41",
-"CD3D",
-"CD3E",
-"CD3G",
-"CD40LG",
-"CD52",
-"CD69",
-"CD8A",
-"CES1",
-"CXCR4",
-"DUSP2",
-"GATA2",
-"GIMAP7",
-"GZMK",
-"IFNG",
-"IL32",
-"ITM2A",
-"KIT",
-"LCK",
-"LENG8",
-"MT1F",
-"NLGN4Y",
-"NMB",
-"NR4A2",
-"PBXIP1",
-"PTPRCAP",
-"RASSF8",
-"SLC2A3",
-"CCL5",
-"CCR5",
-"CD28",
-"CD4",
-"CTLA4",
-"CXCR6",
-"FUT6",
-"FUT7",
-"GZMB",
-"ITGA1",
-"ITGA4",
-"ITGAE",
-"PDCD1",
-"TCF7",
-]
-
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "T_cells_Tier_1",
-    marker_genes_dict= T_cell_marker
-)
-
-
-
-
-# In[ ]:
-
-
-#### Vascular endothelial cells
-vascular_endothelial_cell_marker = {"Vascular_endothelial_cells_Tier_1" : [
-"AQP1",
-"CD93",
-"CDH5",
-"CLDN5",
-"GNG11",
-"IFI27",
-"MYCT1",
-"PLVAP",
-"RAMP2",
-"RNASE1",
-"SELE",
-"SOX17",
-"SPARCL1",
-"SPRY1",
-"TFF3",
-"TM4SF1",
-"TSC22D1",
-"VWF",
-"SELL",
-"SELP",
-"VCAM1",
-"VEGFA",
-]
-
-}
-
-plot_goi_dotplot(
-    adata= adata,
-    cell_type_savename= "Vascular_endothelial_cell_marker_1",
-    marker_genes_dict= vascular_endothelial_cell_marker
-)
-
-
-
-
-# In[ ]:
+# In[84]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -2868,7 +2268,7 @@ sc.settings.figdir = neighbour_path
 
 
 
-# In[ ]:
+# In[85]:
 
 
 # Adding spatial coordinates to .obsm
@@ -2877,7 +2277,7 @@ adata.obsm["spatial"] = adata.obs[["x", "y"]].to_numpy()
 
 
 
-# In[ ]:
+# In[86]:
 
 
 sq.gr.spatial_neighbors(adata)
@@ -2894,7 +2294,7 @@ with rc_context({"figure.figsize": (10,10)}):
 
 
 
-# In[ ]:
+# In[87]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -2923,7 +2323,7 @@ adata_subsample.uns["moranI"].head(10)
 
 
 
-# In[ ]:
+# In[88]:
 
 
 ## Store moran I scores as a data frame
@@ -2943,7 +2343,7 @@ moran_scores_raw.to_csv(f"{processed_path}/moran_scores_{dataset_name}_pc{pc_lab
 
 
 
-# In[ ]:
+# In[89]:
 
 
 ## Plot spatial scatter plots for genes with the top 10 highest Moran I scores
@@ -3019,7 +2419,7 @@ for i in top_moran:
 
 
 
-# In[ ]:
+# In[90]:
 
 
 # ---------------------------------------------------------------------------- #
