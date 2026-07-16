@@ -2,26 +2,34 @@
     "project": "vbct",
     "raw_subdir": "vbct",
     "dataset_name": "CK_skin_res",
-    "pc_label": "20",
+    "pc_label": "30",
     "lambda_label": "0.20",
-    "res_label": "0.50",
+    "res_label": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10"
+    ],
+    "plot_res_label": "0.70",
     "nbr_weight_decay": "scaled_gaussian",
     "coord_keys": [
         "x",
         "y",
         "xy"
     ],
+    "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
     "new_labels": {
-        "0": "Differentiated_melanoma_cells_(MITF+)_0",
-        "1": "Cancer_associated_fibroblasts_1",
-        "2": "M2-like_tumour_associated_macrophages_2",
-        "3": "Myofibroblasts_3",
-        "4": "Vascular_endothelial_cells_4",
-        "5": "C8+_T_cells_(ITGA4)_5"
-    },
-    "resolutions": [
-        "0.5",
-        "0.6",
-        "0.7"
-    ]
+        "0": "Melanoma_Cell_or_Melanocyte_0",
+        "1": "Fibroblast_and_Macrophage_1",
+        "2": "Macrophage_Fibroblast_2",
+        "3": "Fibroblast_3",
+        "4": "T_Cell_with_Macrophages_and_Fibroblast_4",
+        "5": "Macrophage_5",
+        "6": "Endothelial_Cell_with_Fibroblast_Pericytes_6",
+        "7": "Fibroblast_7",
+        "8": "Melanoma_Cell_or_Melanocyte_8"
+    }
 }

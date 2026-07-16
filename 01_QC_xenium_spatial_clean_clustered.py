@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[65]:
+
+
+#!/usr/bin/env python
+# coding: utf-8
+
 """
 Title: Clean Clustered Xenium QC And Inspection
 Date: 2026-06-29
@@ -8,7 +14,9 @@ Summary: Run QC and exploratory spatial plots from clean expression AnnData
 objects that already contain BANKSY cluster labels and embeddings.
 """
 
-# In[178]:
+
+
+# In[66]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -18,7 +26,9 @@ objects that already contain BANKSY cluster labels and embeddings.
 ## Author: Nathalie Nataren
 
 
-# In[179]:
+
+
+# In[67]:
 
 
 ### Import packages
@@ -47,7 +57,9 @@ random.seed(seed)
 
 
 
-# In[ ]:
+
+
+# In[68]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -83,7 +95,9 @@ random.seed(seed)
 # }
 
 
-# In[ ]:
+
+
+# In[69]:
 
 
 # --------------------- PARSE ARGUMENTS FROM JSON CONFIG --------------------- #
@@ -100,6 +114,8 @@ parser.add_argument("--config", type=str, help="Optional JSON config file for ea
 # parse_known_args keeps notebook/kernel arguments from breaking local runs.
 args, _unknown_args = parser.parse_known_args()
 
+#"res_label": ["0.50", "0.60", "0.70", "0.80", "0.90", "1.00", "1.10"],
+
 if args.config:
     with open(args.config) as f: # Opens the file path provided by the user
         cfg = json.load(f) # Converts the json config into a python dictionary called "cfg"
@@ -111,18 +127,21 @@ else:
         "dataset_name": "CK_skin_res",
         "pc_label": "30",
         "lambda_label": "0.20",
-        "res_label": ["0.70", "0.80", "0.90", "1.00"],
-        "plot_res_label": "1.00",
+        "res_label": ["0.50", "0.60", "0.70", "0.80", "0.90", "1.00", "1.10"],
+        "plot_res_label": "0.70",
         "nbr_weight_decay": "scaled_gaussian",
         "coord_keys": ["x", "y", "xy"],
-        "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.00",
+        "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
         "new_labels": {
-            "0": "Differentiated_melanoma_cells_(MITF+)_0",
-            "1": "Cancer_associated_fibroblasts_1",
-            "2": "M2-like_tumour_associated_macrophages_2",
-            "3": "Myofibroblasts_3",
-            "4": "Vascular_endothelial_cells_4",
-            "5": "C8+_T_cells_(ITGA4)_5",
+            "0": "Melanoma_Cell_or_Melanocyte_0",
+            "1": "Fibroblast_and_Macrophage_1",
+            "2": "Macrophage_Fibroblast_2",
+            "3": "Fibroblast_3",
+            "4": "T_Cell_with_Macrophages_and_Fibroblast_4",
+            "5": "Macrophage_5",
+            "6": "Endothelial_Cell_with_Fibroblast_Pericytes_6",
+            "7": "Fibroblast_7",
+            "8": "Melanoma_Cell_or_Melanocyte_8",
         },
     }
 
@@ -151,7 +170,260 @@ cluster_ann_col = f"{cluster_col}_ann"
 new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell types
 
 
-# In[182]:
+
+
+# In[70]:
+
+
+# ---------------------------------------------------------------------------- #
+#                                   FUNCTIONS                                  #
+# ---------------------------------------------------------------------------- #
+
+def plot_qc_spatial_tissue(
+    data,
+    qc_metric,
+    sample_name
+    ):
+    """
+    Plot the spatial location of cells coloured by a QC metric.
+
+    Parameters
+    ----------
+    data : anndata.AnnData
+        AnnData object containing spatial coordinates in `.obsm['xy']` and the
+        requested QC metric in `.obs`.
+    qc_metric : str
+        Name of the `.obs` column to use for colouring cells in the tissue plot.
+    sample_name : str
+        Sample name used in the output filename and status message.
+
+    Returns
+    -------
+    None
+        Saves a PNG spatial scatter plot to `qc_path` and displays the figure.
+    """
+
+    with rc_context({"figure.figsize": (12, 8)}):
+        sq.pl.spatial_scatter(
+            data,
+            library_id="dataset_name",
+            spatial_key="xy",
+            color=f"{qc_metric}",
+            shape=None,
+            size=2,
+            img=False
+        )
+        plt.legend(fontsize=20)
+
+
+    # Save the figure
+    plt.savefig(
+        os.path.join(qc_path, f"tissue_spatial_scatter_min_{qc_metric}_{sample_name}.png"),
+        dpi=300,
+        bbox_inches='tight'
+        )
+    plt.show() 
+    print(f"Saving tissue_spatial_scatter_{qc_metric}_{sample_name}.png to {qc_path}") 
+
+
+
+def cluster_qc_violin(data, qc_metric, sample_name):
+    """
+    Plot per-cluster transcript-count distributions with QC status overlaid.
+
+    Parameters
+    ----------
+    data : anndata.AnnData
+        AnnData object containing `nCount_Xenium`, the cluster annotation column
+        referenced by `cluster_ann_col`, and the requested QC metric in `.obs`.
+    qc_metric : str
+        Name of the `.obs` column used to colour the overlaid stripplot points.
+        This is typically a categorical pass/fail QC column.
+    sample_name : str
+        Sample name used in the plot title and output filename.
+
+    Returns
+    -------
+    None
+        Saves a PNG violin plot to `qc_path` and leaves the active Matplotlib
+        figure available for display in the notebook.
+    """
+
+    cell_types = data.obs[cluster_ann_col].astype("category").cat.categories
+    n_cell_types = len(cell_types)
+
+    palette = dict(zip(
+    cell_types,
+    sns.color_palette("husl", n_colors=n_cell_types)
+    ))
+
+    plt.figure(figsize=(8, 6))
+    sns.violinplot(data=data.obs, 
+        y=data.obs["nCount_Xenium"],  
+        x=cluster_ann_col, 
+        log_scale=10, 
+        color="lightblue",
+        hue=cluster_ann_col,
+        palette="tab20")
+
+    sns.stripplot(data=data.obs, y=data.obs["nCount_Xenium"], x=data.obs[cluster_ann_col], hue =data.obs[f"{qc_metric}"], size=4)
+
+    plt.xlabel("Cluster", fontsize=15)
+    plt.ylabel("Total transcript counts per cell (log10)")
+    plt.xticks(rotation=45, fontsize=12, ha='right', va='top')
+    plt.title(f"{sample_name}: total {qc_metric}",
+    fontsize=16
+)
+
+
+    plt.savefig(
+        os.path.join(qc_path, f"threshold_passed_cells_per_cluster_violin_plot_{sample_name}.png"),
+        dpi=300,
+        bbox_inches='tight'
+        )
+
+
+# ------ Plot the umap with bulk labels coloured by minimum transcripts ------ #
+
+def plot_umap_qc_metric(
+    adata,
+    cluster_col,
+    qc_metric,
+    dataset_name,
+    qc_path=None,
+    qc_title=None,
+    cluster_title=None,
+    point_size=10,
+    figsize=(20,8),
+    dpi=300,
+    vmax="p99",
+    add_outline=True,
+    legend_fontsize=10,
+    show=True
+):
+    """
+    Plot UMAPs coloured by cluster annotation and a selected QC metric.
+
+    Parameters
+    ----------
+    adata
+        AnnData object containing a computed UMAP.
+    cluster_col : str
+        Column in adata.obs containing cluster or cell-type labels.
+    qc_metric : str
+        Column in adata.obs containing the QC metric to plot.
+    dataset_name : str
+        Dataset name used in plot titles and output filename.
+    qc_path : str or None
+        Directory in which to save the figure. If None, figure is not saved.
+    qc_title : str or None
+        Title for the QC panel. Defaults to the QC metric name.
+    cluster_title : str or None
+        Title for the cluster panel.
+    point_size : float
+        UMAP point size.
+    figsize : tuple
+        Figure dimensions.
+    dpi : int
+        Output resolution.
+    vmax
+        Maximum colour scale value passed to scanpy.
+    add_outline : bool
+        Whether to add outlines around UMAP points.
+    legend_fontsize : int
+        Legend font size.
+    show : bool
+        Whether to display the plot.
+
+    Returns
+    -------
+    fig, axes
+        Matplotlib figure and axes.
+    """
+    required_cols = [cluster_col, qc_metric]
+
+    missing_cols = [
+        col for col in required_cols
+        if col not in adata.obs.columns
+        ]
+
+    if missing_cols:
+        raise KeyError(
+            f"Columns not found in adata.obs: {missing_cols}"
+        )
+
+    if "X_umap" not in adata.obsm:
+        raise KeyError(
+            "No UMAP coordinates found in adata.obsm['X_umap']."
+        )
+
+    if cluster_title is None:
+        cluster_title = f"{dataset_name} clusters"
+
+    if qc_title is None:
+        qc_title = qc_metric.replace("_", " ").title()
+
+    fig, axes = plt.subplots(
+        1,
+        2,
+        figsize=figsize
+    )
+
+    sc.pl.umap(
+        adata,
+        color=cluster_col,
+        s=point_size,
+        frameon=True,
+        add_outline=add_outline,
+        legend_fontsize=legend_fontsize,
+        title=cluster_title,
+        ax=axes[0],
+        show=False,
+        )
+
+    sc.pl.umap(
+        adata,
+        color=qc_metric,
+        s=point_size,
+        frameon=True,
+        vmax=vmax,
+        add_outline=add_outline,
+        legend_fontsize=legend_fontsize,
+        title=qc_title,
+        ax=axes[1],
+        show=False,
+        )
+
+    fig.tight_layout()
+
+    if qc_path is not None:
+        os.makedirs(qc_path, exist_ok=True)
+
+        safe_metric_name = (
+            str(qc_metric)
+            .replace(" ", "_")
+            .replace("/", "_")
+        )
+        filename = f"umap_{dataset_name}_{safe_metric_name}.png"
+        output_file = os.path.join(qc_path, filename)
+
+        fig.savefig(
+            output_file,
+            dpi=dpi,
+            bbox_inches="tight"
+        )
+
+        print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig, axes
+
+
+# In[71]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -209,7 +481,9 @@ else:
     print(f"Directory '{qc_path}' already exists.")
 
 
-# In[183]:
+
+
+# In[72]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -217,45 +491,35 @@ else:
 # ---------------------------------------------------------------------------- #
 
 ## Read in the clean expression AnnData object with BANKSY cluster labels already stored in .obs.
-adata_clean = ad.read_h5ad(clean_adata_path)
+adata = ad.read_h5ad(clean_adata_path)
 print(f"Clean clustered AnnData object for {dataset_name} successfully read in from {clean_adata_path}.")
 
-if cluster_col not in adata_clean.obs.columns:
-    raise KeyError(f"{cluster_col} was not found in adata_clean.obs. Available columns: {list(adata_clean.obs.columns)}")
+if cluster_col not in adata.obs.columns:
+    raise KeyError(f"{cluster_col} was not found in adata.obs. Available columns: {list(adata.obs.columns)}")
 
 ## Use the same object for QC masks and cluster-coloured plots.
-adata = adata_clean
+adata = adata
 
 ## Create 'xy' spatial coordinates from adata.obs if they are not already present.
-if 'xy' not in adata_clean.obsm:
-    adata_clean.obsm['xy'] = np.vstack([adata_clean.obs['x'], adata_clean.obs['y']]).T
+if 'xy' not in adata.obsm:
+    adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 
 ## Scanpy plotting helpers expect generic X_umap/X_pca keys. Keep the
 ## explicit BANKSY keys, but add generic aliases for this QC script.
 banksy_umap_key = f"X_umap_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}"
-if banksy_umap_key in adata_clean.obsm and "X_umap" not in adata_clean.obsm:
-    adata_clean.obsm["X_umap"] = adata_clean.obsm[banksy_umap_key]
-    print(f"Aliased {banksy_umap_key} to adata_clean.obsm['X_umap']")
+if banksy_umap_key in adata.obsm and "X_umap" not in adata.obsm:
+    adata.obsm["X_umap"] = adata.obsm[banksy_umap_key]
+    print(f"Aliased {banksy_umap_key} to adata.obsm['X_umap']")
 
 banksy_pca_key = f"X_pca_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}"
-if banksy_pca_key in adata_clean.obsm and "X_pca" not in adata_clean.obsm:
-    adata_clean.obsm["X_pca"] = adata_clean.obsm[banksy_pca_key]
-    print(f"Aliased {banksy_pca_key} to adata_clean.obsm['X_pca']")
+if banksy_pca_key in adata.obsm and "X_pca" not in adata.obsm:
+    adata.obsm["X_pca"] = adata.obsm[banksy_pca_key]
+    print(f"Aliased {banksy_pca_key} to adata.obsm['X_pca']")
 
 
-# In[184]:
 
 
-processed_path
-
-
-# In[185]:
-
-
-adata_clean.obsm
-
-
-# In[186]:
+# In[73]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -263,11 +527,13 @@ adata_clean.obsm
 # ---------------------------------------------------------------------------- #
 
 ## Filter out cells with zero counts while keeping the clean object as the only working object.
-adata_clean = adata_clean[adata_clean.obs['nCount_Xenium'] > 0].copy()
-adata = adata_clean
+adata = adata[adata.obs['nCount_Xenium'] > 0].copy()
+adata = adata
 
 
-# In[189]:
+
+
+# In[74]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -298,11 +564,319 @@ plt.savefig(os.path.join(qc_path, f"banksy_counts_and_genes_plot_{dataset_name}.
 plt.show()
 
 
-# In[190]:
+
+
+# In[75]:
+
+
+## Check to compare nCount_Xenium, adata.X and adata.layers["counts"]
+## nCount_Xenium and adata.layers["counts"] represent raw counts before any normalisation/transformation
+## adata.X contains log-transformed and scanpy.pp.normalize_total() normalised counts
+import pandas as pd
+
+cell_slice = slice(0, 10)
+
+X_sums = np.asarray(
+    adata.X[cell_slice, :].sum(axis=1)
+).ravel()
+
+count_layer_sums = np.asarray(
+    adata.layers["counts"][cell_slice, :].sum(axis=1)
+).ravel()
+
+comparison = pd.DataFrame(
+    {
+        "nCount_Xenium": adata.obs["nCount_Xenium"].iloc[cell_slice],
+        "X_sum": X_sums,
+        "counts_layer_sum": count_layer_sums,
+    },
+    index=adata.obs_names[cell_slice],
+)
+
+comparison
+
+
+# In[76]:
 
 
 # ---------------------------------------------------------------------------- #
-#                FILTER 1 - MINIMUM NUMBER OF TRANSCRIPTS FILTER               #
+#                   FILTER 1 - NEGATIVE CONTROL PROBE FILTER                   #
+# ---------------------------------------------------------------------------- #
+
+## Check to compare nCount_Xenium, adata.X and adata.layers["counts"]
+## nCount_Xenium and adata.layers["counts"] represent raw counts before any normalisation/transformation
+## adata.X contains log-transformed and scanpy.pp.normalize_total() normalised counts
+import pandas as pd
+
+cell_slice = slice(0, 10)
+
+X_sums = np.asarray(
+    adata.X[cell_slice, :].sum(axis=1)
+).ravel()
+
+count_layer_sums = np.asarray(
+    adata.layers["counts"][cell_slice, :].sum(axis=1)
+).ravel()
+
+comparison = pd.DataFrame(
+    {
+        "nCount_Xenium": adata.obs["nCount_Xenium"].iloc[cell_slice],
+        "X_sum": X_sums,
+        "counts_layer_sum": count_layer_sums,
+    },
+    index=adata.obs_names[cell_slice],
+)
+
+comparison
+
+## Negative control scatter plot
+
+sns.set_theme(style="darkgrid")
+
+sns.scatterplot(
+    data = adata.obs,
+    x= "control_probe_counts",
+    y= "nCount_Xenium"
+    )
+
+
+## Summary of number of features
+features = pd.read_csv(
+    os.path.join(raw_path, "features", f"{dataset_name}", "features.tsv.gz"),
+    sep="\t",
+    header=None
+)
+
+features.columns = ["feature_id", "feature_name", "feature_type"]
+features["feature_type"].value_counts()
+features
+
+## Print the number of control probes
+negative_control_probes = features.loc[
+    features["feature_type"]
+    .astype(str)
+    .str.contains("negative.*control.*probe", case=False, regex=True),
+    "feature_name"
+].sort_values()
+
+print(f"Number of negative-control probes: {len(negative_control_probes)}")
+print(negative_control_probes.tolist())
+
+
+# In[77]:
+
+
+## Create a mask for cells with at least 1 negative probe counts
+neg_mask = adata.obs["control_probe_counts"] >= 1
+
+n_neg_cells = neg_mask.sum()
+n_total_cells = adata.n_obs
+
+percent_neg_cells = n_neg_cells / n_total_cells * 100
+
+print(f"{n_neg_cells:,} / {n_total_cells:,} cells ({percent_neg_cells:.2f}%) have >=1 negative control probe count")
+
+## Calculate the percentage of negative controls per total transcripts for each cell
+adata.obs["neg_probe_pct_of_gene_plus_neg_probe"] = (adata.obs["control_probe_counts"] / (adata.obs["nCount_Xenium"] + adata.obs["control_probe_counts"])) * 100
+
+## Calculate the transcripts detected per um^2 of cell area
+adata.obs["gene_transcripts_per_um2"] = ((adata.obs["nCount_Xenium"]) / adata.obs["cell_area"])
+
+#data.obs["neg_probe_pct_of_gene_plus_neg_probe"] = adata.obs["neg_probe_pct_of_gene_plus_neg_probe"]
+#adata.obs["gene_transcripts_per_um2"] = adata.obs["gene_transcripts_per_um2"]
+
+
+## percentage of negative controls vs transcripts detected per um^2
+
+sns.set_theme(style="darkgrid")
+
+sns.scatterplot(
+    data = adata.obs,
+    x= "gene_transcripts_per_um2",
+    y= "neg_probe_pct_of_gene_plus_neg_probe"    
+    )
+
+plt.title("Negative control probe % vs raw gene transcripts per µm²")
+plt.ylabel("Percentage negative control counts per cell (%)")
+plt.xlabel("Transcripts per µm²")
+
+plt.tight_layout()
+# Save the figure
+plt.savefig(
+    os.path.join(qc_path, f"Negative_Control_%_vs_Transcript_Density_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+plt.show() 
+print(f"Saving Negative_Control_%_vs_Transcript_Density_{dataset_name}.png to {qc_path}")
+
+## Read in transcript parquet to get raw negative control probe counts
+tx = pd.read_parquet(os.path.join(raw_path, "transcript_parquet", f"{dataset_name}"))
+tx["codeword_category"].value_counts()
+
+##subset transcripts tx to only those cells present in the adata object
+adata_cells = set(adata.obs_names.astype(str))
+tx["cell_id"] = tx["cell_id"].astype(str)
+
+tx_subset = tx[tx["cell_id"].isin(adata_cells)].copy()
+
+tx_subset.to_parquet(os.path.join(output_path,"transcripts_subset_to_adatat_clean_cells.parquet"))
+
+print("Original transcripts:", len(tx))
+print("Subset transcripts:", len(tx_subset))
+print("Unique transcript cell IDs:", tx_subset["cell_id"].nunique())
+print("AnnData cells:", adata.n_obs)
+
+
+# In[78]:
+
+
+## Subset transcripts parquet to negative probe transcripts
+neg_tx = tx_subset[tx_subset["codeword_category"] == "negative_control_probe"]
+
+neg_probes = sorted(
+    neg_tx["feature_name"].dropna().unique(),
+    key=lambda x: int(x.split("_")[-1])
+)
+
+neg_probes
+
+# - Percentage of each negative control probe in total negative probe counts - #
+neg_probe_counts = neg_tx["feature_name"].value_counts()
+
+neg_probe_summary = (
+    neg_probe_counts
+    .rename_axis("negative_control_probe")
+    .reset_index(name="counts")
+)
+
+neg_probe_summary["percent_of_negative_control_counts"] = (
+    neg_probe_summary["counts"] / neg_probe_summary["counts"].sum() * 100
+)
+
+sns.barplot(
+    data=neg_probe_summary,
+    x="negative_control_probe",
+    y="percent_of_negative_control_counts"
+)
+
+plt.ylabel("Percent of negative-control counts")
+plt.xlabel("Negative control probe")
+plt.xticks(rotation=90)
+
+plt.savefig(
+    os.path.join(qc_path, f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+plt.show() 
+print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")    
+
+# ------------------- Negative control probe count per cell ------------------ #
+
+# Calculate, for each cell, what proportion of its negative-control signal
+# comes from each negative-control probe.
+
+neg_tx_assigned = neg_tx[neg_tx["cell_id"] != "UNASSIGNED"].copy()
+
+probe_counts = (
+    neg_tx_assigned
+    .groupby(["cell_id", "feature_name"])
+    .size()
+    .reset_index(name="probe_count")
+)
+
+probe_counts["total_neg_counts_per_cell"] = (
+    probe_counts
+    .groupby("cell_id")["probe_count"]
+    .transform("sum")
+)
+
+probe_counts["probe_proportion_within_cell"] = (
+    (probe_counts["probe_count"] / probe_counts["total_neg_counts_per_cell"])
+)
+
+probe_counts.head()
+
+## Negative probe proportion within cell
+probe_counts["probe_proportion_within_cell"].min(), probe_counts["probe_proportion_within_cell"].max()
+
+# ------------ Negative control probe count per cell violin plots ------------ #
+
+plt.figure(figsize=(12, 8))
+
+sns.violinplot(
+    data=probe_counts,
+    x="feature_name",
+    y="probe_proportion_within_cell",
+    cut=0,
+    inner=None,
+    color="lightblue"
+)
+
+sns.stripplot(
+    data=probe_counts,
+    x="feature_name",
+    y="probe_proportion_within_cell",
+    color="black",
+    alpha=0.25,
+    size=2,
+    jitter=True
+)
+
+plt.ylim(0, 1)
+plt.xticks(rotation=90)
+plt.ylabel("Proportion of negative-control probe counts in all negative probe counts")
+plt.xlabel("Negative control probe")
+plt.title("Within-cell Negative Control Probe Proportions/Total Probes")
+
+plt.savefig(
+    os.path.join(qc_path, f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+plt.show() 
+print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")    
+
+
+# In[79]:
+
+
+# ---------------------------------------------------------------------------- #
+#                          NEGATIVE CONTROL PROBE MASK                         #
+# ---------------------------------------------------------------------------- #
+
+# Mask cells with at least 1 or more negative control probe counts
+adata.obs["has_negative_control_probe_counts"] = (
+    adata.obs["control_probe_counts"] >= 1
+)
+
+# Create a category to colour plots
+adata.obs["negative_control_probe_greater_equal_1_cat"] = (
+    adata.obs["has_negative_control_probe_counts"]
+    .map({True: "Has negative control", False: "No negative control"})
+    .astype("category")
+)
+
+
+# In[80]:
+
+
+# ------- Plot location of cell with >= 1 negative control probe count ------- #
+
+## Tissue plot of cells with minimum number of transcripts
+plot_qc_spatial_tissue(
+    data = adata,
+    qc_metric = "negative_control_probe_greater_equal_1_cat",
+    sample_name = dataset_name
+)
+
+
+# In[81]:
+
+
+# ---------------------------------------------------------------------------- #
+#                FILTER 2 - MINIMUM NUMBER OF TRANSCRIPTS FILTER               #
 # ---------------------------------------------------------------------------- #
 
 ### Plot knee plot (log10 transcripts per cell)
@@ -335,7 +909,9 @@ plt.show()
 print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee):,} ({num_cells/len(knee)*100:.1f}%)")
 
 
-# In[191]:
+
+
+# In[82]:
 
 
 # ---------------- Apply the minimum transcripts per cell mask --------------- #
@@ -355,36 +931,23 @@ mask_cells = mask_cells.rename(columns={"index":"cell_id", "nCount_Xenium" : "mi
 adata.obs['min_trans_passed'] = adata.obs['nCount_Xenium'] > threshold #True = passed
 
 
-# In[192]:
+
+
+# In[83]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
 adata.obs["min_trans_passed_cat"] = adata.obs["min_trans_passed"].map({True: "Pass", False: "Fail"}).astype("category")
 
-with rc_context({"figure.figsize": (12, 8)}):
-    sq.pl.spatial_scatter(
-        adata,
-        library_id="dataset_name",
-        spatial_key="xy",
-        color="min_trans_passed_cat",
-        shape=None,
-        size=2,
-        img=False
-    )
-    plt.legend(fontsize=20)
+## Tissue plot of cells with minimum number of transcripts
+plot_qc_spatial_tissue(
+    data = adata,
+    qc_metric = "min_trans_passed_cat",
+    sample_name = dataset_name
+)
 
 
-# Save the figure
-plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_min_counts_threshold_passed_cells_{dataset_name}.png"),
-    dpi=300,
-    bbox_inches='tight'
-    )
-plt.show() 
-print(f"Saving tissue_spatial_scatter_min_counts_threshold_passed_cells_{dataset_name}.png to {qc_path}" )                     
-
-
-# In[193]:
+# In[84]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -399,7 +962,7 @@ with rc_context({"figure.figsize": (12, 8)}):
         size=2,
         img=False,
         vmax = adata.obs['nCount_Xenium'].max(),
-        cmap="gist_rainbow"
+        cmap="Spectral"
     )
 
 ## Save the figure
@@ -411,7 +974,7 @@ plt.savefig(
 plt.show() 
 
 
-# In[194]:
+# In[85]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -427,8 +990,9 @@ with rc_context({"figure.figsize": (12, 8)}):
         img=False,
         vmax = adata.obs['nCount_Xenium'].quantile(0.99),
         #cmap="gist_stern"
-        cmap="gist_rainbow"
+        #cmap="gist_rainbow"
         #cmap="rainbow"
+        cmap="Spectral"
     )
 
 plt.savefig(
@@ -439,7 +1003,9 @@ plt.savefig(
 plt.show() 
 
 
-# In[196]:
+
+
+# In[86]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -457,7 +1023,9 @@ obs= adata.obs
 obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 
 
-# In[197]:
+
+
+# In[87]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -472,289 +1040,431 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 print("All files saved to:", qc_path)
 
 
-# In[198]:
+# In[88]:
 
 
-# ----------- Calculate the total counts for genes across all cells ---------- #
-adata_X = pd.DataFrame(
-    adata.X.toarray(),
-    index=adata.obs_names,
-    columns=adata.var_names
-)
+# # ----------- Calculate the total counts for genes across all cells ---------- #
+# adata_X = pd.DataFrame(
+#     adata.X.toarray(),
+#     index=adata.obs_names,
+#     columns=adata.var_names
+# )
 
-gene_total_object = adata_X.sum(axis=0)
-
-
-top_genes_object = gene_total_object.sort_values(ascending=False).reset_index()
-top_genes_object.columns = ['gene', 'total_counts']
-top_genes_object.to_csv(os.path.join(qc_path, f"gene_counts_across_all_cells_{dataset_name}_test.csv"))
+# gene_total_object = adata_X.sum(axis=0)
 
 
-# In[199]:
+# top_genes_object = gene_total_object.sort_values(ascending=False).reset_index()
+# top_genes_object.columns = ['gene', 'total_counts']
+# top_genes_object.to_csv(os.path.join(qc_path, f"gene_counts_across_all_cells_{dataset_name}_test.csv"))
 
 
-# --------------------------- Plot the top 50 genes -------------------------- #
-top_genes_object = top_genes_object.iloc[0:51]
-
-plt.figure(figsize=(25, 5))
-plt.scatter(top_genes_object['gene'], top_genes_object['total_counts'])
-plt.xticks(rotation=90)
-plt.tight_layout()
-
-plt.savefig(
-    os.path.join(qc_path, f"top_50_genes_by_counts_{dataset_name}.png"),
-    dpi=300,
-    bbox_inches='tight'
-    )
 
 
-# In[200]:
+# In[89]:
+
+
+# # --------------------------- Plot the top 50 genes -------------------------- #
+# top_genes_object = top_genes_object.iloc[0:51]
+
+# plt.figure(figsize=(25, 5))
+# plt.scatter(top_genes_object['gene'], top_genes_object['total_counts'])
+# plt.xticks(rotation=90)
+# plt.tight_layout()
+
+# plt.savefig(
+#     os.path.join(qc_path, f"top_50_genes_by_counts_{dataset_name}.png"),
+#     dpi=300,
+#     bbox_inches='tight'
+#     )
+
+
+
+
+# In[90]:
 
 
 # ---------------------------------------------------------------------------- #
-#                FILTER 2 - MAXIMUM NUMBER OF TRANSCRIPTS FILTER               #
+#                FILTER 3 - MAXIMUM NUMBER OF TRANSCRIPTS FILTER               #
 # ---------------------------------------------------------------------------- #
 
 # ---- Maximum transcripts per cell mask for cells with top 2% transcripts --- #
 raw_counts = adata.obs['nCount_Xenium']
 quantile = np.quantile(raw_counts, 0.98)
 quantile_masked_cells = raw_counts >= quantile
-#quantile_masked_cells = quantile_masked_cells.to_frame()
 quantile_masked_cells = quantile_masked_cells.reset_index()
-#max_trans_threshold_passed = quantile_masked_cells.rename(columns={"index" : "cell_id", "nCount_Xenium" : "max_transcripts_passed"})
 max_trans_threshold_passed = quantile_masked_cells.rename(columns={"nCount_Xenium" : "max_transcripts_passed"})
 max_trans_threshold_passed = max_trans_threshold_passed.set_index("index")
-# Store the results for the max_rans_filter into the object .obs
 adata.obs['max_trans_threshold_passed'] = max_trans_threshold_passed['max_transcripts_passed']
 
 
-# In[174]:
 
 
-max_trans_threshold_passed
-
-
-# In[201]:
+# In[91]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
 adata.obs["max_trans_passed_cat"] = adata.obs["max_trans_threshold_passed"].map({True: "Fail", False: "Pass"}).astype("category")
 
-with rc_context({"figure.figsize": (12, 8)}):
-    sq.pl.spatial_scatter(
-        adata,
-        library_id="dataset_name",
-        spatial_key="xy",
-        color="max_trans_passed_cat",
-        shape=None,
-        size=2,
-        img=False
-    )
-    plt.legend(fontsize=20)
+## Tissue plot of cells with max transcripts threshold 
+plot_qc_spatial_tissue(
+    data = adata,
+    qc_metric = "max_trans_passed_cat",
+    sample_name = dataset_name
+)
 
 
-# Save the figure
-plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_max_counts_threshold_passed_cells_{dataset_name}.png"),
-    dpi=300,
-    bbox_inches='tight'
-    )
-plt.show() 
-print(f"Saving tissue_spatial_scatter_max_counts_threshold_passed_cells_{dataset_name}.png to {qc_path}" )                     
-
-
-# In[202]:
+# In[92]:
 
 
 # ---------------------------------------------------------------------------- #
 #                  USE CLEAN CLUSTERED ANNDATA FOR CLUSTER QC                  #
 # ---------------------------------------------------------------------------- #
 
-## The clean object already contains BANKSY cluster labels in .obs, so this test
+## The clean object already contains BANKSY cluster labels in .obs, so this
 ## script does not read old BANKSY spatial objects or rebuild clusters from saved BANKSY outputs.
-adata_clean = adata
-adata_clean.obs[cluster_col] = adata_clean.obs[cluster_col].astype(str)
+adata = adata
+adata.obs[cluster_col] = adata.obs[cluster_col].astype(str)
 
 if new_labels:
-    adata_clean.obs[cluster_ann_col] = adata_clean.obs[cluster_col].map(new_labels)
-    adata_clean.obs[cluster_ann_col] = adata_clean.obs[cluster_ann_col].fillna(adata_clean.obs[cluster_col]).astype("category")
+    adata.obs[cluster_ann_col] = adata.obs[cluster_col].map(new_labels)
+    adata.obs[cluster_ann_col] = adata.obs[cluster_ann_col].fillna(adata.obs[cluster_col]).astype("category")
 else:
-    adata_clean.obs[cluster_ann_col] = adata_clean.obs[cluster_col].astype("category")
+    adata.obs[cluster_ann_col] = adata.obs[cluster_col].astype("category")
+
+
+
+
+# In[93]:
+
+
+# ---------------------------------------------------------------------------- #
+#                         FILTER 4 - CELL AREA FILTERS                         #
+# ---------------------------------------------------------------------------- #
+
+# ------------------------- Top 1% cells by cell area ------------------------ #
+cell_area = adata.obs["cell_area"]
+area_quantile = np.quantile(cell_area, 0.99)
+area_quantile_mask = cell_area >= area_quantile
+adata.obs["max_area_threshold_99"] = area_quantile_mask
+
+# Create a category to colour plots
+adata.obs["max_area_threshold_99_cat"] = (
+    adata.obs["max_area_threshold_99"]
+    .map({True: "Fail", False: "Pass"})
+    .astype("category")
+)
+
+
+# In[94]:
+
+
+# Plot the cell with negative controls on the tissue spatial plot
+with rc_context({"figure.figsize": (12, 8)}):
+    sq.pl.spatial_scatter(
+        adata,
+        library_id="dataset_name",
+        spatial_key="xy",
+        color="max_area_threshold_99_cat",
+        shape=None,
+        size=2,
+        img=False
+    )
+    plt.legend(fontsize=20)
+
+    plt.savefig(
+    os.path.join(qc_path, f"tissue_spatial_scatter_max_area_threshold_99_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+plt.show() 
+print(f"tissue_spatial_scatter_max_area_threshold_99_{dataset_name}.png to {qc_path}") 
+
+
+# In[95]:
+
+
+# Create a category to colour plots
+adata.obs["max_area_threshold_99_cat"] = (
+    adata.obs["max_area_threshold_99"]
+    .map({True: "Fail", False: "Pass"})
+    .astype("category")
+)
+
+## Tissue plot of cells with max transcripts threshold 
+plot_qc_spatial_tissue(
+    data = adata,
+    qc_metric = "max_area_threshold_99_cat",
+    sample_name = dataset_name
+)
+
+
+# In[96]:
+
+
+# ------------------------- Top 2% cells by cell area ------------------------ #
+
+cell_area = adata.obs["cell_area"]
+area_quantile = np.quantile(cell_area, 0.98)
+area_quantile_mask = cell_area >= area_quantile
+adata.obs["max_area_threshold_98"] = area_quantile_mask
+
+# Create a category to colour plots
+adata.obs["max_area_threshold_98_cat"] = (
+    adata.obs["max_area_threshold_98"]
+    .map({True: "Fail", False: "Pass"})
+    .astype("category")
+)
+
+
+# In[97]:
+
+
+## Tissue plot of cells with max transcripts threshold 
+plot_qc_spatial_tissue(
+    data = adata,
+    qc_metric = "max_area_threshold_98_cat",
+    sample_name = dataset_name
+)
+
+
+# In[98]:
+
+
+# ----------------------- Bottom 1% cells by cell area ----------------------- #
+cell_area = adata.obs["cell_area"]
+area_quantile = np.quantile(cell_area, 0.01)
+area_quantile_mask = cell_area <= area_quantile
+adata.obs["min_area_threshold_1"] = area_quantile_mask
+
+# Create a category to colour plots
+adata.obs["min_area_threshold_1_cat"] = (
+    adata.obs["min_area_threshold_1"]
+    .map({True: "Fail", False: "Pass"})
+    .astype("category")
+)
+
+
+# In[99]:
+
+
+## Tissue plot of cells with max transcripts threshold 
+plot_qc_spatial_tissue(
+    data = adata,
+    qc_metric = "min_area_threshold_1_cat",
+    sample_name = dataset_name
+)
+
+
+# In[100]:
+
+
+# ----------------------- Bottom 2% cells by cell area ----------------------- #
+cell_area = adata.obs["cell_area"]
+area_quantile = np.quantile(cell_area, 0.02)
+area_quantile_mask = cell_area <= area_quantile
+adata.obs["min_area_threshold_2"] = area_quantile_mask
+
+# Create a category to colour plots
+adata.obs["min_area_threshold_2_cat"] = (
+    adata.obs["min_area_threshold_2"]
+    .map({True: "Fail", False: "Pass"})
+    .astype("category")
+)
+
+
+# In[101]:
+
+
+## Tissue plot of cells with 
+plot_qc_spatial_tissue(
+    data = adata,
+    qc_metric = "min_area_threshold_2_cat",
+    sample_name = dataset_name
+)
+
+
+# In[102]:
+
+
+# ---------------------------------------------------------------------------- #
+#                     CLUSTERING RESOLUTION LEVEL ANALYSIS                     #
+# ---------------------------------------------------------------------------- #
+
+
+# In[103]:
+
+
+# ------------- Plot the per cluster plots coloured by qc metrics ------------ #
+
+## Contains >= 1 negetive control probe
+cluster_qc_violin(
+    data = adata,
+    qc_metric = "negative_control_probe_greater_equal_1_cat",
+    sample_name = dataset_name
+)
+
+## Minimum transcripts cluster plot
+cluster_qc_violin(
+    data = adata,
+    qc_metric = "min_trans_passed",
+    sample_name = dataset_name
+)
+
+## Maximum transcripts cluster plot
+cluster_qc_violin(
+    data = adata,
+    qc_metric = "max_trans_passed_cat",
+    sample_name = dataset_name
+)
+
+## Maximum area 98th percentil cluster plot
+cluster_qc_violin(
+    data = adata,
+    qc_metric = "max_area_threshold_98_cat",
+    sample_name = dataset_name
+)
+
+## Maximum area 99th percentil cluster plot
+cluster_qc_violin(
+    data = adata,
+    qc_metric = "max_area_threshold_99_cat",
+    sample_name = dataset_name
+)
+
+## Bottom 1% area filter 
+cluster_qc_violin(
+    data = adata,
+    qc_metric = "min_area_threshold_1",
+    sample_name = dataset_name
+)
+
+## Bottom 2% area filter 
+cluster_qc_violin(
+    data = adata,
+    qc_metric = "min_area_threshold_2",
+    sample_name = dataset_name
+)
+
+
+# In[104]:
+
+
+# Set the figure directory to your desired location
+sc.settings.figdir = qc_path
+
+## Total counts across unlabeled clustered
+plt.figure(figsize=(8, 6))
+ax = sc.pl.violin(
+    adata, 
+    "total_counts", 
+    groupby=cluster_ann_col,
+    show=False
+    )
+
+ax.set_xticklabels(
+    ax.get_xticklabels(),
+    rotation=45,
+    ha="right",
+    va="top",
+    fontsize=12
+)
+
+plt.tight_layout()
+plt.savefig(
+    os.path.join(
+        qc_path,
+        f"violin_total_counts_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
+    ),
+    dpi=300,
+    bbox_inches="tight"
+)
+plt.show()
+
+
+# In[105]:
+
+
+adata.obs[cluster_col].astype(str).value_counts().sort_index()
+adata.obs[cluster_ann_col].value_counts(dropna=False)
 
 
 # In[106]:
 
 
-adata_clean.obs
+print(cluster_col)
+print(cluster_ann_col)
+print(adata.obs[cluster_col].nunique())
+print(adata.obs[cluster_ann_col].nunique())
+
+
+# In[107]:
+
+
+# # ---------------------------------------------------------------------------- #
+# #                        TOP EXPRESSED GENES PER CLUSTER                       #
+# # ---------------------------------------------------------------------------- #
+# ### Spatial clustering results
+
+# import scanpy as sc
+
+# ## Rank genes and identify cluster gene markers
+# sc.tl.rank_genes_groups(
+#     adata,
+#     groupby=cluster_col,
+#     method='wilcoxon',
+#     key_added=f"{cluster_col}_markers"
+# )
+
+
+
+# In[108]:
+
+
+# # ---------------------------------------------------------------------------- #
+# #                                CLUSTER HEATMAP                               #
+# # ---------------------------------------------------------------------------- #
+
+# # Set the figure directory to your desired location
+# sc.settings.figdir = output_path
+
+# ## Generate heat map for top markers per cluster
+# sc.tl.dendrogram(
+#     adata,
+#     groupby=cluster_col,
+#     key_added=cluster_col
+# )
+
+# ## Determine vmin and vmax dynamically based on gene expression.
+# ## Convert matrix-like/sparse values to a plain ndarray so NumPy percentiles
+# ## do not inherit np.matrix multiplication semantics.
+# expr_values = adata.X
+# if hasattr(expr_values, "toarray"):
+#     expr_values = expr_values.toarray()
+# expr_values = np.asarray(expr_values).ravel()
+# positive_expr_values = expr_values[expr_values > 0]
+# if positive_expr_values.size == 0:
+#     vmax_dynamic = 0
+# else:
+#     vmax_dynamic = np.percentile(positive_expr_values, 99)
+# vmin_dynamic = np.percentile(expr_values, 1)
+
+# sc.pl.rank_genes_groups_heatmap(
+#     adata, 
+#     key=f"{cluster_col}_markers_raw",
+#     #key= 'raw_test',
+#     n_genes=5,
+#     cmap = "plasma",
+#     vmin=vmin_dynamic,
+#     vmax=vmax_dynamic,
+#     show_gene_labels = True,
+#     save = f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_raw_markers.png",
+#     figsize=(20, 15)
+# )
+
+
 
 
 # In[109]:
-
-
-# ---------------------------------------------------------------------------- #
-#    CLUSTER LEVEL VIOLIN PLOTS OF MINIMUM TRANSCRIPT COUNT THRESHOLD CELLS    #
-# ---------------------------------------------------------------------------- #
-
-obs = adata_clean.obs
-cell_label = cluster_ann_col
-
-plt.figure(figsize=(8, 6))
-sns.violinplot(data=obs, y=obs["nCount_Xenium"],  x=obs[cluster_ann_col], log_scale=10, color="lightblue")
-
-sns.stripplot(data=obs, y=obs["nCount_Xenium"], x=obs[cluster_ann_col], hue =obs["min_trans_passed"], size=4)
-
-plt.xlabel("Cluster", fontsize=15)
-plt.ylabel("Total transcript counts per cell (log10)", fontsize=15)
-plt.xticks(rotation=45, fontsize=12, ha='right', va='top')
-
-
-plt.savefig(
-    os.path.join(qc_path, f"threshold_passed_cells_per_cluster_violin_plot_{dataset_name}.png"),
-    dpi=300,
-    bbox_inches='tight'
-    )
-
-
-# In[127]:
-
-
-adata.obs
-
-
-# In[ ]:
-
-
-# ---------------------------------------------------------------------------- #
-#    CLUSTER LEVEL VIOLIN PLOTS OF MAXIMUM TRANSCRIPT COUNT THRESHOLD CELLS    #
-# ---------------------------------------------------------------------------- #
-
-obs = adata_clean.obs
-cell_label = cluster_ann_col
-
-plt.figure(figsize=(8, 6))
-sns.violinplot(data=obs, y=obs["nCount_Xenium"],  x=obs[cluster_ann_col], log_scale=10, color="lightblue")
-
-sns.stripplot(data=obs, y=obs["nCount_Xenium"], x=obs[cluster_ann_col], hue =obs["max_trans_passed_cat"], size=4)
-
-plt.xlabel("Cluster", fontsize=15)
-plt.ylabel("Total transcript counts per cell (log10)", fontsize=15)
-plt.xticks(rotation=45, fontsize=12, ha='right', va='top')
-
-
-plt.savefig(
-    os.path.join(qc_path, f"max_transcript_threshold_passed_cells_per_cluster_violin_plot_{dataset_name}.png"),
-    dpi=300,
-    bbox_inches='tight'
-    )
-
-
-# In[110]:
-
-
-# ---------------------------------------------------------------------------- #
-#                        TOP EXPRESSED GENES PER CLUSTER                       #
-# ---------------------------------------------------------------------------- #
-### Spatial clustering results
-
-import scanpy as sc
-
-## Rank genes and identify cluster gene markers
-sc.tl.rank_genes_groups(
-    adata_clean,
-    groupby=cluster_col,
-    method='wilcoxon',
-    key_added=f"{cluster_col}_markers"
-)
-
-
-# In[111]:
-
-
-## Using the filter_ranked_genes_by_type to create a key for 
-## A key can be generate for the nbr_0 results, which represent markers of neighbour cells not for annotation
-## and a key can be generated for nbr_1, where these markers being represents cells that are in a ring interface around given cell
-from banksy_utils.annotation_utils import filter_ranked_genes_by_type
-
-key_filtered = filter_ranked_genes_by_type(
-    adata_clean,
-    key=f"{cluster_col}_markers",
-    top_n=100,
-    gene_type = "raw",
-    new_key_suffix="_raw",
-)
-
-
-# In[112]:
-
-
-# Plot the gene markers for each cluster
-sc.pl.rank_genes_groups(
-    adata_clean, 
-    key=key_filtered,
-    method='wilcoxon',
-    n_genes=20, 
-    fontsize=15,
-    save= f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_spatial_top_gene_raw.png")
-
-
-# In[113]:
-
-
-## Total counts across unlabeled clustered
-sc.pl.violin(
-    adata_clean, 
-    "total_counts", 
-    groupby=cluster_col, 
-    save= f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
-    )
-
-
-# In[114]:
-
-
-# ---------------------------------------------------------------------------- #
-#                                CLUSTER HEATMAP                               #
-# ---------------------------------------------------------------------------- #
-
-# Set the figure directory to your desired location
-sc.settings.figdir = output_path
-
-## Generate heat map for top markers per cluster
-sc.tl.dendrogram(
-    adata_clean,
-    groupby=cluster_col,
-    key_added=cluster_col
-)
-
-## Determine vmin and vmax dynamically based on gene expression.
-## Convert matrix-like/sparse values to a plain ndarray so NumPy percentiles
-## do not inherit np.matrix multiplication semantics.
-expr_values = adata_clean.X
-if hasattr(expr_values, "toarray"):
-    expr_values = expr_values.toarray()
-expr_values = np.asarray(expr_values).ravel()
-positive_expr_values = expr_values[expr_values > 0]
-if positive_expr_values.size == 0:
-    vmax_dynamic = 0
-else:
-    vmax_dynamic = np.percentile(positive_expr_values, 99)
-vmin_dynamic = np.percentile(expr_values, 1)
-
-sc.pl.rank_genes_groups_heatmap(
-    adata_clean, 
-    key=f"{cluster_col}_markers_raw",
-    #key= 'raw_test',
-    n_genes=5,
-    cmap = "plasma",
-    vmin=vmin_dynamic,
-    vmax=vmax_dynamic,
-    show_gene_labels = True,
-    save = f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_raw_markers.png",
-    figsize=(20, 15)
-)
-
-
-# In[115]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -762,149 +1472,23 @@ sc.pl.rank_genes_groups_heatmap(
 # ---------------------------------------------------------------------------- #
 groupby_key = cluster_ann_col
 
-sc.tl.dendrogram(adata_clean, groupby=groupby_key)
+sc.tl.dendrogram(adata, groupby=groupby_key)
 
 sc.pl.dendrogram(
-    adata_clean,
+    adata,
     groupby=groupby_key,
     save=f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
 )
 
 sc.pl.correlation_matrix(
-    adata_clean,
+    adata,
     groupby = groupby_key,
     save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_cluster_correlation_plot.png",
     figsize=(5, 3.5)
 )
 
 
-# In[ ]:
-
-
-# ---------------------------------------------------------------------------- #
-#                            EXPORT CLUSTER MARKERS                            #
-# ---------------------------------------------------------------------------- #
-### Export the top 20 clusters in wide format to .csv
-
-from banksy_utils.annotation_utils import export_clusters_wide
-
-key = f"{cluster_col}_markers_raw"
-
-export_clusters_wide(
-    adata= adata_clean,
-    key= key,
-    gene_type= "raw",
-    top_n= 20,
-    dataset_name= dataset_name,
-    file_path= processed_path
-)
-
-
-# In[ ]:
-
-
-# ### Export the top 20 clusters in long format with scores to .csv
-
-from banksy_utils.annotation_utils import export_cluster_markers
-
-export_cluster_markers(
-    adata = adata_clean,
-    key = key,
-    top_n = 20,
-    dataset_name = dataset_name,
-    file_path = processed_path
-)
-
-
-# In[ ]:
-
-
-# ---------------------------------------------------------------------------- #
-#                       ADD CELL TYPE INFO TO TOP MARKERS                      #
-# ---------------------------------------------------------------------------- #
-
-## Read in the exported cluster markers generated with "export_clusters_wide()"
-## and merge with the cell type annotation master document
-n_genes_label =  20 # Set this to the number of genes that were exorted as top markers for each cluster
-top_markers = pd.read_csv(f"{processed_path}/cluster_top_{n_genes_label}_genes_with_scores_{dataset_name}_{key}.csv", index_col=0) #index_col = 0 prevents insertion of an unnamed col
-top_markers = top_markers.sort_values(by='cluster', ascending=False)
-#print(top_markers)
-
-## Read in the master annotation file which contains all the curated cell type labels for each marker gene
-#master_markers_file = pd.read_csv(f"{raw_path}/xenium_gene_list_annotation_master.csv")
-master_marker_candidates = [
-    os.path.join(raw_path, "xenium_gene_list_annotation_master_v1_March_2026_Tier1.csv"),
-    os.path.join(base_dir, "raw_data", "xenium_panel_gene_lists", "xenium_gene_list_annotation_master_v1_March_2026_Tier1.csv"),
-    os.path.join(base_dir, "raw_data", "gene_markers", "archive", "xenium_gene_list_annotation_master_v1_March_2026_Tier1.csv"),
-    os.path.join(base_dir, "raw_data", "gene_markers", "01_xenium_gene_list_annotation_master_v1_May_2026_Tier1_2026-06-15.csv"),
-]
-master_marker_path = next(
-    (candidate for candidate in master_marker_candidates if os.path.isfile(candidate)),
-    None,
-)
-if master_marker_path is None:
-    raise FileNotFoundError(
-        "Could not find marker annotation master file. Checked: "
-        f"{master_marker_candidates}"
-    )
-print(f"Reading marker annotation master file: {master_marker_path}")
-master_markers_file = pd.read_csv(master_marker_path)
-
-## Create a data frame of the genes and their corresponding primary and secondary cell type annotations 
-cell_annotations = master_markers_file[["Gene", "primary_annotation", "secondary_annotation"]]
-#cell_annotations = cell_annotations.sort_index()
-
-# ## Merge the top marker results and the cell type annotations
-# merged_markers = (
-#     pd.merge(
-#         #top_markers.reset_index(),
-#         top_markers.sort_values(by='cluster', ascending=False),
-#         cell_annotations, 
-#         left_on="gene", 
-#         right_on="Gene", 
-#         how="left", 
-#         sort="False",
-#         #validate="m:1"
-#     )
-#     #.set_index("index")
-#     #.loc[top_markers.index]
-# )
-
-merged_markers = top_markers.reset_index().merge(
-    cell_annotations,
-    left_on="gene",
-    right_on="Gene",
-    how='left'
-)
-merged_markers['cluster'] = merged_markers['cluster'].astype(int)
-merged_markers = merged_markers.sort_values('cluster', ascending=True).reset_index(drop=True)
-merged_markers = merged_markers.drop("Gene", axis=1)
-print(merged_markers)
-
-## Export the cell type annotated top markers to .csv to use in manual annotation and ChatGPT annotation
-merged_markers.to_csv(f"{processed_path}/cell_type_cluster_top_{n_genes_label}_genes_{dataset_name}_{key}.csv")
-
-
-# In[ ]:
-
-
-#  ---------------------------------------------------------------------------- #
-#                        ADD CELL TYPE INFO TO TOP MARKERS                      #
-#  ---------------------------------------------------------------------------- #
-## The top 20 gene markers for each cluster are assessed for cell cluster annotation
-# cluster annotations are stored in cluster_ann_col on adata_clean
-
-
-# In[ ]:
-
-
-# ---------------------------------------------------------------------------- #
-#                        STORE THE UMAP RESULTS IN .OBSM                       #
-# ---------------------------------------------------------------------------- #
-# This test uses the clean clustered object directly; no old BANKSY dictionary is loaded.
-
-
-# In[ ]:
+# In[110]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -920,11 +1504,11 @@ color_vars = [
 cluster_ann_col
 ]
 
-with rc_context({"figure.figsize": (3,3)}):
+with rc_context({"figure.figsize": (5,5)}):
     sc.pl.umap(
-        adata_clean, 
+        adata, 
         color=color_vars, 
-        s=50, 
+        s=5, 
         frameon=True, 
         vmax="p99",
         add_outline=True,
@@ -934,55 +1518,104 @@ with rc_context({"figure.figsize": (3,3)}):
         )
 
 
+
+
 # In[ ]:
 
 
-## Plot the umap with bulk labels
-color_vars = [
-cluster_ann_col
-]
+# ---------- Plot the UMAP coloured by negative control probe counts --------- #
+fig, axes = plot_umap_qc_metric(
+    adata=adata,
+    cluster_col=cluster_ann_col,
+    qc_metric="negative_control_probe_greater_equal_1_cat",
+    dataset_name=dataset_name,
+    qc_path=qc_path,
+    qc_title="Cells with >= 1 negative control probe count",
+)
 
-fig, axes = plt.subplots(1, 2, figsize=(20,10))
 
-#with rc_context({"figure.figsize": (3,3)}):
-sc.pl.umap(
-    adata_clean, 
-    color=color_vars, 
-    s=5, 
-    frameon=True, 
-    vmax="p99",
-    add_outline=True,
-    legend_fontsize=10,
-    title=f"{dataset_name} clusters",
-    ax=axes[0],
-    show=False
-    #save = f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png",
-    )
-plt.legend(fontsize=20, title_fontsize=50)
+# In[113]:
 
-color_vars = [
-"min_trans_passed_cat"
-]
 
-#with rc_context({"figure.figsize": (3,3)}):
-sc.pl.umap(
-    adata_clean, 
-    color=color_vars, 
-    s=5, 
-    frameon=True, 
-    vmax="p99",
-    add_outline=True,
-    legend_fontsize=10,
-    title=f"{dataset_name} clusters",
-    ax=axes[1],
-    show=False
-    #save = f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png",
-    )
+# --------------- Plot the UMAP coloured by minimum transcripts -------------- #
+fig, axes = plot_umap_qc_metric(
+    adata=adata,
+    cluster_col=cluster_ann_col,
+    qc_metric="min_trans_passed_cat",
+    dataset_name=dataset_name,
+    qc_path=qc_path,
+    qc_title="Minimum transcript (n=10) threshold",
+)
 
-plt.tight_layout()
-plt.legend(fontsize=20, title_fontsize=50)
-plt.savefig(os.path.join(qc_path, f"umap_{dataset_name}_threshold.png"), dpi=300, bbox_inches='tight')
-plt.show()
+
+# In[ ]:
+
+
+# --------------- Plot the UMAP coloured by maximum transcripts -------------- #
+fig, axes = plot_umap_qc_metric(
+    adata=adata,
+    cluster_col=cluster_ann_col,
+    qc_metric="max_trans_passed_cat",
+    dataset_name=dataset_name,
+    qc_path=qc_path,
+    qc_title="Maximum transcript threshold (top 2%)",
+)
+
+
+# In[ ]:
+
+
+# ------------ Plot the UMAP coloured by top 2% cells by cell area ----------- #
+fig, axes = plot_umap_qc_metric(
+    adata=adata,
+    cluster_col=cluster_ann_col,
+    qc_metric="max_area_threshold_98_cat",
+    dataset_name=dataset_name,
+    qc_path=qc_path,
+    qc_title="Top 2% of cells by cell area"
+)
+
+
+# In[117]:
+
+
+# ------------ Plot the UMAP coloured by top 1% cells by cell area ----------- #
+fig, axes = plot_umap_qc_metric(
+    adata=adata,
+    cluster_col=cluster_ann_col,
+    qc_metric="max_area_threshold_99_cat",
+    dataset_name=dataset_name,
+    qc_path=qc_path,
+    qc_title="Top 1% of cells by cell area"
+)
+
+
+# In[119]:
+
+
+# ---------- Plot the UMAP coloured by bottom 1% cells by cell area ---------- #
+fig, axes = plot_umap_qc_metric(
+    adata=adata,
+    cluster_col=cluster_ann_col,
+    qc_metric="min_area_threshold_1_cat",
+    dataset_name=dataset_name,
+    qc_path=qc_path,
+    qc_title="Bottom 1% of cells by cell area"
+)
+
+
+# In[120]:
+
+
+# ---------- Plot the UMAP coloured by bottom 2% cells by cell area ---------- #
+fig, axes = plot_umap_qc_metric(
+    adata=adata,
+    cluster_col=cluster_ann_col,
+    qc_metric="min_area_threshold_2_cat",
+    dataset_name=dataset_name,
+    qc_path=qc_path,
+    qc_title="Bottom 2% of cells by cell area"
+)
 
 
 # In[ ]:
@@ -1083,14 +1716,18 @@ def plot_goi_umaps (
             )
 
 
+
+
 # In[ ]:
 
 
 ## DSG2 UMAP
 plot_goi_umaps(genes=["DSG2", "TPD52L2"],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20, )
+
+
 
 
 # In[ ]:
@@ -1098,9 +1735,11 @@ s=20, )
 
 ## SERPINE1 UMAP
 plot_goi_umaps(genes=["SERPINE1"],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20, )
+
+
 
 
 # In[ ]:
@@ -1109,9 +1748,11 @@ s=20, )
 ### DKK1
 
 plot_goi_umaps(genes=["DKK1"],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20, )
+
+
 
 
 # In[ ]:
@@ -1120,9 +1761,11 @@ s=20, )
 ### T cell markers
 
 plot_goi_umaps(genes=["FOXP3", "GZMB"],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20, )
+
+
 
 
 # In[ ]:
@@ -1135,11 +1778,13 @@ plot_goi_umaps(genes=[
 "ITGA1", 
 "ITGA4",
 "ITGA5"],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20,
 ncols=2
 )
+
+
 
 
 # In[ ]:
@@ -1152,11 +1797,13 @@ plot_goi_umaps(genes=[
 "TPD52L1", 
 "TPD52L2"
 ],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20,
 ncols=2
 )
+
+
 
 
 # In[ ]:
@@ -1169,11 +1816,13 @@ plot_goi_umaps(genes=[
 "SELL", 
 "SELP"
 ],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20,
 ncols=2
 )
+
+
 
 
 # In[ ]:
@@ -1185,10 +1834,12 @@ plot_goi_umaps(genes=[
 "FUT6", 
 "FUT7"
 ],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20
 )
+
+
 
 
 # In[ ]:
@@ -1200,10 +1851,12 @@ plot_goi_umaps(genes=[
 "VCAM1", 
 "ICAM1"
 ],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20
 )
+
+
 
 
 # In[ ]:
@@ -1216,10 +1869,12 @@ plot_goi_umaps(genes=[
 "CD274", 
 "CTLA4"
 ],
-adata=adata_clean,
+adata=adata,
 sample_name= dataset_name,
 s=20
 )
+
+
 
 
 # In[ ]:
@@ -1234,7 +1889,7 @@ sc.settings.figdir = violin_path
 
 with rc_context({"figure.figsize": (10, 8)}):
     ax= sc.pl.violin(
-        adata_clean,
+        adata,
         ["nFeature_Xenium"],
         groupby=cluster_ann_col,
         rotation=270,
@@ -1244,6 +1899,8 @@ with rc_context({"figure.figsize": (10, 8)}):
     )
 
 
+
+
 # In[ ]:
 
 
@@ -1251,7 +1908,7 @@ with rc_context({"figure.figsize": (10, 8)}):
 
 with rc_context({"figure.figsize": (10,8)}):
    ax = sc.pl.violin(
-        adata_clean, 
+        adata, 
         keys = [
             "DSG2"
             ], 
@@ -1273,6 +1930,8 @@ plt.savefig(
 )
 
 
+
+
 # In[ ]:
 
 
@@ -1280,7 +1939,7 @@ plt.savefig(
 
 with rc_context({"figure.figsize": (10,8)}):
    ax = sc.pl.violin(
-        adata_clean, 
+        adata, 
         keys = [
             "SERPINE1"
             ], 
@@ -1301,6 +1960,8 @@ plt.savefig(
 )
 
 
+
+
 # In[ ]:
 
 
@@ -1308,7 +1969,7 @@ plt.savefig(
 
 with rc_context({"figure.figsize": (10,8)}):
    ax = sc.pl.violin(
-        adata_clean, 
+        adata, 
         keys = [
             "DKK1"
             ], 
@@ -1329,6 +1990,8 @@ plt.savefig(
 )
 
 
+
+
 # In[ ]:
 
 
@@ -1336,7 +1999,7 @@ plt.savefig(
 
 with rc_context({"figure.figsize": (10,8)}):
    axes = sc.pl.violin(
-        adata_clean, 
+        adata, 
         keys = [
              "FOXP3", 
              "GZMB"
@@ -1363,6 +2026,8 @@ plt.savefig(
 )
 
 
+
+
 # In[ ]:
 
 
@@ -1370,7 +2035,7 @@ plt.savefig(
 
 with rc_context({"figure.figsize": (6, 5)}):
     sc.pl.violin(
-        adata_clean, 
+        adata, 
         [
             "ITGAE", 
             "ITGA1", 
@@ -1384,6 +2049,8 @@ with rc_context({"figure.figsize": (6, 5)}):
         )
 
 
+
+
 # In[ ]:
 
 
@@ -1391,7 +2058,7 @@ with rc_context({"figure.figsize": (6, 5)}):
 
 with rc_context({"figure.figsize": (6, 5)}):
     sc.pl.violin(
-        adata_clean, 
+        adata, 
         [
             "TPD52",
             "TPD52L1",
@@ -1403,6 +2070,8 @@ with rc_context({"figure.figsize": (6, 5)}):
         )
 
 
+
+
 # In[ ]:
 
 
@@ -1410,7 +2079,7 @@ with rc_context({"figure.figsize": (6, 5)}):
 
 with rc_context({"figure.figsize": (6,5)}):
     sc.pl.violin(
-        adata_clean, 
+        adata, 
         [
         "SELE", 
         "SELL", 
@@ -1422,6 +2091,8 @@ with rc_context({"figure.figsize": (6,5)}):
         )
 
 
+
+
 # In[ ]:
 
 
@@ -1429,7 +2100,7 @@ with rc_context({"figure.figsize": (6,5)}):
 
 with rc_context({"figure.figsize": (6, 5)}):
     sc.pl.violin(
-        adata_clean, 
+        adata, 
         [
             "FUT6", 
             "FUT7"
@@ -1440,6 +2111,8 @@ with rc_context({"figure.figsize": (6, 5)}):
         )
 
 
+
+
 # In[ ]:
 
 
@@ -1447,7 +2120,7 @@ with rc_context({"figure.figsize": (6, 5)}):
 
 with rc_context({"figure.figsize": (6,5 )}):
     sc.pl.violin(
-        adata_clean, 
+        adata, 
         [
             "VCAM1",
             "ICAM1"
@@ -1458,6 +2131,8 @@ with rc_context({"figure.figsize": (6,5 )}):
         )
 
 
+
+
 # In[ ]:
 
 
@@ -1465,7 +2140,7 @@ with rc_context({"figure.figsize": (6,5 )}):
 
 with rc_context({"figure.figsize": (6, 5)}):
     sc.pl.violin(
-        adata_clean, 
+        adata, 
         [
             "PDCD1", 
             "CD274", 
@@ -1477,6 +2152,8 @@ with rc_context({"figure.figsize": (6, 5)}):
         )
 
 
+
+
 # In[ ]:
 
 
@@ -1486,7 +2163,9 @@ with rc_context({"figure.figsize": (6, 5)}):
 
 # Set the figure directory to your desired location
 sc.settings.figdir = dotplot_path
-adata_clean.obs[cluster_ann_col]
+adata.obs[cluster_ann_col]
+
+
 
 
 # In[ ]:
@@ -1505,7 +2184,7 @@ values = list(new_labels.values())
 
 ## Compute the dendrogram for clusters
 sc.tl.dendrogram(
-    adata_clean,
+    adata,
     groupby=cluster_ann_col
     )
 
@@ -1516,7 +2195,7 @@ for i in range(len(cluster_keys)):
 
 
     marker_genes_dict=extract_marker_genes_dict(
-    adata=adata_clean, 
+    adata=adata, 
     filtered_key=key_filtered, 
     gene_type='raw', 
     groupby = cluster_ann_col,
@@ -1533,13 +2212,15 @@ for i in range(len(cluster_keys)):
 ## Generate dot plot
     with rc_context({"figure.figsize": (10,10)}):
         sc.pl.dotplot(
-            adata_clean, 
+            adata, 
             #marker_genes_list,
             marker_genes_dict,
             groupby=cluster_ann_col,
             #dendrogram=True,
             save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_{cluster_label}_dot_plot.png"
             )
+
+
 
 
 # In[ ]:
@@ -1566,11 +2247,15 @@ def plot_goi_dotplot (
             )
 
 
+
+
 # In[ ]:
 
 
 # Set the figure directory to your desired location
 sc.settings.figdir = dotplot_path
+
+
 
 
 # In[ ]:
@@ -1588,10 +2273,12 @@ B_cell_markers = {"B_cells" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "B_cells_Tier_1",
     marker_genes_dict= B_cell_markers
 )
+
+
 
 
 # In[ ]:
@@ -1617,10 +2304,12 @@ cycling_cell_marker = {"Cycling_Cells_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Cycling_Cells_Tier_1",
     marker_genes_dict= cycling_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1663,10 +2352,12 @@ dendritic_cell_marker = {"Dendritic_Cells_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Dendritic_Cells_Tier_1",
     marker_genes_dict= dendritic_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1680,10 +2371,12 @@ eccrine_cell_marker = {"Eccrine_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Eccrine_Tier_1",
     marker_genes_dict= eccrine_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1704,10 +2397,12 @@ erythrocyte_cell_marker = {"Erythrocyte_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Erythrocyte_Tier_1",
     marker_genes_dict= erythrocyte_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1757,10 +2452,12 @@ fibroblast_cell_marker = {"Fibroblast_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Fibroblast_Tier_1",
     marker_genes_dict= fibroblast_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1815,10 +2512,12 @@ keratinocyte_cell_marker = {"Keratinocyte_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Keratinocyte_Tier_1",
     marker_genes_dict= keratinocyte_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1839,10 +2538,12 @@ lymphatic_endothelial_cell_marker = {"Lymphatic_endothelial_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Lymphatic_endothelial_cell_Tier_1",
     marker_genes_dict= lymphatic_endothelial_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1887,10 +2588,12 @@ macrophage_cell_marker = {"Macrophage_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Macrophage_Tier_1",
     marker_genes_dict= macrophage_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1916,10 +2619,12 @@ melanocyte_cell_marker = {"Melanocytes_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Melanocytes_Tier_1",
     marker_genes_dict= melanocyte_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1945,10 +2650,12 @@ melanoma_cell_marker = {"Melanoma_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Melanoma_Tier_1",
     marker_genes_dict= melanoma_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1966,10 +2673,12 @@ myofibroblast_cell_marker = {"Myofibroblast_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Myofibroblast_Tier_1",
     marker_genes_dict= myofibroblast_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -1984,10 +2693,12 @@ nk_cell_marker = {"NK_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "NK_Tier_1",
     marker_genes_dict= nk_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -2008,10 +2719,12 @@ pericyte_marker = {"Pericyte_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Pericyte_Tier_1",
     marker_genes_dict= pericyte_marker
 )
+
+
 
 
 # In[ ]:
@@ -2029,10 +2742,12 @@ pilosebaceous_marker = {"Pilosebaceous_cells_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Pilosebaceous_cells_Tier_1",
     marker_genes_dict= pilosebaceous_marker
 )
+
+
 
 
 # In[ ]:
@@ -2092,10 +2807,12 @@ T_cell_marker = {"T_cells_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "T_cells_Tier_1",
     marker_genes_dict= T_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -2130,10 +2847,12 @@ vascular_endothelial_cell_marker = {"Vascular_endothelial_cells_Tier_1" : [
 }
 
 plot_goi_dotplot(
-    adata= adata_clean,
+    adata= adata,
     cell_type_savename= "Vascular_endothelial_cell_marker_1",
     marker_genes_dict= vascular_endothelial_cell_marker
 )
+
+
 
 
 # In[ ]:
@@ -2147,26 +2866,32 @@ plot_goi_dotplot(
 sc.settings.figdir = neighbour_path
 
 
+
+
 # In[ ]:
 
 
 # Adding spatial coordinates to .obsm
-adata_clean.obsm["spatial"] = adata.obs[["x", "y"]].to_numpy()
+adata.obsm["spatial"] = adata.obs[["x", "y"]].to_numpy()
+
+
 
 
 # In[ ]:
 
 
-sq.gr.spatial_neighbors(adata_clean)
+sq.gr.spatial_neighbors(adata)
 
 cluster_key = cluster_ann_col
-sq.gr.nhood_enrichment(adata_clean, cluster_key=cluster_key)
+sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
 
 with rc_context({"figure.figsize": (10,10)}):
     sq.pl.nhood_enrichment(
-        adata_clean, 
+        adata, 
         cluster_key=cluster_key,
         save=f"neighbourhood_enrichment_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png")
+
+
 
 
 # In[ ]:
@@ -2177,13 +2902,13 @@ with rc_context({"figure.figsize": (10,10)}):
 # ---------------------------------------------------------------------------- #
 
 from spatialdata import SpatialData
-adata_clean.obs.rename(columns={"cell type": "cell_type"}, inplace=True)
+adata.obs.rename(columns={"cell type": "cell_type"}, inplace=True)
 
 # Create SpatialData with a single table (the AnnData)
-sdata = SpatialData(tables={"cells": adata_clean})
+sdata = SpatialData(tables={"cells": adata})
 
 # Perform Moran's I calculation
-sdata.tables["subsample"] = sc.pp.subsample(adata_clean, fraction=0.5, copy=True)
+sdata.tables["subsample"] = sc.pp.subsample(adata, fraction=0.5, copy=True)
 adata_subsample = sdata.tables["subsample"]
 
 sq.gr.spatial_neighbors(adata_subsample, coord_type="generic", delaunay=True)
@@ -2194,6 +2919,8 @@ sq.gr.spatial_autocorr(
     n_jobs=1,
 )
 adata_subsample.uns["moranI"].head(10)
+
+
 
 
 # In[ ]:
@@ -2212,6 +2939,8 @@ moran_scores_raw = moran_scores_raw[moran_scores_raw["pval_sim_fdr_bh"] <= 0.10]
 
 ## Write Moran I scores to .csv
 moran_scores_raw.to_csv(f"{processed_path}/moran_scores_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.csv")
+
+
 
 
 # In[ ]:
@@ -2236,6 +2965,8 @@ for i in top_moran:
             img=False,
             save= f"spatial_scatter_top_moran_I_{i}_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
 )
+
+
 
 
 # In[ ]:
@@ -2286,6 +3017,8 @@ for i in top_moran:
 #         )
 
 
+
+
 # In[ ]:
 
 
@@ -2334,4 +3067,5 @@ for gene in goi_list:
         img=False,
         save= f"spatial_scatter_{gene}_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
 )
+
 
