@@ -172,7 +172,7 @@ new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell t
 
 
 
-# In[6]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -227,20 +227,42 @@ def plot_qc_spatial_tissue(
 
 
 
-def cluster_qc_violin(data, qc_metric, sample_name):
+def cluster_qc_violin(
+    data,
+    cluster_col,
+    qc_metric,
+    sample_name,
+    qc_title=None,
+    filename_prefix="cluster_qc_violin",
+    filename_tag=None,
+    title_tag=None,
+    show=True
+):
     """
     Plot per-cluster transcript-count distributions with QC status overlaid.
 
     Parameters
     ----------
     data : anndata.AnnData
-        AnnData object containing `nCount_Xenium`, the cluster annotation column
-        referenced by `cluster_ann_col`, and the requested QC metric in `.obs`.
+        AnnData object containing `nCount_Xenium`, the requested cluster column,
+        and the requested QC metric in `.obs`.
+    cluster_col : str
+        Name of the `.obs` column used to group cells along the x-axis.
     qc_metric : str
         Name of the `.obs` column used to colour the overlaid stripplot points.
         This is typically a categorical pass/fail QC column.
     sample_name : str
         Sample name used in the plot title and output filename.
+    qc_title : str or None
+        Human-readable QC metric label for the plot title.
+    filename_prefix : str
+        Prefix used for the saved figure name.
+    filename_tag : str or None
+        Optional tag appended to the saved figure name, for example `r0.70`.
+    title_tag : str or None
+        Optional text appended to the plot title.
+    show : bool
+        Whether to display the plot.
 
     Returns
     -------
@@ -249,38 +271,96 @@ def cluster_qc_violin(data, qc_metric, sample_name):
         figure available for display in the notebook.
     """
 
-    cell_types = data.obs[cluster_ann_col].astype("category").cat.categories
+    required_cols = ["nCount_Xenium", cluster_col, qc_metric]
+    missing_cols = [
+        col for col in required_cols
+        if col not in data.obs.columns
+    ]
+
+    if missing_cols:
+        raise KeyError(
+            f"Columns not found in data.obs: {missing_cols}"
+        )
+
+    plot_obs = data.obs.copy()
+    plot_obs[cluster_col] = plot_obs[cluster_col].astype("category")
+    plot_obs[qc_metric] = plot_obs[qc_metric].astype("category")
+
+    cell_types = plot_obs[cluster_col].cat.categories
     n_cell_types = len(cell_types)
 
     palette = dict(zip(
-    cell_types,
-    sns.color_palette("husl", n_colors=n_cell_types)
+        cell_types,
+        sns.color_palette("husl", n_colors=n_cell_types)
     ))
 
     plt.figure(figsize=(8, 6))
-    sns.violinplot(data=data.obs, 
-        y=data.obs["nCount_Xenium"],  
-        x=cluster_ann_col, 
-        log_scale=10, 
+    sns.violinplot(
+        data=plot_obs,
+        y="nCount_Xenium",
+        x=cluster_col,
+        log_scale=10,
         color="lightblue",
-        hue=cluster_ann_col,
-        palette=palette)
+        hue=cluster_col,
+        palette=palette,
+        legend=False
+    )
 
-    sns.stripplot(data=data.obs, y=data.obs["nCount_Xenium"], x=data.obs[cluster_ann_col], hue =data.obs[f"{qc_metric}"], size=4)
+    sns.stripplot(
+        data=plot_obs,
+        y="nCount_Xenium",
+        x=cluster_col,
+        hue=qc_metric,
+        size=4
+    )
+
+    if qc_title is None:
+        qc_title = qc_metric.replace("_", " ").title()
+
+    plot_title = f"{sample_name}: {qc_title}"
+
+    if title_tag is not None:
+        plot_title = f"{plot_title} ({title_tag})"
 
     plt.xlabel("Cluster", fontsize=15)
     plt.ylabel("Total transcript counts per cell (log10)")
-    plt.xticks(rotation=45, fontsize=12, ha='right', va='top')
-    plt.title(f"{sample_name}: total {qc_metric}",
-    fontsize=16
-)
+    plt.xticks(rotation=45, fontsize=12, ha="right", va="top")
+    plt.title(plot_title, fontsize=16)
+    plt.tight_layout()
 
+    safe_metric_name = (
+        str(qc_metric)
+        .replace(" ", "_")
+        .replace("/", "_")
+    )
+
+    filename_parts = [filename_prefix, sample_name]
+
+    if filename_tag is not None:
+        safe_filename_tag = (
+            str(filename_tag)
+            .replace(" ", "_")
+            .replace("/", "_")
+            .replace(".", "p")
+        )
+        filename_parts.append(safe_filename_tag)
+
+    filename_parts.append(safe_metric_name)
+    filename = "_".join(filename_parts) + ".png"
+    output_file = os.path.join(qc_path, filename)
 
     plt.savefig(
-        os.path.join(qc_path, f"threshold_passed_cells_per_cluster_violin_plot_{sample_name}.png"),
+        output_file,
         dpi=300,
-        bbox_inches='tight'
-        )
+        bbox_inches="tight"
+    )
+
+    print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 # ------ Plot the umap with bulk labels coloured by minimum transcripts ------ #
@@ -1464,59 +1544,76 @@ plot_qc_spatial_tissue(
 # ---------------------------------------------------------------------------- #
 
 
-# In[43]:
+# In[ ]:
 
 
 # ------------- Plot the per cluster plots coloured by qc metrics ------------ #
 
-## Contains >= 1 negetive control probe
-cluster_qc_violin(
-    data = adata,
-    qc_metric = "negative_control_probe_greater_equal_1_cat",
-    sample_name = dataset_name
-)
+cluster_qc_violin_plots = [
+    ("negative_control_probe_greater_equal_1_cat", "Negative-control probe count >= 1"),
+    ("min_trans_passed_cat", "Minimum transcript threshold"),
+    ("max_trans_passed_cat", "Top 2% transcript count threshold"),
+    ("max_area_threshold_98_cat", "Top 2% of cells by cell area"),
+    ("max_area_threshold_99_cat", "Top 1% of cells by cell area"),
+    ("min_area_threshold_1_cat", "Bottom 1% of cells by cell area"),
+    ("min_area_threshold_2_cat", "Bottom 2% of cells by cell area"),
+]
 
-## Minimum transcripts cluster plot
-cluster_qc_violin(
-    data = adata,
-    qc_metric = "min_trans_passed",
-    sample_name = dataset_name
-)
+filter_stage = "pre_filter"
 
-## Maximum transcripts cluster plot
-cluster_qc_violin(
-    data = adata,
-    qc_metric = "max_trans_passed_cat",
-    sample_name = dataset_name
-)
+# Plot raw BANKSY clusters for every available resolution. These plots are for
+# QC inspection across clustering resolutions, so they intentionally use raw
+# cluster IDs rather than the manually annotated column for one resolution.
+for res in res_label_list:
+    cluster_col_for_res = (
+        f"labels_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}_r{float(res):.2f}"
+    )
 
-## Maximum area 98th percentil cluster plot
-cluster_qc_violin(
-    data = adata,
-    qc_metric = "max_area_threshold_98_cat",
-    sample_name = dataset_name
-)
+    if cluster_col_for_res not in adata.obs.columns:
+        print(f"Skipping missing cluster column: {cluster_col_for_res}")
+        continue
 
-## Maximum area 99th percentil cluster plot
-cluster_qc_violin(
-    data = adata,
-    qc_metric = "max_area_threshold_99_cat",
-    sample_name = dataset_name
-)
+    for qc_metric, qc_title in cluster_qc_violin_plots:
+        if qc_metric not in adata.obs.columns:
+            print(f"Skipping missing QC metric: {qc_metric}")
+            continue
 
-## Bottom 1% area filter 
-cluster_qc_violin(
-    data = adata,
-    qc_metric = "min_area_threshold_1",
-    sample_name = dataset_name
-)
+        cluster_qc_violin(
+            data=adata,
+            cluster_col=cluster_col_for_res,
+            qc_metric=qc_metric,
+            sample_name=dataset_name,
+            qc_title=qc_title,
+            filename_prefix=f"{filter_stage}_cluster_qc_violin",
+            filename_tag=f"r{res}",
+            title_tag=f"resolution {float(res):.2f}",
+        )
 
-## Bottom 2% area filter 
-cluster_qc_violin(
-    data = adata,
-    qc_metric = "min_area_threshold_2",
-    sample_name = dataset_name
-)
+# Keep annotated plots separate so pre-filter and post-filter results can be
+# compared back to the manually interpreted clustering resolution.
+if cluster_ann_col in adata.obs.columns:
+    for qc_metric, qc_title in cluster_qc_violin_plots:
+        if qc_metric not in adata.obs.columns:
+            print(f"Skipping missing QC metric: {qc_metric}")
+            continue
+
+        cluster_qc_violin(
+            data=adata,
+            cluster_col=cluster_ann_col,
+            qc_metric=qc_metric,
+            sample_name=dataset_name,
+            qc_title=qc_title,
+            filename_prefix=f"{filter_stage}_annotated_cluster_qc_violin",
+            filename_tag=f"r{plot_res_label}",
+            title_tag=f"annotated resolution {float(plot_res_label):.2f}",
+        )
+else:
+    print(f"Skipping annotated QC violin plots; missing column: {cluster_ann_col}")
+
+
+# In[44]:
+
+
 
 
 # In[44]:
@@ -1791,7 +1888,7 @@ with rc_context({"figure.figsize": (5,5)}):
 # )
 
 
-# In[58]:
+# In[ ]:
 
 
 # ----------------------- Plot UMAPs for all qc metrics ---------------------- #
@@ -1808,6 +1905,10 @@ qc_umap_plots = [
     ("min_area_threshold_2_cat", "Bottom 2% of cells by cell area")
 ]
 
+filter_stage_label = filter_stage.replace("_", " ")
+
+# Plot raw BANKSY clusters for every available resolution. These match the
+# resolution-aware violin plots and are used for QC inspection across clusterings.
 for res in res_label_list:
     cluster_col_for_res = (
         f"labels_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}_r{float(res):.2f}"
@@ -1829,10 +1930,78 @@ for res in res_label_list:
             dataset_name=dataset_name,
             qc_path=qc_path,
             qc_title=qc_title,
-            filename_tag=f"r{res}",
-            title_tag=f"resolution {float(res):.2f}"
+            cluster_title=f"{dataset_name} clusters",
+            filename_tag=f"{filter_stage}_r{res}",
+            title_tag=f"{filter_stage_label} | resolution {float(res):.2f}"
         )
 
+# Keep annotated UMAPs separate so the manually interpreted cluster labels can
+# be compared before and after filtering without mixing them into all resolutions.
+if cluster_ann_col in adata.obs.columns:
+    for qc_metric, qc_title in qc_umap_plots:
+        if qc_metric not in adata.obs.columns:
+            print(f"Skipping missing QC metric: {qc_metric}")
+            continue
+
+        plot_umap_qc_metric(
+            adata=adata,
+            cluster_col=cluster_ann_col,
+            qc_metric=qc_metric,
+            dataset_name=dataset_name,
+            qc_path=qc_path,
+            qc_title=qc_title,
+            cluster_title=f"{dataset_name} annotated clusters",
+            filename_tag=f"{filter_stage}_annotated_r{plot_res_label}",
+            title_tag=f"{filter_stage_label} | annotated resolution {float(plot_res_label):.2f}"
+        )
+else:
+    print(f"Skipping annotated QC UMAP plots; missing column: {cluster_ann_col}")
+
+
+
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
+# ---------------------------------------------------------------------------- #
+#        PRE-FILTER QC UMAPS USING MANUALLY ANNOTATED CLUSTER LABELS           #
+# ---------------------------------------------------------------------------- #
+filter_stage = "pre_filter"
+filter_stage_label = filter_stage.replace("_", " ")
+
+qc_umap_plots = [
+    ("negative_control_probe_greater_equal_1_cat", "Negative-control probe count >= 1"),
+    ("min_trans_passed_cat", "Minimum transcript threshold"),
+    ("max_trans_passed_cat", "Top 2% transcript count threshold"),
+    ("max_area_threshold_99_cat", "Top 1% of cells by cell area"),
+    ("max_area_threshold_98_cat", "Top 2% of cells by cell area"),
+    ("min_area_threshold_1_cat", "Bottom 1% of cells by cell area"),
+    ("min_area_threshold_2_cat", "Bottom 2% of cells by cell area"),
+]
+
+if cluster_ann_col in adata.obs.columns:
+    for qc_metric, qc_title in qc_umap_plots:
+        if qc_metric not in adata.obs.columns:
+            print(f"Skipping missing QC metric: {qc_metric}")
+            continue
+
+        plot_umap_qc_metric(
+            adata=adata,
+            cluster_col=cluster_ann_col,
+            qc_metric=qc_metric,
+            dataset_name=dataset_name,
+            qc_path=qc_path,
+            qc_title=qc_title,
+            cluster_title=f"{dataset_name} annotated clusters",
+            filename_tag=f"{filter_stage}_annotated_r{plot_res_label}",
+            title_tag=f"{filter_stage_label} | annotated resolution {float(plot_res_label):.2f}",
+        )
+else:
+    print(f"Skipping annotated QC UMAP plots; missing column: {cluster_ann_col}")
 
 
 # In[ ]:
