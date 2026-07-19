@@ -175,6 +175,72 @@ new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell t
 # In[ ]:
 
 
+def plot_qc_spatial_tissue(
+    data,
+    qc_metric,
+    sample_name,
+    output_path=None,
+    show=True
+):
+    """
+    Plot the spatial location of cells coloured by a QC metric.
+
+    Parameters
+    ----------
+    data : anndata.AnnData
+        AnnData object containing spatial coordinates in `.obsm['xy']` and the
+        requested QC metric in `.obs`.
+    qc_metric : str
+        Name of the `.obs` column to use for colouring cells in the tissue plot.
+    sample_name : str
+        Sample name used in the output filename and status message.
+    output_path : str or None
+        Directory in which to save the figure. Defaults to `qc_path`.
+    show : bool
+        Whether to display the plot.
+
+    Returns
+    -------
+    None
+        Saves a PNG spatial scatter plot to `output_path`.
+    """
+
+    if output_path is None:
+        output_path = qc_path
+
+    os.makedirs(output_path, exist_ok=True)
+
+    with rc_context({"figure.figsize": (12, 8)}):
+        sq.pl.spatial_scatter(
+            data,
+            library_id="dataset_name",
+            spatial_key="xy",
+            color=f"{qc_metric}",
+            shape=None,
+            size=2,
+            img=False
+        )
+        plt.legend(fontsize=20)
+
+    output_file = os.path.join(
+        output_path,
+        f"tissue_spatial_scatter_min_{qc_metric}_{sample_name}.png"
+    )
+
+    plt.savefig(
+        output_file,
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
 def cluster_qc_violin(
     data,
     cluster_col,
