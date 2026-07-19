@@ -390,6 +390,167 @@ def cluster_qc_violin(
 # In[ ]:
 
 
+# ------ Plot the UMAP with clusters and a selected QC metric ------ #
+
+def plot_umap_qc_metric(
+    adata,
+    cluster_col,
+    qc_metric,
+    dataset_name,
+    qc_path=None,
+    qc_title=None,
+    cluster_title=None,
+    point_size=10,
+    figsize=(20,8),
+    dpi=300,
+    vmax="p99",
+    add_outline=True,
+    legend_fontsize=10,
+    filename_tag=None,
+    title_tag=None,
+    show=True
+):
+    """
+    Plot UMAPs coloured by cluster annotation and a selected QC metric.
+
+    Parameters
+    ----------
+    adata
+        AnnData object containing a computed UMAP.
+    cluster_col : str
+        Column in adata.obs containing cluster or cell-type labels.
+    qc_metric : str
+        Column in adata.obs containing the QC metric to plot.
+    dataset_name : str
+        Dataset name used in plot titles and output filename.
+    qc_path : str or None
+        Directory in which to save the figure. If None, figure is not saved.
+    qc_title : str or None
+        Title for the QC panel. Defaults to the QC metric name.
+    cluster_title : str or None
+        Title for the cluster panel.
+    title_tag : str or None
+        Optional text appended to both panel titles, for example a clustering resolution.
+    point_size : float
+        UMAP point size.
+    figsize : tuple
+        Figure dimensions.
+    dpi : int
+        Output resolution.
+    vmax
+        Maximum colour scale value passed to scanpy.
+    add_outline : bool
+        Whether to add outlines around UMAP points.
+    legend_fontsize : int
+        Legend font size.
+    show : bool
+        Whether to display the plot.
+
+    Returns
+    -------
+    fig, axes
+        Matplotlib figure and axes.
+    """
+    required_cols = [cluster_col, qc_metric]
+
+    missing_cols = [
+        col for col in required_cols
+        if col not in adata.obs.columns
+    ]
+
+    if missing_cols:
+        raise KeyError(
+            f"Columns not found in adata.obs: {missing_cols}"
+        )
+
+    if "X_umap" not in adata.obsm:
+        raise KeyError(
+            "No UMAP coordinates found in adata.obsm['X_umap']."
+        )
+
+    if cluster_title is None:
+        cluster_title = f"{dataset_name} clusters"
+
+    if qc_title is None:
+        qc_title = qc_metric.replace("_", " ").title()
+
+    if title_tag is not None:
+        cluster_title = f"{cluster_title} ({title_tag})"
+        qc_title = f"{qc_title} ({title_tag})"
+
+    fig, axes = plt.subplots(
+        1,
+        2,
+        figsize=figsize
+    )
+
+    sc.pl.umap(
+        adata,
+        color=cluster_col,
+        s=point_size,
+        frameon=True,
+        add_outline=add_outline,
+        legend_fontsize=legend_fontsize,
+        title=cluster_title,
+        ax=axes[0],
+        show=False,
+    )
+
+    sc.pl.umap(
+        adata,
+        color=qc_metric,
+        s=point_size,
+        frameon=True,
+        vmax=vmax,
+        add_outline=add_outline,
+        legend_fontsize=legend_fontsize,
+        title=qc_title,
+        ax=axes[1],
+        show=False,
+    )
+
+    fig.tight_layout()
+
+    if qc_path is not None:
+        os.makedirs(qc_path, exist_ok=True)
+
+        safe_metric_name = (
+            str(qc_metric)
+            .replace(" ", "_")
+            .replace("/", "_")
+        )
+
+        filename_parts = ["umap", dataset_name]
+
+        if filename_tag is not None:
+            safe_filename_tag = (
+                str(filename_tag)
+                .replace(" ", "_")
+                .replace("/", "_")
+                .replace(".", "p")
+            )
+            filename_parts.append(safe_filename_tag)
+
+        filename_parts.append(safe_metric_name)
+        filename = "_".join(filename_parts) + ".png"
+        output_file = os.path.join(qc_path, filename)
+
+        fig.savefig(
+            output_file,
+            dpi=dpi,
+            bbox_inches="tight"
+        )
+
+        print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig, axes
+
+
 # ---------------------------------------------------------------------------- #
 #                                   SET PATHS                                  #
 # ---------------------------------------------------------------------------- #
