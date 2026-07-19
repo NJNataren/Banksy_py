@@ -175,64 +175,13 @@ new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell t
 # In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                                   FUNCTIONS                                  #
-# ---------------------------------------------------------------------------- #
-
-def plot_qc_spatial_tissue(
-    data,
-    qc_metric,
-    sample_name
-    ):
-    """
-    Plot the spatial location of cells coloured by a QC metric.
-
-    Parameters
-    ----------
-    data : anndata.AnnData
-        AnnData object containing spatial coordinates in `.obsm['xy']` and the
-        requested QC metric in `.obs`.
-    qc_metric : str
-        Name of the `.obs` column to use for colouring cells in the tissue plot.
-    sample_name : str
-        Sample name used in the output filename and status message.
-
-    Returns
-    -------
-    None
-        Saves a PNG spatial scatter plot to `qc_path` and displays the figure.
-    """
-
-    with rc_context({"figure.figsize": (12, 8)}):
-        sq.pl.spatial_scatter(
-            data,
-            library_id="dataset_name",
-            spatial_key="xy",
-            color=f"{qc_metric}",
-            shape=None,
-            size=2,
-            img=False
-        )
-        plt.legend(fontsize=20)
-
-
-    # Save the figure
-    plt.savefig(
-        os.path.join(qc_path, f"tissue_spatial_scatter_min_{qc_metric}_{sample_name}.png"),
-        dpi=300,
-        bbox_inches='tight'
-        )
-    plt.show() 
-    print(f"Saving tissue_spatial_scatter_{qc_metric}_{sample_name}.png to {qc_path}") 
-
-
-
 def cluster_qc_violin(
     data,
     cluster_col,
     qc_metric,
     sample_name,
     qc_title=None,
+    output_path=None,
     filename_prefix="cluster_qc_violin",
     filename_tag=None,
     title_tag=None,
@@ -255,6 +204,8 @@ def cluster_qc_violin(
         Sample name used in the plot title and output filename.
     qc_title : str or None
         Human-readable QC metric label for the plot title.
+    output_path : str or None
+        Directory in which to save the figure. Defaults to `qc_path`.
     filename_prefix : str
         Prefix used for the saved figure name.
     filename_tag : str or None
@@ -267,8 +218,8 @@ def cluster_qc_violin(
     Returns
     -------
     None
-        Saves a PNG violin plot to `qc_path` and leaves the active Matplotlib
-        figure available for display in the notebook.
+        Saves a PNG violin plot to `output_path` and leaves the active
+        Matplotlib figure available for display in the notebook.
     """
 
     required_cols = ["nCount_Xenium", cluster_col, qc_metric]
@@ -347,7 +298,12 @@ def cluster_qc_violin(
 
     filename_parts.append(safe_metric_name)
     filename = "_".join(filename_parts) + ".png"
-    output_file = os.path.join(qc_path, filename)
+
+    if output_path is None:
+        output_path = qc_path
+
+    os.makedirs(output_path, exist_ok=True)
+    output_file = os.path.join(output_path, filename)
 
     plt.savefig(
         output_file,
@@ -363,168 +319,9 @@ def cluster_qc_violin(
         plt.close()
 
 
-# ------ Plot the umap with bulk labels coloured by minimum transcripts ------ #
-
-def plot_umap_qc_metric(
-    adata,
-    cluster_col,
-    qc_metric,
-    dataset_name,
-    qc_path=None,
-    qc_title=None,
-    cluster_title=None,
-    point_size=10,
-    figsize=(20,8),
-    dpi=300,
-    vmax="p99",
-    add_outline=True,
-    legend_fontsize=10,
-    filename_tag=None,
-    title_tag=None,
-    show=True
-):
-    """
-    Plot UMAPs coloured by cluster annotation and a selected QC metric.
-
-    Parameters
-    ----------
-    adata
-        AnnData object containing a computed UMAP.
-    cluster_col : str
-        Column in adata.obs containing cluster or cell-type labels.
-    qc_metric : str
-        Column in adata.obs containing the QC metric to plot.
-    dataset_name : str
-        Dataset name used in plot titles and output filename.
-    qc_path : str or None
-        Directory in which to save the figure. If None, figure is not saved.
-    qc_title : str or None
-        Title for the QC panel. Defaults to the QC metric name.
-    cluster_title : str or None
-        Title for the cluster panel.
-    title_tag : str or None
-        Optional text appended to both panel titles, for example a clustering resolution.
-    point_size : float
-        UMAP point size.
-    figsize : tuple
-        Figure dimensions.
-    dpi : int
-        Output resolution.
-    vmax
-        Maximum colour scale value passed to scanpy.
-    add_outline : bool
-        Whether to add outlines around UMAP points.
-    legend_fontsize : int
-        Legend font size.
-    show : bool
-        Whether to display the plot.
-
-    Returns
-    -------
-    fig, axes
-        Matplotlib figure and axes.
-    """
-    required_cols = [cluster_col, qc_metric]
-
-    missing_cols = [
-        col for col in required_cols
-        if col not in adata.obs.columns
-        ]
-
-    if missing_cols:
-        raise KeyError(
-            f"Columns not found in adata.obs: {missing_cols}"
-        )
-
-    if "X_umap" not in adata.obsm:
-        raise KeyError(
-            "No UMAP coordinates found in adata.obsm['X_umap']."
-        )
-
-    if cluster_title is None:
-        cluster_title = f"{dataset_name} clusters"
-
-    if qc_title is None:
-        qc_title = qc_metric.replace("_", " ").title()
-
-    if title_tag is not None:
-        cluster_title = f"{cluster_title} ({title_tag})"
-        qc_title = f"{qc_title} ({title_tag})"
-
-    fig, axes = plt.subplots(
-        1,
-        2,
-        figsize=figsize
-    )
-
-    sc.pl.umap(
-        adata,
-        color=cluster_col,
-        s=point_size,
-        frameon=True,
-        add_outline=add_outline,
-        legend_fontsize=legend_fontsize,
-        title=cluster_title,
-        ax=axes[0],
-        show=False,
-        )
-
-    sc.pl.umap(
-        adata,
-        color=qc_metric,
-        s=point_size,
-        frameon=True,
-        vmax=vmax,
-        add_outline=add_outline,
-        legend_fontsize=legend_fontsize,
-        title=qc_title,
-        ax=axes[1],
-        show=False,
-        )
-
-    fig.tight_layout()
-
-    if qc_path is not None:
-        os.makedirs(qc_path, exist_ok=True)
-
-        safe_metric_name = (
-            str(qc_metric)
-            .replace(" ", "_")
-            .replace("/", "_")
-        )
-
-        filename_parts = ["umap", dataset_name]
-
-        if filename_tag is not None:
-            safe_filename_tag = (
-                str(filename_tag)
-                .replace(" ", "_")
-                .replace("/", "_")
-                .replace(".", "p")
-            )
-            filename_parts.append(safe_filename_tag)
-
-        filename_parts.append(safe_metric_name)
-        filename = "_".join(filename_parts) + ".png"
-        output_file = os.path.join(qc_path, filename)
-
-        fig.savefig(
-            output_file,
-            dpi=dpi,
-            bbox_inches="tight"
-        )
-
-        print(f"Saved figure to: {output_file}")
-
-    if show:
-        plt.show()
-    else:
-        plt.close(fig)
-
-    return fig, axes
 
 
-# In[7]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -580,6 +377,22 @@ if not os.path.isdir(qc_path):
     print(f"Directory '{qc_path}' created successfully.")
 else:
     print(f"Directory '{qc_path}' already exists.")
+
+## Keep high-volume QC plot families in dedicated subfolders.
+qc_umap_path = os.path.join(qc_path, "umap_qc")
+qc_violin_path = os.path.join(qc_path, "violin_qc")
+
+for plot_path in [qc_umap_path, qc_violin_path]:
+    if not os.path.isdir(plot_path):
+        os.makedirs(plot_path)
+        print(f"Directory '{plot_path}' created successfully.")
+    else:
+        print(f"Directory '{plot_path}' already exists.")
+
+
+
+
+# In[8]:
 
 
 
@@ -1584,6 +1397,7 @@ for res in res_label_list:
             qc_metric=qc_metric,
             sample_name=dataset_name,
             qc_title=qc_title,
+            output_path=qc_violin_path,
             filename_prefix=f"{filter_stage}_cluster_qc_violin",
             filename_tag=f"r{res}",
             title_tag=f"resolution {float(res):.2f}",
@@ -1603,15 +1417,13 @@ if cluster_ann_col in adata.obs.columns:
             qc_metric=qc_metric,
             sample_name=dataset_name,
             qc_title=qc_title,
+            output_path=qc_violin_path,
             filename_prefix=f"{filter_stage}_annotated_cluster_qc_violin",
             filename_tag=f"r{plot_res_label}",
             title_tag=f"annotated resolution {float(plot_res_label):.2f}",
         )
 else:
     print(f"Skipping annotated QC violin plots; missing column: {cluster_ann_col}")
-
-
-# In[44]:
 
 
 
@@ -1799,7 +1611,7 @@ with rc_context({"figure.figsize": (5,5)}):
 #     cluster_col=cluster_ann_col,
 #     qc_metric="negative_control_probe_greater_equal_1_cat",
 #     dataset_name=dataset_name,
-#     qc_path=qc_path,
+#     qc_path=qc_umap_path,
 #     qc_title="Cells with >= 1 negative control probe count",
 # )
 
@@ -1813,7 +1625,7 @@ with rc_context({"figure.figsize": (5,5)}):
 #     cluster_col=cluster_ann_col,
 #     qc_metric="min_trans_passed_cat",
 #     dataset_name=dataset_name,
-#     qc_path=qc_path,
+#     qc_path=qc_umap_path,
 #     qc_title="Minimum transcript (n=10) threshold",
 # )
 
@@ -1827,7 +1639,7 @@ with rc_context({"figure.figsize": (5,5)}):
 #     cluster_col=cluster_ann_col,
 #     qc_metric="max_trans_passed_cat",
 #     dataset_name=dataset_name,
-#     qc_path=qc_path,
+#     qc_path=qc_umap_path,
 #     qc_title="Maximum transcript threshold (top 2%)",
 # )
 
@@ -1841,7 +1653,7 @@ with rc_context({"figure.figsize": (5,5)}):
 #     cluster_col=cluster_ann_col,
 #     qc_metric="max_area_threshold_98_cat",
 #     dataset_name=dataset_name,
-#     qc_path=qc_path,
+#     qc_path=qc_umap_path,
 #     qc_title="Top 2% of cells by cell area"
 # )
 
@@ -1855,7 +1667,7 @@ with rc_context({"figure.figsize": (5,5)}):
 #     cluster_col=cluster_ann_col,
 #     qc_metric="max_area_threshold_99_cat",
 #     dataset_name=dataset_name,
-#     qc_path=qc_path,
+#     qc_path=qc_umap_path,
 #     qc_title="Top 1% of cells by cell area"
 # )
 
@@ -1869,7 +1681,7 @@ with rc_context({"figure.figsize": (5,5)}):
 #     cluster_col=cluster_ann_col,
 #     qc_metric="min_area_threshold_1_cat",
 #     dataset_name=dataset_name,
-#     qc_path=qc_path,
+#     qc_path=qc_umap_path,
 #     qc_title="Bottom 1% of cells by cell area"
 # )
 
@@ -1883,7 +1695,7 @@ with rc_context({"figure.figsize": (5,5)}):
 #     cluster_col=cluster_ann_col,
 #     qc_metric="min_area_threshold_2_cat",
 #     dataset_name=dataset_name,
-#     qc_path=qc_path,
+#     qc_path=qc_umap_path,
 #     qc_title="Bottom 2% of cells by cell area"
 # )
 
@@ -1928,7 +1740,7 @@ for res in res_label_list:
             cluster_col=cluster_col_for_res,
             qc_metric=qc_metric,
             dataset_name=dataset_name,
-            qc_path=qc_path,
+            qc_path=qc_umap_path,
             qc_title=qc_title,
             cluster_title=f"{dataset_name} clusters",
             filename_tag=f"{filter_stage}_r{res}",
@@ -1948,7 +1760,7 @@ if cluster_ann_col in adata.obs.columns:
             cluster_col=cluster_ann_col,
             qc_metric=qc_metric,
             dataset_name=dataset_name,
-            qc_path=qc_path,
+            qc_path=qc_umap_path,
             qc_title=qc_title,
             cluster_title=f"{dataset_name} annotated clusters",
             filename_tag=f"{filter_stage}_annotated_r{plot_res_label}",
@@ -1956,6 +1768,11 @@ if cluster_ann_col in adata.obs.columns:
         )
 else:
     print(f"Skipping annotated QC UMAP plots; missing column: {cluster_ann_col}")
+
+
+
+# In[ ]:
+
 
 
 
@@ -1994,7 +1811,7 @@ if cluster_ann_col in adata.obs.columns:
             cluster_col=cluster_ann_col,
             qc_metric=qc_metric,
             dataset_name=dataset_name,
-            qc_path=qc_path,
+            qc_path=qc_umap_path,
             qc_title=qc_title,
             cluster_title=f"{dataset_name} annotated clusters",
             filename_tag=f"{filter_stage}_annotated_r{plot_res_label}",
@@ -2002,6 +1819,11 @@ if cluster_ann_col in adata.obs.columns:
         )
 else:
     print(f"Skipping annotated QC UMAP plots; missing column: {cluster_ann_col}")
+
+
+# In[ ]:
+
+
 
 
 # In[ ]:
