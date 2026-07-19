@@ -4,7 +4,15 @@
     "dataset_name": "BE_brain_non_res",
     "pc_label": "30",
     "lambda_label": "0.20",
-    "res_label": "0.50",
+     "res_label": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10"
+    ],
     "nbr_weight_decay": "scaled_gaussian",
     "coord_keys": [
         "x",
