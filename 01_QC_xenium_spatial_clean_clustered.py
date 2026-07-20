@@ -237,6 +237,7 @@ def plot_qc_spatial_tissue(
 
     if show:
         plt.show()
+        plt.close()
     else:
         plt.close()
 
@@ -703,6 +704,7 @@ plot_qc_hist(adata,
 
 plt.savefig(os.path.join(qc_path, f"banksy_counts_and_genes_plot_{dataset_name}.png"), dpi =300, bbox_inches='tight')
 plt.show()
+plt.close()
 
 
 
@@ -774,6 +776,8 @@ comparison
 
 sns.set_theme(style="darkgrid")
 
+plt.figure(figsize=(7, 5))
+
 sns.scatterplot(
     data = adata.obs,
     x= "control_probe_counts",
@@ -791,7 +795,8 @@ plt.savefig(
     dpi=300,
     bbox_inches='tight'
     )
-plt.show() 
+plt.show()
+plt.close()
 print(f"Saving Gene_transcript_counts_vs_Negative_Control_probes_counts_{dataset_name}.png to {qc_path}")
 
 
@@ -848,24 +853,27 @@ adata.obs["gene_transcripts_per_um2"] = ((adata.obs["nCount_Xenium"]) / adata.ob
 
 sns.set_theme(style="darkgrid")
 
+fig, ax = plt.subplots(figsize=(7, 5))
+
 sns.scatterplot(
-    data = adata.obs,
-    x= "gene_transcripts_per_um2",
-    y= "neg_probe_pct_of_gene_plus_neg_probe"    
-    )
+    data=adata.obs,
+    x="gene_transcripts_per_um2",
+    y="neg_probe_pct_of_gene_plus_neg_probe",
+    ax=ax
+)
 
-plt.title("Negative control probe % vs raw gene transcripts per µm²")
-plt.ylabel("Percentage negative control counts per cell (%)")
-plt.xlabel("Transcripts per µm²")
+ax.set_title("Negative control probe % vs raw gene transcripts per µm²")
+ax.set_ylabel("Percentage negative control counts per cell (%)")
+ax.set_xlabel("Transcripts per µm²")
 
-plt.tight_layout()
-# Save the figure
-plt.savefig(
+fig.tight_layout()
+fig.savefig(
     os.path.join(qc_path, f"Negative_Control_%_vs_Transcript_Density_{dataset_name}.png"),
     dpi=300,
-    bbox_inches='tight'
-    )
-plt.show() 
+    bbox_inches="tight"
+)
+plt.show()
+plt.close(fig)
 print(f"Saving Negative_Control_%_vs_Transcript_Density_{dataset_name}.png to {qc_path}")
 
 
@@ -927,22 +935,27 @@ neg_probe_summary["percent_of_negative_control_counts"] = (
     neg_probe_summary["counts"] / neg_probe_summary["counts"].sum() * 100
 )
 
+fig, ax = plt.subplots(figsize=(10, 5))
+
 sns.barplot(
     data=neg_probe_summary,
     x="negative_control_probe",
-    y="percent_of_negative_control_counts"
+    y="percent_of_negative_control_counts",
+    ax=ax
 )
 
-plt.ylabel("Percent of negative-control counts")
-plt.xlabel("Negative control probe")
-plt.xticks(rotation=90)
+ax.set_ylabel("Percent of negative-control counts")
+ax.set_xlabel("Negative control probe")
+ax.tick_params(axis="x", rotation=90)
 
-plt.savefig(
+fig.tight_layout()
+fig.savefig(
     os.path.join(qc_path, f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png"),
     dpi=300,
-    bbox_inches='tight'
-    )
-plt.show() 
+    bbox_inches="tight"
+)
+plt.show()
+plt.close(fig)
 print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")  
 
 
@@ -980,7 +993,7 @@ probe_counts["probe_proportion_within_cell"].min(), probe_counts["probe_proporti
 
 # ------------ Negative control probe count per cell violin plots ------------ #
 
-plt.figure(figsize=(12, 8))
+fig, ax = plt.subplots(figsize=(12, 8))
 
 sns.violinplot(
     data=probe_counts,
@@ -988,7 +1001,8 @@ sns.violinplot(
     y="probe_proportion_within_cell",
     cut=0,
     inner=None,
-    color="lightblue"
+    color="lightblue",
+    ax=ax
 )
 
 sns.stripplot(
@@ -998,21 +1012,24 @@ sns.stripplot(
     color="black",
     alpha=0.25,
     size=2,
-    jitter=True
+    jitter=True,
+    ax=ax
 )
 
-plt.ylim(0, 1)
-plt.xticks(rotation=90)
-plt.ylabel("Proportion of negative-control probe counts in all negative probe counts")
-plt.xlabel("Negative control probe")
-plt.title("Within-cell Negative Control Probe Proportions/Total Probes")
+ax.set_ylim(0, 1)
+ax.tick_params(axis="x", rotation=90)
+ax.set_ylabel("Proportion of negative-control probe counts in all negative probe counts")
+ax.set_xlabel("Negative control probe")
+ax.set_title("Within-cell Negative Control Probe Proportions/Total Probes")
 
-plt.savefig(
+fig.tight_layout()
+fig.savefig(
     os.path.join(qc_path, f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png"),
     dpi=300,
-    bbox_inches='tight'
-    )
-plt.show() 
+    bbox_inches="tight"
+)
+plt.show()
+plt.close(fig)
 print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")    
 
 
@@ -1096,29 +1113,31 @@ neg_probe_detection_rate = (
     probe_count_matrix_official.gt(0).sum(axis=0) / adata.n_obs * 100
 ).rename_axis("negative_control_probe").reset_index(name="percent_cells_detected")
 
-plt.figure(figsize=(10, 5))
+fig, ax = plt.subplots(figsize=(10, 5))
 
 sns.barplot(
     data=neg_probe_detection_rate,
     x="negative_control_probe",
     y="percent_cells_detected",
     order=probe_order_official,
-    color="steelblue"
+    color="steelblue",
+    ax=ax
 )
 
-plt.ylabel("Cells with probe detected (%)")
-plt.xlabel("Negative control probe")
-plt.title(f"{dataset_name}: negative-control probe detection rate")
-plt.xticks(rotation=90)
-plt.tight_layout()
+ax.set_ylabel("Cells with probe detected (%)")
+ax.set_xlabel("Negative control probe")
+ax.set_title(f"{dataset_name}: negative-control probe detection rate")
+ax.tick_params(axis="x", rotation=90)
+fig.tight_layout()
 
-plt.savefig(
+fig.savefig(
     os.path.join(qc_path, f"Negative_control_probe_detection_rate_{dataset_name}.png"),
     dpi=300,
     bbox_inches="tight"
 )
 
 plt.show()
+plt.close(fig)
 print(f"Negative_control_probe_detection_rate_{dataset_name}.png to {qc_path}")
 
 
@@ -1141,27 +1160,29 @@ cluster_probe_detection_percent = (
     * 100
 )
 
-plt.figure(figsize=(12, max(4, 0.35 * cluster_probe_detection_percent.shape[0])))
+fig, ax = plt.subplots(figsize=(12, max(4, 0.35 * cluster_probe_detection_percent.shape[0])))
 
 sns.heatmap(
     cluster_probe_detection_percent,
     cmap="viridis",
     linewidths=0.2,
-    cbar_kws={"label": "Cells with probe detected (%)"}
+    cbar_kws={"label": "Cells with probe detected (%)"},
+    ax=ax
 )
 
-plt.ylabel("Cluster")
-plt.xlabel("Negative control probe")
-plt.title(f"{dataset_name}: negative-control probe detection by cluster (%)")
-plt.tight_layout()
+ax.set_ylabel("Cluster")
+ax.set_xlabel("Negative control probe")
+ax.set_title(f"{dataset_name}: negative-control probe detection by cluster (%)")
+fig.tight_layout()
 
-plt.savefig(
+fig.savefig(
     os.path.join(qc_path, f"Cluster_by_negative_control_probe_detection_heatmap_{dataset_name}.png"),
     dpi=300,
     bbox_inches="tight"
 )
 
 plt.show()
+plt.close(fig)
 print(f"Cluster_by_negative_control_probe_detection_heatmap_{dataset_name}.png to {qc_path}")
 
 
@@ -1207,10 +1228,12 @@ ax.set_ylabel("Total counts per cell")
 ax.set_yticks([10, 20, 40, 60, 80, 100, 120, 140, 160, 200, 250, 300, 400, 500, 600, 800, 1000, 2000])
 ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter())
 
-plt.grid(True, which="both")
-plt.title(f"Knee Plot | Threshold = {threshold} counts | {num_cells:,} cells pass")
-plt.savefig(os.path.join(qc_path, f"transcript_knee_plot_{dataset_name}.png"), dpi =300, bbox_inches='tight')
+ax.grid(True, which="both")
+ax.set_title(f"Knee Plot | Threshold = {threshold} counts | {num_cells:,} cells pass")
+fig.tight_layout()
+fig.savefig(os.path.join(qc_path, f"transcript_knee_plot_{dataset_name}.png"), dpi=300, bbox_inches="tight")
 plt.show()
+plt.close(fig)
 
 print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee):,} ({num_cells/len(knee)*100:.1f}%)")
 
@@ -1277,7 +1300,8 @@ plt.savefig(
     dpi=300,
     bbox_inches='tight'
     )
-plt.show() 
+plt.show()
+plt.close()
 
 
 # In[25]:
@@ -1306,7 +1330,8 @@ plt.savefig(
     dpi=300,
     bbox_inches='tight'
     )
-plt.show() 
+plt.show()
+plt.close()
 
 
 
@@ -1482,7 +1507,8 @@ with rc_context({"figure.figsize": (12, 8)}):
     dpi=300,
     bbox_inches='tight'
     )
-plt.show() 
+plt.show()
+plt.close()
 print(f"tissue_spatial_scatter_max_area_threshold_99_{dataset_name}.png to {qc_path}") 
 
 
@@ -1701,6 +1727,7 @@ plt.savefig(
     bbox_inches="tight"
 )
 plt.show()
+plt.close(ax.figure)
 
 
 # In[45]:
@@ -1801,6 +1828,7 @@ sc.pl.dendrogram(
     groupby=groupby_key,
     save=f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
 )
+plt.close("all")
 
 sc.pl.correlation_matrix(
     adata,
@@ -1808,6 +1836,7 @@ sc.pl.correlation_matrix(
     save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_cluster_correlation_plot.png",
     figsize=(5, 3.5)
 )
+plt.close("all")
 
 
 # In[50]:
@@ -1838,6 +1867,7 @@ with rc_context({"figure.figsize": (5,5)}):
         title=f"{dataset_name} clusters",
         save = f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
         )
+plt.close("all")
 
 
 
