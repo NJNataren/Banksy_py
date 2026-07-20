@@ -17,5 +17,7 @@
         "x",
         "y",
         "xy"
-    ]
+    ],
+    "raw_subdir": "ptmt/Run_1",
+    "transcript_parquet_path": "data/xenium/raw_data/ptmt/Run_1/transcripts_parquet/10329"
 }

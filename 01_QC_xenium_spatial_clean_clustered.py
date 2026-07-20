@@ -872,8 +872,17 @@ print(f"Saving Negative_Control_%_vs_Transcript_Density_{dataset_name}.png to {q
 # In[212]:
 
 
-## Read in transcript parquet to get raw negative control probe counts
-tx = pd.read_parquet(os.path.join(raw_path, "transcript_parquet", f"{dataset_name}"))
+## Read in transcript parquet to get raw negative control probe counts.
+## PTMT and VBCT raw transcript exports use different directory conventions, so
+## configs can provide an explicit transcript_parquet_path. If absent, use the
+## original VBCT-style default path.
+transcript_parquet_path = cfg.get(
+    "transcript_parquet_path",
+    os.path.join(raw_path, "transcript_parquet", f"{dataset_name}")
+)
+
+print(f"Reading transcript parquet from: {transcript_parquet_path}")
+tx = pd.read_parquet(transcript_parquet_path)
 tx["codeword_category"].value_counts()
 
 ##subset transcripts tx to only those cells present in the adata object
