@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=01_QC_testing_xenium_spatial
+#SBATCH --job-name=01_QC_vbct_xenium_spatial
 #SBATCH --array=0-4%2 #number of samples to process
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8

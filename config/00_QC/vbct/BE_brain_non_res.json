@@ -12,18 +12,20 @@
         "xy"
     ],
     "new_labels": {
-        "0": "M2-like_tumour_associated_macrophages_0",
-        "1": "Myeloid_cells_(low_confidence)_1",
-        "2": "CD8__cytotoxic_T_cells_(ITGAE+)_2",
-        "3": "Cycling_melanoma_cells_3",
-        "4": "Perivascular-like_Smooth_muscle_cells_or_Pericytes_4",
-        "5": "Neural_crest-like_differentiated_melanoma_cells_5",
-        "6": "Stress-adapted_neural-like_melanoma_cells_6",
-        "7": "Glial_cells_(DKK1+)_7",
-        "8": "Vascular_endothelial_cells_8",
-        "9": "Cancer_associated_fibroblasts_9",
-        "10": "Plasma_cells_10",
-        "11": "DC-like_TAMs_or_Inflammatory_macrophages_11",
-        "12": "M2-like_tumour_associated_macrophages_(Immuneregulatory)_12"
+        "0": "Macrophage_0",
+        "1": "T_Cell_1",
+        "2": "Fibroblast_Pericytes_2",
+        "3": "Melanoma_Cell_or_Melanocyte_Epithelial_Cell_3",
+        "4": "Macrophage_4",
+        "5": "Macrophage_5",
+        "6": "Macrophage_(weak)_6",
+        "7": "Melanoma_Cell_or_Melanocyte_Epithelial_Cell_7",
+        "8": "Melanoma_Cell_or_Melanocyte_Epithelial_Cell_8",
+        "9": "Endothelial_Cell_9",
+        "10": "Fibroblast_10",
+        "11": "B_Cell_and_Macrophage_(weak)_11",
+        "12": "Macrophage_12",
+        "13": "Macrophage_(weak)_13",
+        "14": "T_Cell_Macrophage_(weak)_14"
     }
 }

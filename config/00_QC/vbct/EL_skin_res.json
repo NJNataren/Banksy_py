@@ -12,18 +12,25 @@
         "xy"
     ],
     "new_labels": {
-        "0": "Differentiated_or_Melanocytic melanoma cells (MITF+)_0",
-        "1": "Cycling melanoma cells_1",
-        "2": "Invasive melanoma cells (MITF+)_2",
-        "3": "M2-like Tumour Associated Macrophages (CXCL12+)_3",
-        "4": "Dedifferentiated melanoma (angiogenic_or_hypoxic)_4",
-        "5": "Invasive neural crest-like melanoma cells_5",
-        "6": "Mesenchymal-like melanoma cells_6",
-        "7": "M2-like Tumour Associated Macrophages (CXCL16)_7",
-        "8": "Vascular endothelial cells_8",
-        "9": "Cancer associated fibroblasts (ECM-remodelling)_9",
-        "10": "Melanocytic Melanoma Cells (MITF+ PKHD1L1+)_10",
-        "11": "Skin epithelial cells_11",
-        "12": "Stromal cells_12"
+        "0": "Melanoma_Cell_or_Melanocyte_0",
+        "1": "Melanoma_Cell_or_Melanocyte_1",
+        "2": "Melanoma_Cell_or_Melanocyte_2",
+        "3": "Fibroblast_Macrophage_(weak)_3",
+        "4": "Melanoma_Cell_or_Melanocyte_4",
+        "5": "Melanoma_Cell_or_Melanocyte_Macrophage_(weak)_5",
+        "6": "Melanoma_Cell_or_Melanocyte_Macrophage_(weak)_6",
+        "7": "Melanoma_Cell_or_Melanocyte_7",
+        "8": "Endothelial_Cell_Fibroblast_Pericytes_8",
+        "9": "Endothelial_Cell_Fibroblast_Pericytes_9",
+        "10": "Melanoma_Cell_or_Melanocyte_10",
+        "11": "Endothelial_Cell_Fibroblast_Pericytes_11",
+        "12": "Fibroblast_12",
+        "13": "Fibroblast_(MMP9_only)_13",
+        "14": "Macrophage_T Cell _14",
+        "15": "Melanoma_Cell_or_Melanocyte_0_15",
+        "16": "Epithelial_Cell_16",
+        "17": "Melanoma_Cell_or_Melanocyte_17",
+        "18": "Fibroblast_18",
+        "19": "Fibroblast_(weak)_19"
     }
 }

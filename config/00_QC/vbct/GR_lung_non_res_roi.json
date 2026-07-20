@@ -12,15 +12,18 @@
         "xy"
     ],
     "new_labels": {
-        "0": "Invasive_Neural_crest-like_melanoma_0",
-        "1": "M2-like_Tumour_Associated_Macrophages_1",
-        "2": "Inflamed_Bronchial_Epithelial_Cells_(low_confidence)_2",
-        "3": "Cycling_melanoma_cells_3",
-        "4": "Cancer_Associated_Fibroblasts_4",
-        "5": "Vascular_Endothelial_Cells_5",
-        "6": "Cytotoxic_CD8+_and_CD4+_T_Cells_6",
-        "7": "Immature_Myeloid_Cells_or_Tumour_Myeloid_Cells_7",
-        "8": "Mesenchymal-like_Melanoma_Cells_8",
-        "9": "Vascular_smooth_muscle_or_pericytes_9"
+        "0": "Melanoma_Cell_or_Melanocyte_0",
+        "1": "Unassigned_1",
+        "2": "Melanoma_Cell_or_Melanocyte_2",
+        "3": "Fibroblast_Macrophage_3",
+        "4": "Macrophage_4",
+        "5": "Melanoma_Cell_or_Melanocyte_5",
+        "6": "Macrophage_6",
+        "7": "T_Cell_7",
+        "8": "Fibroblast_Pericyte_8",
+        "9": "Endothelial_Cell_9",
+        "10": "Melanoma_Cell_or_Melanocyte_10",
+        "11": "Melanoma_Cell_or_Melanocyte_11",
+        "12": "Unassigned_12"
     }
 }

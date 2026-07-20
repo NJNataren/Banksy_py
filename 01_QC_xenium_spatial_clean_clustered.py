@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[198]:
 
 
 #!/usr/bin/env python
@@ -16,7 +16,7 @@ objects that already contain BANKSY cluster labels and embeddings.
 
 
 
-# In[2]:
+# In[199]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -28,7 +28,7 @@ objects that already contain BANKSY cluster labels and embeddings.
 
 
 
-# In[3]:
+# In[200]:
 
 
 ### Import packages
@@ -59,7 +59,7 @@ random.seed(seed)
 
 
 
-# In[4]:
+# In[201]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -97,7 +97,7 @@ random.seed(seed)
 
 
 
-# In[5]:
+# In[202]:
 
 
 # --------------------- PARSE ARGUMENTS FROM JSON CONFIG --------------------- #
@@ -311,7 +311,7 @@ def cluster_qc_violin(
         sns.color_palette("husl", n_colors=n_cell_types)
     ))
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(15, 15))
     sns.violinplot(
         data=plot_obs,
         y="nCount_Xenium",
@@ -383,11 +383,6 @@ def cluster_qc_violin(
         plt.show()
     else:
         plt.close()
-
-
-
-
-# In[ ]:
 
 
 # ------ Plot the UMAP with clusters and a selected QC metric ------ #
@@ -551,6 +546,11 @@ def plot_umap_qc_metric(
     return fig, axes
 
 
+
+
+# In[204]:
+
+
 # ---------------------------------------------------------------------------- #
 #                                   SET PATHS                                  #
 # ---------------------------------------------------------------------------- #
@@ -624,7 +624,7 @@ for plot_path in [qc_umap_path, qc_violin_path]:
 
 
 
-# In[8]:
+# In[205]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -660,7 +660,7 @@ if banksy_pca_key in adata.obsm and "X_pca" not in adata.obsm:
 
 
 
-# In[9]:
+# In[206]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -674,7 +674,7 @@ adata = adata
 
 
 
-# In[10]:
+# In[207]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -707,7 +707,7 @@ plt.show()
 
 
 
-# In[11]:
+# In[208]:
 
 
 ## Check to compare nCount_Xenium, adata.X and adata.layers["counts"]
@@ -737,7 +737,7 @@ comparison = pd.DataFrame(
 comparison
 
 
-# In[12]:
+# In[209]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -795,7 +795,7 @@ plt.show()
 print(f"Saving Gene_transcript_counts_vs_Negative_Control_probes_counts_{dataset_name}.png to {qc_path}")
 
 
-# In[13]:
+# In[210]:
 
 
 ## Summary of number of features
@@ -821,7 +821,7 @@ print(f"Saving Gene_transcript_counts_vs_Negative_Control_probes_counts_{dataset
 # print(negative_control_probes.tolist())
 
 
-# In[14]:
+# In[211]:
 
 
 ## Create a mask for cells with at least 1 negative probe counts
@@ -869,7 +869,7 @@ plt.show()
 print(f"Saving Negative_Control_%_vs_Transcript_Density_{dataset_name}.png to {qc_path}")
 
 
-# In[15]:
+# In[212]:
 
 
 ## Read in transcript parquet to get raw negative control probe counts
@@ -890,7 +890,7 @@ print("Unique transcript cell IDs:", tx_subset["cell_id"].nunique())
 print("AnnData cells:", adata.n_obs)
 
 
-# In[77]:
+# In[213]:
 
 
 ## Subset transcripts parquet to negative probe transcripts
@@ -935,7 +935,7 @@ plt.show()
 print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")  
 
 
-# In[78]:
+# In[214]:
 
 
 # ------------------- Negative control probe count per cell ------------------ #
@@ -1005,7 +1005,7 @@ plt.show()
 print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")    
 
 
-# In[81]:
+# In[215]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1061,7 +1061,7 @@ probe_order_official = (
 )
 
 
-# In[82]:
+# In[216]:
 
 
 # ------- Plot location of cell with >= 1 negative control probe count ------- #
@@ -1074,7 +1074,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[83]:
+# In[217]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1111,7 +1111,7 @@ plt.show()
 print(f"Negative_control_probe_detection_rate_{dataset_name}.png to {qc_path}")
 
 
-# In[84]:
+# In[218]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1123,17 +1123,17 @@ cluster_plot_col = cluster_ann_col if cluster_ann_col in adata.obs.columns else 
 cluster_probe_detection = probe_count_matrix_official.gt(0).copy()
 cluster_probe_detection[cluster_plot_col] = adata.obs[cluster_plot_col].astype(str).values
 
-cluster_probe_detection_rate = (
+cluster_probe_detection_percent = (
     cluster_probe_detection
     .groupby(cluster_plot_col)[probe_order_official]
     .mean()
     * 100
 )
 
-plt.figure(figsize=(12, max(4, 0.35 * cluster_probe_detection_rate.shape[0])))
+plt.figure(figsize=(12, max(4, 0.35 * cluster_probe_detection_percent.shape[0])))
 
 sns.heatmap(
-    cluster_probe_detection_rate,
+    cluster_probe_detection_percent,
     cmap="viridis",
     linewidths=0.2,
     cbar_kws={"label": "Cells with probe detected (%)"}
@@ -1141,7 +1141,7 @@ sns.heatmap(
 
 plt.ylabel("Cluster")
 plt.xlabel("Negative control probe")
-plt.title(f"{dataset_name}: negative-control probe detection rate by cluster")
+plt.title(f"{dataset_name}: negative-control probe detection by cluster (%)")
 plt.tight_layout()
 
 plt.savefig(
@@ -1152,6 +1152,8 @@ plt.savefig(
 
 plt.show()
 print(f"Cluster_by_negative_control_probe_detection_heatmap_{dataset_name}.png to {qc_path}")
+
+
 
 
 # In[76]:

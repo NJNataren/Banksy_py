@@ -12,11 +12,14 @@
         "xy"
     ],
     "new_labels": {
-        "0": "Differentiated_melanoma_cells_(MITF+)_0",
-        "1": "Cancer_associated_fibroblasts_1",
-        "2": "M2-like_tumour_associated_macrophages_2",
-        "3": "Myofibroblasts_3",
-        "4": "Vascular_endothelial_cells_4",
-        "5": "C8+_T_cells_(ITGA4)_5"
+        "0": "Melanoma_Cell_or_Melanocyte_0",
+        "1": "Fibroblast_Macrophage_1",
+        "2": "Macrophage_(weak)_2",
+        "3": "Fibroblast_Pericyte_3",
+        "4": "T_Cell_Macrophage_Fibroblast_4",
+        "5": "Macrophage_5",
+        "6": "Endothelial_Cell_Fibroblast_Pericytes_6",
+        "7": "Fibroblast_(weak_Macrophage_Melanoma_Pericytes)_7",
+        "8": "Melanoma_Cell_or_Melanocyte_8"
     }
 }
