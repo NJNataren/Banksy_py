@@ -869,7 +869,7 @@ plt.show()
 print(f"Saving Negative_Control_%_vs_Transcript_Density_{dataset_name}.png to {qc_path}")
 
 
-# In[212]:
+# In[ ]:
 
 
 ## Read in transcript parquet to get raw negative control probe counts.
@@ -897,6 +897,8 @@ print("Original transcripts:", len(tx))
 print("Subset transcripts:", len(tx_subset))
 print("Unique transcript cell IDs:", tx_subset["cell_id"].nunique())
 print("AnnData cells:", adata.n_obs)
+
+
 
 
 # In[213]:
@@ -2067,111 +2069,99 @@ else:
 # In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                              SET PATHS FOR PLOTS                             #
-# ---------------------------------------------------------------------------- #
+# # ---------------------------------------------------------------------------- #
+# #                              SET PATHS FOR PLOTS                             #
+# # ---------------------------------------------------------------------------- #
 
-## Create a path for gene of interest UMAP plots
-umap_path = os.path.join(output_path, "umap")
+# ## Create a path for gene of interest UMAP plots
+# umap_path = os.path.join(output_path, "umap")
 
-if not os.path.isdir(umap_path):
-    os.makedirs(umap_path)
-    print(f"Directory '{umap_path}' created successfully.")
+# if not os.path.isdir(umap_path):
+#     os.makedirs(umap_path)
+#     print(f"Directory '{umap_path}' created successfully.")
     
-else:
-    print(f"Directory '{umap_path}' already exists.")
+# else:
+#     print(f"Directory '{umap_path}' already exists.")
 
 
-## Create a path for gene of interest violin plots
-violin_path = os.path.join(output_path, "violin")
+# ## Create a path for gene of interest violin plots
+# violin_path = os.path.join(output_path, "violin")
 
-if not os.path.isdir(violin_path):
-    os.makedirs(violin_path)
-    print(f"Directory '{violin_path}' created successfully.")
+# if not os.path.isdir(violin_path):
+#     os.makedirs(violin_path)
+#     print(f"Directory '{violin_path}' created successfully.")
     
-else:
-    print(f"Directory '{violin_path}' already exists.")
+# else:
+#     print(f"Directory '{violin_path}' already exists.")
 
-## Create a path for gene of interest dot plots
-dotplot_path = os.path.join(output_path, "dotplot")
+# ## Create a path for gene of interest dot plots
+# dotplot_path = os.path.join(output_path, "dotplot")
 
-if not os.path.isdir(dotplot_path):
-    os.makedirs(dotplot_path)
-    print(f"Directory '{dotplot_path}' created successfully.")
+# if not os.path.isdir(dotplot_path):
+#     os.makedirs(dotplot_path)
+#     print(f"Directory '{dotplot_path}' created successfully.")
     
-else:
-    print(f"Directory '{dotplot_path}' already exists.")
+# else:
+#     print(f"Directory '{dotplot_path}' already exists.")
 
-## Create a path for gene of interest UMAP plots
-neighbour_path = os.path.join(output_path, "neighbourhood_centrality_co-occurence")
+# ## Create a path for gene of interest UMAP plots
+# neighbour_path = os.path.join(output_path, "neighbourhood_centrality_co-occurence")
 
-if not os.path.isdir(neighbour_path):
-    os.makedirs(neighbour_path)
-    print(f"Directory '{neighbour_path}' created successfully.")
+# if not os.path.isdir(neighbour_path):
+#     os.makedirs(neighbour_path)
+#     print(f"Directory '{neighbour_path}' created successfully.")
     
-else:
-    print(f"Directory '{neighbour_path}' already exists.")
+# else:
+#     print(f"Directory '{neighbour_path}' already exists.")
 
 
-## Create a path for gene of interest spatial scatter plots
-spatial_scatter_path = os.path.join(output_path, "spatial_scatter")
+# ## Create a path for gene of interest spatial scatter plots
+# spatial_scatter_path = os.path.join(output_path, "spatial_scatter")
 
-if not os.path.isdir(spatial_scatter_path):
-    os.makedirs(spatial_scatter_path)
-    print(f"Directory '{spatial_scatter_path}' created successfully.")
+# if not os.path.isdir(spatial_scatter_path):
+#     os.makedirs(spatial_scatter_path)
+#     print(f"Directory '{spatial_scatter_path}' created successfully.")
     
-else:
-    print(f"Directory '{spatial_scatter_path}' already exists.")
+# else:
+#     print(f"Directory '{spatial_scatter_path}' already exists.")
 
 
 # In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                        GENE OF INTEREST UMAP FUNCTION                        #
-# ---------------------------------------------------------------------------- #
+# # ---------------------------------------------------------------------------- #
+# #                        GENE OF INTEREST UMAP FUNCTION                        #
+# # ---------------------------------------------------------------------------- #
 
-# Set the figure directory to your desired location
-sc.settings.figdir = umap_path
-def plot_goi_umaps (
-    genes: list,
-    adata,
-    sample_name: str,
-    s: int = 20,
-    **kwargs #additional sc.pl.umap arguments such as ncols
-):
-    title_list = []
+# # Set the figure directory to your desired location
+# sc.settings.figdir = umap_path
+# def plot_goi_umaps (
+#     genes: list,
+#     adata,
+#     sample_name: str,
+#     s: int = 20,
+#     **kwargs #additional sc.pl.umap arguments such as ncols
+# ):
+#     title_list = []
 
-    for i in genes:
-        title = f"{i} expression in {sample_name}"
-        title_list.append(title)
-        gene_str = "_".join(genes)
+#     for i in genes:
+#         title = f"{i} expression in {sample_name}"
+#         title_list.append(title)
+#         gene_str = "_".join(genes)
 
-    with rc_context({"figure.figsize": (8,5)}):
-        sc.pl.umap(
-            adata, 
-            color=genes, 
-            s=20, 
-            frameon=True, 
-            vmax="p99",
-            add_outline=True,
-            legend_fontsize=9,
-            title=title_list,
-            save = f"_{sample_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_{gene_str}_response_genes.png",
-            **kwargs
-            )
-
-
-
-
-# In[ ]:
-
-
-## DSG2 UMAP
-plot_goi_umaps(genes=["DSG2", "TPD52L2"],
-adata=adata,
-sample_name= dataset_name,
-s=20, )
+#     with rc_context({"figure.figsize": (8,5)}):
+#         sc.pl.umap(
+#             adata, 
+#             color=genes, 
+#             s=20, 
+#             frameon=True, 
+#             vmax="p99",
+#             add_outline=True,
+#             legend_fontsize=9,
+#             title=title_list,
+#             save = f"_{sample_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_{gene_str}_response_genes.png",
+#             **kwargs
+#             )
 
 
 
@@ -2179,11 +2169,11 @@ s=20, )
 # In[ ]:
 
 
-## SERPINE1 UMAP
-plot_goi_umaps(genes=["SERPINE1"],
-adata=adata,
-sample_name= dataset_name,
-s=20, )
+# ## DSG2 UMAP
+# plot_goi_umaps(genes=["DSG2", "TPD52L2"],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20, )
 
 
 
@@ -2191,25 +2181,11 @@ s=20, )
 # In[ ]:
 
 
-### DKK1
-
-plot_goi_umaps(genes=["DKK1"],
-adata=adata,
-sample_name= dataset_name,
-s=20, )
-
-
-
-
-# In[ ]:
-
-
-### T cell markers
-
-plot_goi_umaps(genes=["FOXP3", "GZMB"],
-adata=adata,
-sample_name= dataset_name,
-s=20, )
+# ## SERPINE1 UMAP
+# plot_goi_umaps(genes=["SERPINE1"],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20, )
 
 
 
@@ -2217,18 +2193,12 @@ s=20, )
 # In[ ]:
 
 
-### Integrin genes
+# ### DKK1
 
-plot_goi_umaps(genes=[
-"ITGAE", 
-"ITGA1", 
-"ITGA4",
-"ITGA5"],
-adata=adata,
-sample_name= dataset_name,
-s=20,
-ncols=2
-)
+# plot_goi_umaps(genes=["DKK1"],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20, )
 
 
 
@@ -2236,18 +2206,12 @@ ncols=2
 # In[ ]:
 
 
-# ### TPD52 family
+# ### T cell markers
 
-plot_goi_umaps(genes=[
-"TPD52", 
-"TPD52L1", 
-"TPD52L2"
-],
-adata=adata,
-sample_name= dataset_name,
-s=20,
-ncols=2
-)
+# plot_goi_umaps(genes=["FOXP3", "GZMB"],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20, )
 
 
 
@@ -2255,35 +2219,18 @@ ncols=2
 # In[ ]:
 
 
-#### Selectins
+# ### Integrin genes
 
-plot_goi_umaps(genes=[
-"SELE", 
-"SELL", 
-"SELP"
-],
-adata=adata,
-sample_name= dataset_name,
-s=20,
-ncols=2
-)
-
-
-
-
-# In[ ]:
-
-
-# ### Fucosyltransferase genes
-
-plot_goi_umaps(genes=[
-"FUT6", 
-"FUT7"
-],
-adata=adata,
-sample_name= dataset_name,
-s=20
-)
+# plot_goi_umaps(genes=[
+# "ITGAE", 
+# "ITGA1", 
+# "ITGA4",
+# "ITGA5"],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20,
+# ncols=2
+# )
 
 
 
@@ -2291,34 +2238,18 @@ s=20
 # In[ ]:
 
 
-# ### Adhesion molecules
+# # ### TPD52 family
 
-plot_goi_umaps(genes=[
-"VCAM1", 
-"ICAM1"
-],
-adata=adata,
-sample_name= dataset_name,
-s=20
-)
-
-
-
-
-# In[ ]:
-
-
-# ### ICI response genes
-
-plot_goi_umaps(genes=[
-"PDCD1", 
-"CD274", 
-"CTLA4"
-],
-adata=adata,
-sample_name= dataset_name,
-s=20
-)
+# plot_goi_umaps(genes=[
+# "TPD52", 
+# "TPD52L1", 
+# "TPD52L2"
+# ],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20,
+# ncols=2
+# )
 
 
 
@@ -2326,23 +2257,18 @@ s=20
 # In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                         GENE EXPRESSION VIOLIN PLOTS                         #
-# ---------------------------------------------------------------------------- #
+# #### Selectins
 
-# Set the figure directory to your desired location
-sc.settings.figdir = violin_path
-
-with rc_context({"figure.figsize": (10, 8)}):
-    ax= sc.pl.violin(
-        adata,
-        ["nFeature_Xenium"],
-        groupby=cluster_ann_col,
-        rotation=270,
-        stripplot=False,  # remove the internal dots
-        inner="box",  # adds a boxplot inside violins
-        save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_gene_count_per_cluster_violin_plot.png"
-    )
+# plot_goi_umaps(genes=[
+# "SELE", 
+# "SELL", 
+# "SELP"
+# ],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20,
+# ncols=2
+# )
 
 
 
@@ -2350,30 +2276,16 @@ with rc_context({"figure.figsize": (10, 8)}):
 # In[ ]:
 
 
-#### DSG2
+# # ### Fucosyltransferase genes
 
-with rc_context({"figure.figsize": (10,8)}):
-   ax = sc.pl.violin(
-        adata, 
-        keys = [
-            "DSG2"
-            ], 
-        #groupby=cluster_col,
-        groupby=cluster_ann_col,
-        rotation=270,
-        #save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"
-        show=False
-        )
-ax.set_yscale('log')
-ax.set_xlabel('Cell type', fontsize=12)
-ax.set_ylabel("DSG2 expression (log)")
-
-plt.tight_layout()
-plt.savefig(
-    os.path.join(qc_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_DSG2_violin_plot.png"),
-    dpi=300,
-    bbox_inches='tight'
-)
+# plot_goi_umaps(genes=[
+# "FUT6", 
+# "FUT7"
+# ],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20
+# )
 
 
 
@@ -2381,29 +2293,16 @@ plt.savefig(
 # In[ ]:
 
 
-#### SERPINE1
+# # ### Adhesion molecules
 
-with rc_context({"figure.figsize": (10,8)}):
-   ax = sc.pl.violin(
-        adata, 
-        keys = [
-            "SERPINE1"
-            ], 
-        groupby=cluster_ann_col,
-        rotation=270,
-        #save=f"{dataset_name}_pc{pc_label_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"
-        show=False
-        )
-ax.set_yscale('log')
-ax.set_xlabel('Cell type', fontsize=12)
-ax.set_ylabel("SERPINE1 expression (log)")
-
-plt.tight_layout()
-plt.savefig(
-    os.path.join(qc_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_SERPINE1_violin_plot.png"),
-    dpi=300,
-    bbox_inches='tight'
-)
+# plot_goi_umaps(genes=[
+# "VCAM1", 
+# "ICAM1"
+# ],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20
+# )
 
 
 
@@ -2411,29 +2310,17 @@ plt.savefig(
 # In[ ]:
 
 
-#### DKK1
+# # ### ICI response genes
 
-with rc_context({"figure.figsize": (10,8)}):
-   ax = sc.pl.violin(
-        adata, 
-        keys = [
-            "DKK1"
-            ], 
-        groupby=cluster_ann_col,
-        rotation=270,
-        #save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"
-        show=False
-        )
-ax.set_yscale('log')
-ax.set_xlabel('Cell type', fontsize=12)
-ax.set_ylabel("DKK1 expression (log)")
-
-plt.tight_layout()
-plt.savefig(
-    os.path.join(qc_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_DKK1_violin_plot.png"),
-    dpi=300,
-    bbox_inches='tight'
-)
+# plot_goi_umaps(genes=[
+# "PDCD1", 
+# "CD274", 
+# "CTLA4"
+# ],
+# adata=adata,
+# sample_name= dataset_name,
+# s=20
+# )
 
 
 
@@ -2441,35 +2328,23 @@ plt.savefig(
 # In[ ]:
 
 
-#### T cell markers
+# # ---------------------------------------------------------------------------- #
+# #                         GENE EXPRESSION VIOLIN PLOTS                         #
+# # ---------------------------------------------------------------------------- #
 
-with rc_context({"figure.figsize": (10,8)}):
-   axes = sc.pl.violin(
-        adata, 
-        keys = [
-             "FOXP3", 
-             "GZMB"
-            ], 
-        #groupby=cluster_col,
-        groupby=cluster_ann_col,
-        rotation=270,
-        #save=f"{dataset_name}_pc{pc_label_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"
-        show=False
-        )
+# # Set the figure directory to your desired location
+# sc.settings.figdir = violin_path
 
-# Apply customisation to each graph axis
-for ax in axes:
-    ax.set_yscale('log')
-    ax.set_xlabel('Cell type', fontsize=12)
-
-axes[0].set_ylabel("T cell markers expression (log)")
-
-plt.tight_layout()
-plt.savefig(
-    os.path.join(qc_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_T_cell_markers_violin_plot.png"),
-    dpi=300,
-    bbox_inches='tight'
-)
+# with rc_context({"figure.figsize": (10, 8)}):
+#     ax= sc.pl.violin(
+#         adata,
+#         ["nFeature_Xenium"],
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         stripplot=False,  # remove the internal dots
+#         inner="box",  # adds a boxplot inside violins
+#         save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_gene_count_per_cluster_violin_plot.png"
+#     )
 
 
 
@@ -2477,43 +2352,30 @@ plt.savefig(
 # In[ ]:
 
 
-#### Integrins
+# #### DSG2
 
-with rc_context({"figure.figsize": (6, 5)}):
-    sc.pl.violin(
-        adata, 
-        [
-            "ITGAE", 
-            "ITGA1", 
-            "ITGA4",
-            "ITGA5"
-            ], 
-        #groupby=cluster_col,
-        groupby=cluster_ann_col,
-        rotation=270,
-        save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_integrin_genes_violin_plot.png"
-        )
+# with rc_context({"figure.figsize": (10,8)}):
+#    ax = sc.pl.violin(
+#         adata, 
+#         keys = [
+#             "DSG2"
+#             ], 
+#         #groupby=cluster_col,
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         #save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"
+#         show=False
+#         )
+# ax.set_yscale('log')
+# ax.set_xlabel('Cell type', fontsize=12)
+# ax.set_ylabel("DSG2 expression (log)")
 
-
-
-
-# In[ ]:
-
-
-#### TPD52 genes
-
-with rc_context({"figure.figsize": (6, 5)}):
-    sc.pl.violin(
-        adata, 
-        [
-            "TPD52",
-            "TPD52L1",
-            "TPD52L2"
-            ], 
-        groupby=cluster_ann_col,
-        rotation=270,
-        save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_TPD52_genes_violin_plot.png"
-        )
+# plt.tight_layout()
+# plt.savefig(
+#     os.path.join(qc_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_DSG2_violin_plot.png"),
+#     dpi=300,
+#     bbox_inches='tight'
+# )
 
 
 
@@ -2521,40 +2383,29 @@ with rc_context({"figure.figsize": (6, 5)}):
 # In[ ]:
 
 
-##### Selectins
+# #### SERPINE1
 
-with rc_context({"figure.figsize": (6,5)}):
-    sc.pl.violin(
-        adata, 
-        [
-        "SELE", 
-        "SELL", 
-        "SELP"
-        ], 
-        groupby=cluster_ann_col,
-        rotation=270,
-        save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_selectin_genes_violin_plot.png"
-        )
+# with rc_context({"figure.figsize": (10,8)}):
+#    ax = sc.pl.violin(
+#         adata, 
+#         keys = [
+#             "SERPINE1"
+#             ], 
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         #save=f"{dataset_name}_pc{pc_label_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"
+#         show=False
+#         )
+# ax.set_yscale('log')
+# ax.set_xlabel('Cell type', fontsize=12)
+# ax.set_ylabel("SERPINE1 expression (log)")
 
-
-
-
-# In[ ]:
-
-
-#### Fucosyltransferase genes
-
-with rc_context({"figure.figsize": (6, 5)}):
-    sc.pl.violin(
-        adata, 
-        [
-            "FUT6", 
-            "FUT7"
-        ], 
-        groupby=cluster_ann_col,
-        rotation=270,
-        save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_fucosyltransferase_genes_violin_plot.png"
-        )
+# plt.tight_layout()
+# plt.savefig(
+#     os.path.join(qc_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_SERPINE1_violin_plot.png"),
+#     dpi=300,
+#     bbox_inches='tight'
+# )
 
 
 
@@ -2562,40 +2413,29 @@ with rc_context({"figure.figsize": (6, 5)}):
 # In[ ]:
 
 
-# ### Adhesion genes
+# #### DKK1
 
-with rc_context({"figure.figsize": (6,5 )}):
-    sc.pl.violin(
-        adata, 
-        [
-            "VCAM1",
-            "ICAM1"
-        ], 
-        groupby=cluster_ann_col,
-        rotation=270,
-        save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_adhesion_genes_violin_plot.png"
-        )
+# with rc_context({"figure.figsize": (10,8)}):
+#    ax = sc.pl.violin(
+#         adata, 
+#         keys = [
+#             "DKK1"
+#             ], 
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         #save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"
+#         show=False
+#         )
+# ax.set_yscale('log')
+# ax.set_xlabel('Cell type', fontsize=12)
+# ax.set_ylabel("DKK1 expression (log)")
 
-
-
-
-# In[ ]:
-
-
-# ### ICI response genes
-
-with rc_context({"figure.figsize": (6, 5)}):
-    sc.pl.violin(
-        adata, 
-        [
-            "PDCD1", 
-            "CD274", 
-            "CTLA4"
-        ], 
-        groupby=cluster_ann_col,
-        rotation=270,
-        save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_adhesion_genes_violin_plot.png"
-        )
+# plt.tight_layout()
+# plt.savefig(
+#     os.path.join(qc_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_DKK1_violin_plot.png"),
+#     dpi=300,
+#     bbox_inches='tight'
+# )
 
 
 
@@ -2603,39 +2443,35 @@ with rc_context({"figure.figsize": (6, 5)}):
 # In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                           Gene expression dot plots                          #
-# ---------------------------------------------------------------------------- #
+# #### T cell markers
 
-# Set the figure directory to your desired location
-sc.settings.figdir = dotplot_path
-adata.obs[cluster_ann_col]
+# with rc_context({"figure.figsize": (10,8)}):
+#    axes = sc.pl.violin(
+#         adata, 
+#         keys = [
+#              "FOXP3", 
+#              "GZMB"
+#             ], 
+#         #groupby=cluster_col,
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         #save=f"{dataset_name}_pc{pc_label_nc{lambda_label}_r{res_label}_DSG2_family_violin_plot.png"
+#         show=False
+#         )
 
+# # Apply customisation to each graph axis
+# for ax in axes:
+#     ax.set_yscale('log')
+#     ax.set_xlabel('Cell type', fontsize=12)
 
+# axes[0].set_ylabel("T cell markers expression (log)")
 
-
-# In[ ]:
-
-
-# --------------------------- Tier gene 1 dotplots --------------------------- #
-
-#### Dot plot function
-def plot_goi_dotplot (
-    adata,
-    cell_type_savename: str,
-    marker_genes_dict: dict, #dictionary such as {"Melanoma : ['TYR', 'EDNRB']"}
-    s: int = 20,
-    **kwargs #additional sc.pl.umap arguments such as ncols or dendrogram = True
-):
-
-    with rc_context({"figure.figsize": (10,10)}):
-        sc.pl.dotplot(
-            adata, 
-            marker_genes_dict,
-            groupby=cluster_ann_col,
-            save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_{cell_type_savename}_dot_plot.png",
-            **kwargs
-            )
+# plt.tight_layout()
+# plt.savefig(
+#     os.path.join(qc_path, f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_T_cell_markers_violin_plot.png"),
+#     dpi=300,
+#     bbox_inches='tight'
+# )
 
 
 
@@ -2643,8 +2479,22 @@ def plot_goi_dotplot (
 # In[ ]:
 
 
-# Set the figure directory to your desired location
-sc.settings.figdir = dotplot_path
+# #### Integrins
+
+# with rc_context({"figure.figsize": (6, 5)}):
+#     sc.pl.violin(
+#         adata, 
+#         [
+#             "ITGAE", 
+#             "ITGA1", 
+#             "ITGA4",
+#             "ITGA5"
+#             ], 
+#         #groupby=cluster_col,
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_integrin_genes_violin_plot.png"
+#         )
 
 
 
@@ -2652,38 +2502,20 @@ sc.settings.figdir = dotplot_path
 # In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                       NEIGHBOURHOOD ENRICHMENT ANALYSIS                      #
-# ---------------------------------------------------------------------------- #
+# #### TPD52 genes
 
-# Set the figure directory to your desired location
-sc.settings.figdir = neighbour_path
-
-
-
-
-# In[ ]:
-
-
-# Adding spatial coordinates to .obsm
-adata.obsm["spatial"] = adata.obs[["x", "y"]].to_numpy()
-
-
-
-
-# In[ ]:
-
-
-sq.gr.spatial_neighbors(adata)
-
-cluster_key = cluster_ann_col
-sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
-
-with rc_context({"figure.figsize": (10,10)}):
-    sq.pl.nhood_enrichment(
-        adata, 
-        cluster_key=cluster_key,
-        save=f"neighbourhood_enrichment_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png")
+# with rc_context({"figure.figsize": (6, 5)}):
+#     sc.pl.violin(
+#         adata, 
+#         [
+#             "TPD52",
+#             "TPD52L1",
+#             "TPD52L2"
+#             ], 
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_TPD52_genes_violin_plot.png"
+#         )
 
 
 
@@ -2691,28 +2523,20 @@ with rc_context({"figure.figsize": (10,10)}):
 # In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                      MORAN'S I SCORE OF AUTOCORRELATION                      #
-# ---------------------------------------------------------------------------- #
+# ##### Selectins
 
-from spatialdata import SpatialData
-adata.obs.rename(columns={"cell type": "cell_type"}, inplace=True)
-
-# Create SpatialData with a single table (the AnnData)
-sdata = SpatialData(tables={"cells": adata})
-
-# Perform Moran's I calculation
-sdata.tables["subsample"] = sc.pp.subsample(adata, fraction=0.5, copy=True)
-adata_subsample = sdata.tables["subsample"]
-
-sq.gr.spatial_neighbors(adata_subsample, coord_type="generic", delaunay=True)
-sq.gr.spatial_autocorr(
-    adata_subsample,
-    mode="moran",
-    n_perms=100,
-    n_jobs=1,
-)
-adata_subsample.uns["moranI"].head(10)
+# with rc_context({"figure.figsize": (6,5)}):
+#     sc.pl.violin(
+#         adata, 
+#         [
+#         "SELE", 
+#         "SELL", 
+#         "SELP"
+#         ], 
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_selectin_genes_violin_plot.png"
+#         )
 
 
 
@@ -2720,19 +2544,19 @@ adata_subsample.uns["moranI"].head(10)
 # In[ ]:
 
 
-## Store moran I scores as a data frame
-moran_scores = adata_subsample.uns["moranI"]
-moran_scores = moran_scores.reset_index(names=["Gene"])
+# #### Fucosyltransferase genes
 
-## Exclude _nbr_0 and _nbr_1
-moran_scores_raw = moran_scores[~moran_scores["Gene"].str.contains("_nbr_0", case=False, na=False)]
-moran_scores_raw = moran_scores_raw[~moran_scores_raw["Gene"].str.contains("_nbr_1", case=False, na=False)]
-
-## Filter for genes that have an FDR if less than 10%
-moran_scores_raw = moran_scores_raw[moran_scores_raw["pval_sim_fdr_bh"] <= 0.10]
-
-## Write Moran I scores to .csv
-moran_scores_raw.to_csv(f"{processed_path}/moran_scores_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.csv")
+# with rc_context({"figure.figsize": (6, 5)}):
+#     sc.pl.violin(
+#         adata, 
+#         [
+#             "FUT6", 
+#             "FUT7"
+#         ], 
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_fucosyltransferase_genes_violin_plot.png"
+#         )
 
 
 
@@ -2740,25 +2564,203 @@ moran_scores_raw.to_csv(f"{processed_path}/moran_scores_{dataset_name}_pc{pc_lab
 # In[ ]:
 
 
-## Plot spatial scatter plots for genes with the top 10 highest Moran I scores
+# # ### Adhesion genes
 
-## Create a list of the top scoring genes
-top_moran = moran_scores_raw.sort_values(by="pval_sim", ascending=True)
-top_moran = top_moran.iloc[:10]
-top_moran = list(top_moran['Gene'])
-top_moran
+# with rc_context({"figure.figsize": (6,5 )}):
+#     sc.pl.violin(
+#         adata, 
+#         [
+#             "VCAM1",
+#             "ICAM1"
+#         ], 
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_adhesion_genes_violin_plot.png"
+#         )
 
-for i in top_moran:
-    with rc_context({"figure.figsize": (12,8)}):
-        sq.pl.spatial_scatter(
-            adata_subsample,
-            library_id="spatial",
-            color=[i],
-            shape=None,
-            size=2,
-            img=False,
-            save= f"spatial_scatter_top_moran_I_{i}_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
-)
+
+
+
+# In[ ]:
+
+
+# # ### ICI response genes
+
+# with rc_context({"figure.figsize": (6, 5)}):
+#     sc.pl.violin(
+#         adata, 
+#         [
+#             "PDCD1", 
+#             "CD274", 
+#             "CTLA4"
+#         ], 
+#         groupby=cluster_ann_col,
+#         rotation=270,
+#         save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_adhesion_genes_violin_plot.png"
+#         )
+
+
+
+
+# In[ ]:
+
+
+# # ---------------------------------------------------------------------------- #
+# #                           Gene expression dot plots                          #
+# # ---------------------------------------------------------------------------- #
+
+# # Set the figure directory to your desired location
+# sc.settings.figdir = dotplot_path
+# adata.obs[cluster_ann_col]
+
+
+
+
+# In[ ]:
+
+
+# # --------------------------- Tier gene 1 dotplots --------------------------- #
+
+# #### Dot plot function
+# def plot_goi_dotplot (
+#     adata,
+#     cell_type_savename: str,
+#     marker_genes_dict: dict, #dictionary such as {"Melanoma : ['TYR', 'EDNRB']"}
+#     s: int = 20,
+#     **kwargs #additional sc.pl.umap arguments such as ncols or dendrogram = True
+# ):
+
+#     with rc_context({"figure.figsize": (10,10)}):
+#         sc.pl.dotplot(
+#             adata, 
+#             marker_genes_dict,
+#             groupby=cluster_ann_col,
+#             save=f"{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}_{cell_type_savename}_dot_plot.png",
+#             **kwargs
+#             )
+
+
+
+
+# In[ ]:
+
+
+# # Set the figure directory to your desired location
+# sc.settings.figdir = dotplot_path
+
+
+
+
+# In[ ]:
+
+
+# # ---------------------------------------------------------------------------- #
+# #                       NEIGHBOURHOOD ENRICHMENT ANALYSIS                      #
+# # ---------------------------------------------------------------------------- #
+
+# # Set the figure directory to your desired location
+# sc.settings.figdir = neighbour_path
+
+
+
+
+# In[ ]:
+
+
+# # Adding spatial coordinates to .obsm
+# adata.obsm["spatial"] = adata.obs[["x", "y"]].to_numpy()
+
+
+
+
+# In[ ]:
+
+
+# sq.gr.spatial_neighbors(adata)
+
+# cluster_key = cluster_ann_col
+# sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
+
+# with rc_context({"figure.figsize": (10,10)}):
+#     sq.pl.nhood_enrichment(
+#         adata, 
+#         cluster_key=cluster_key,
+#         save=f"neighbourhood_enrichment_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png")
+
+
+
+
+# In[ ]:
+
+
+# # ---------------------------------------------------------------------------- #
+# #                      MORAN'S I SCORE OF AUTOCORRELATION                      #
+# # ---------------------------------------------------------------------------- #
+
+# from spatialdata import SpatialData
+# adata.obs.rename(columns={"cell type": "cell_type"}, inplace=True)
+
+# # Create SpatialData with a single table (the AnnData)
+# sdata = SpatialData(tables={"cells": adata})
+
+# # Perform Moran's I calculation
+# sdata.tables["subsample"] = sc.pp.subsample(adata, fraction=0.5, copy=True)
+# adata_subsample = sdata.tables["subsample"]
+
+# sq.gr.spatial_neighbors(adata_subsample, coord_type="generic", delaunay=True)
+# sq.gr.spatial_autocorr(
+#     adata_subsample,
+#     mode="moran",
+#     n_perms=100,
+#     n_jobs=1,
+# )
+# adata_subsample.uns["moranI"].head(10)
+
+
+
+
+# In[ ]:
+
+
+# ## Store moran I scores as a data frame
+# moran_scores = adata_subsample.uns["moranI"]
+# moran_scores = moran_scores.reset_index(names=["Gene"])
+
+# ## Exclude _nbr_0 and _nbr_1
+# moran_scores_raw = moran_scores[~moran_scores["Gene"].str.contains("_nbr_0", case=False, na=False)]
+# moran_scores_raw = moran_scores_raw[~moran_scores_raw["Gene"].str.contains("_nbr_1", case=False, na=False)]
+
+# ## Filter for genes that have an FDR if less than 10%
+# moran_scores_raw = moran_scores_raw[moran_scores_raw["pval_sim_fdr_bh"] <= 0.10]
+
+# ## Write Moran I scores to .csv
+# moran_scores_raw.to_csv(f"{processed_path}/moran_scores_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.csv")
+
+
+
+
+# In[ ]:
+
+
+# ## Plot spatial scatter plots for genes with the top 10 highest Moran I scores
+
+# ## Create a list of the top scoring genes
+# top_moran = moran_scores_raw.sort_values(by="pval_sim", ascending=True)
+# top_moran = top_moran.iloc[:10]
+# top_moran = list(top_moran['Gene'])
+# top_moran
+
+# for i in top_moran:
+#     with rc_context({"figure.figsize": (12,8)}):
+#         sq.pl.spatial_scatter(
+#             adata_subsample,
+#             library_id="spatial",
+#             color=[i],
+#             shape=None,
+#             size=2,
+#             img=False,
+#             save= f"spatial_scatter_top_moran_I_{i}_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
+# )
 
 
 
@@ -2816,50 +2818,50 @@ for i in top_moran:
 # In[ ]:
 
 
-# ---------------------------------------------------------------------------- #
-#                   SPATIAL EXPRESSION FOR GENES OF INTEREST                   #
-# ---------------------------------------------------------------------------- #
+# # ---------------------------------------------------------------------------- #
+# #                   SPATIAL EXPRESSION FOR GENES OF INTEREST                   #
+# # ---------------------------------------------------------------------------- #
 
-# Set the figure directory to your desired location
-sc.settings.figdir = spatial_scatter_path
+# # Set the figure directory to your desired location
+# sc.settings.figdir = spatial_scatter_path
 
-goi_list = [
-    "DSG2",
-    "SERPINE1",
-    "DKK1",
-    "FOXP3", 
-    "GZMB",
-    "ITGAE",
-    "ITGA1",
-    "ITGA4",
-    "ITGA5",
-    "TPD52",
-    "TPD52L1",
-    "TPD52L2",
-    "SELE", 
-    "SELL", 
-    "SELP",
-    "FUT6", 
-    "FUT7",
-    "VCAM1",
-    "ICAM1",
-    "PDCD1", 
-    "CD274", 
-    "CTLA4",
-]
+# goi_list = [
+#     "DSG2",
+#     "SERPINE1",
+#     "DKK1",
+#     "FOXP3", 
+#     "GZMB",
+#     "ITGAE",
+#     "ITGA1",
+#     "ITGA4",
+#     "ITGA5",
+#     "TPD52",
+#     "TPD52L1",
+#     "TPD52L2",
+#     "SELE", 
+#     "SELL", 
+#     "SELP",
+#     "FUT6", 
+#     "FUT7",
+#     "VCAM1",
+#     "ICAM1",
+#     "PDCD1", 
+#     "CD274", 
+#     "CTLA4",
+# ]
 
-# Set the figure directory to your desired location
-sc.settings.figdir = spatial_scatter_path
+# # Set the figure directory to your desired location
+# sc.settings.figdir = spatial_scatter_path
 
-for gene in goi_list:
-    sq.pl.spatial_scatter(
-        adata_subsample,
-        library_id="spatial",
-        color=[gene],
-        shape=None,
-        size=2,
-        img=False,
-        save= f"spatial_scatter_{gene}_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
-)
+# for gene in goi_list:
+#     sq.pl.spatial_scatter(
+#         adata_subsample,
+#         library_id="spatial",
+#         color=[gene],
+#         shape=None,
+#         size=2,
+#         img=False,
+#         save= f"spatial_scatter_{gene}_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
+# )
 
 
