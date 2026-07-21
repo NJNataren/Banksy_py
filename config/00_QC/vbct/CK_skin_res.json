@@ -2,7 +2,7 @@
     "project": "vbct",
     "raw_subdir": "vbct",
     "dataset_name": "CK_skin_res",
-    "pc_label": "20",
+    "pc_label": "30",
     "lambda_label": "0.20",
     "res_label": [
         "0.50",
