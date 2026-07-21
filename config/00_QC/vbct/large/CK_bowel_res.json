@@ -34,8 +34,5 @@
         "17": "Melanoma Tumor Cells (MITF\u207a_or_Epithelial-Contacting)_17",
         "18": "Melanoma Tumor Cells (MITF\u207a MIR205HG)_18",
         "19": "Pericyte-like stromal cells_19"
-    },
-    "resolutions": [
-        "0.5"
-    ]
+    }
 }

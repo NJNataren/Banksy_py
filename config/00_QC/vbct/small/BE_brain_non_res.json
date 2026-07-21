@@ -33,10 +33,5 @@
         "10": "Plasma_cells_10",
         "11": "DC-like_TAMs_or_Inflammatory_macrophages_11",
         "12": "M2-like_tumour_associated_macrophages_(Immuneregulatory)_12"
-    },
-    "resolutions": [
-        "0.5",
-        "0.6",
-        "0.7"
-    ]
+    }
 }
