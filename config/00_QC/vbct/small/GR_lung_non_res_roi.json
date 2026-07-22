@@ -4,7 +4,7 @@
     "dataset_name": "GR_lung_non_res_roi",
     "pc_label": "35",
     "lambda_label": "0.20",
-      "res_label": [
+    "res_label": [
         "0.50",
         "0.60",
         "0.70",
@@ -13,12 +13,14 @@
         "1.00",
         "1.10"
     ],
+    "plot_res_label": "0.70",
     "nbr_weight_decay": "scaled_gaussian",
     "coord_keys": [
         "x",
         "y",
         "xy"
     ],
+    "cluster_col": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
     "new_labels": {
         "0": "Invasive_Neural_crest-like_melanoma_0",
         "1": "M2-like_Tumour_Associated_Macrophages_1",

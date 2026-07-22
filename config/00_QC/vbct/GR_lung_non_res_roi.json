@@ -13,12 +13,14 @@
         "1.00",
         "1.10"
     ],
+    "plot_res_label": "0.70",
     "nbr_weight_decay": "scaled_gaussian",
     "coord_keys": [
         "x",
         "y",
         "xy"
     ],
+    "cluster_col": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
     "new_labels": {
         "0": "Melanoma_Cell_or_Melanocyte_0",
         "1": "Unassigned_1",

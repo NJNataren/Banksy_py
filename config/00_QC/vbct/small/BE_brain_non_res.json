@@ -4,7 +4,7 @@
     "dataset_name": "BE_brain_non_res",
     "pc_label": "30",
     "lambda_label": "0.20",
-     "res_label": [
+    "res_label": [
         "0.50",
         "0.60",
         "0.70",
@@ -13,12 +13,14 @@
         "1.00",
         "1.10"
     ],
+    "plot_res_label": "0.70",
     "nbr_weight_decay": "scaled_gaussian",
     "coord_keys": [
         "x",
         "y",
         "xy"
     ],
+    "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
     "new_labels": {
         "0": "M2-like_tumour_associated_macrophages_0",
         "1": "Myeloid_cells_(low_confidence)_1",

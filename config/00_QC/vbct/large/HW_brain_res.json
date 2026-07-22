@@ -7,12 +7,14 @@
     "res_label": [
         "1.10"
     ],
+    "plot_res_label": "0.70",
     "nbr_weight_decay": "scaled_gaussian",
     "coord_keys": [
         "x",
         "y",
         "xy"
     ],
+    "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
     "new_labels": {
         "0": "Proliferative_neural_crest-like_melanoma_cells_0",
         "1": "Mesenchymal_melanoma_cells_1",
