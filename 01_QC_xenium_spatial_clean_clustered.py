@@ -66,7 +66,7 @@ random.seed(seed)
 # #                              LOCAL TESTING BLOCK                             #
 # # ---------------------------------------------------------------------------- #
 
-# ## These values mirror config/01_clustering/vbct/small/CK_skin_res.json.
+# ## These values mirror config/00_clustering/vbct/small/CK_skin_res.json.
 # ## Leave this block commented when using --config from Slurm/the shell.
 # dataset_name = "CK_skin_res"
 # pc_label = "30"

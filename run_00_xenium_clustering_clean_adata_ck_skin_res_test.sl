@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-CONFIG="config/01_clustering/vbct/small/CK_skin_res.json"
+CONFIG="config/00_clustering/vbct/small/CK_skin_res.json"
 PROJECT="vbct"
 DATASET_NAME="CK_skin_res"
 RES_STR="0.70_0.80_0.90_1.00"

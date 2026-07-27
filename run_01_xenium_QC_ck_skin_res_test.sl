@@ -12,7 +12,7 @@
 set -euo pipefail
 
 REPO_DIR="/scratchdata1/users/a1210419/Banksy_py"
-CONFIG="config/00_QC/vbct/small/CK_skin_res.json"
+CONFIG="config/01_QC/vbct/small/CK_skin_res.json"
 
 echo "Submitting directory: ${SLURM_SUBMIT_DIR:-unknown}"
 echo "Changing to repository directory: ${REPO_DIR}"

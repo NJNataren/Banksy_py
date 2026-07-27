@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO_DIR="/scratchdata1/users/a1210419/Banksy_py"
-CONFIG="config/01_clustering/vbct/small/CK_skin_res.json"
+CONFIG="config/00_clustering/vbct/small/CK_skin_res.json"
 PROJECT="vbct"
 DATASET_NAME="CK_skin_res"
 

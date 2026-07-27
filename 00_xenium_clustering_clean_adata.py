@@ -144,7 +144,7 @@ def resolve_obs_column(adata, candidates, column_label):
 # #   ** LOCAL TESTING BLOCK **    #
 # ##################################
 
-# ## These values mirror config/01_clustering/vbct/small/CK_skin_res.json.
+# ## These values mirror config/00_clustering/vbct/small/CK_skin_res.json.
 # ## Leave this block commented when using --config from Slurm/the shell.
 # dataset_name = "CK_skin_res" # sample name
 # pc_label = "30" # Label for the number of principal components used for filenames
