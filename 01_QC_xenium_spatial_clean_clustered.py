@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[198]:
+# In[1]:
 
 
 #!/usr/bin/env python
@@ -16,7 +16,7 @@ objects that already contain BANKSY cluster labels and embeddings.
 
 
 
-# In[199]:
+# In[2]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -28,7 +28,7 @@ objects that already contain BANKSY cluster labels and embeddings.
 
 
 
-# In[200]:
+# In[3]:
 
 
 ### Import packages
@@ -59,7 +59,7 @@ random.seed(seed)
 
 
 
-# In[201]:
+# In[4]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -97,7 +97,7 @@ random.seed(seed)
 
 
 
-# In[202]:
+# In[5]:
 
 
 # --------------------- PARSE ARGUMENTS FROM JSON CONFIG --------------------- #
@@ -172,7 +172,7 @@ new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell t
 
 
 
-# In[ ]:
+# In[6]:
 
 
 def plot_qc_spatial_tissue(
@@ -224,7 +224,7 @@ def plot_qc_spatial_tissue(
 
     output_file = os.path.join(
         output_path,
-        f"tissue_spatial_scatter_min_{qc_metric}_{sample_name}.png"
+        f"tissue_spatial_scatter_{qc_metric}_{sample_name}.png"
     )
 
     plt.savefig(
@@ -240,6 +240,11 @@ def plot_qc_spatial_tissue(
         plt.close()
     else:
         plt.close()
+
+
+
+
+# In[7]:
 
 
 def cluster_qc_violin(
@@ -384,6 +389,9 @@ def cluster_qc_violin(
         plt.show()
     else:
         plt.close()
+
+
+# In[8]:
 
 
 # ------ Plot the UMAP with clusters and a selected QC metric ------ #
@@ -547,9 +555,7 @@ def plot_umap_qc_metric(
     return fig, axes
 
 
-
-
-# In[204]:
+# In[9]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -625,7 +631,7 @@ for plot_path in [qc_umap_path, qc_violin_path]:
 
 
 
-# In[205]:
+# In[10]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -661,7 +667,7 @@ if banksy_pca_key in adata.obsm and "X_pca" not in adata.obsm:
 
 
 
-# In[206]:
+# In[11]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -675,7 +681,7 @@ adata = adata
 
 
 
-# In[207]:
+# In[12]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -712,6 +718,11 @@ plt.close()
 # In[208]:
 
 
+
+
+# In[13]:
+
+
 ## Check to compare nCount_Xenium, adata.X and adata.layers["counts"]
 ## nCount_Xenium and adata.layers["counts"] represent raw counts before any normalisation/transformation
 ## adata.X contains log-transformed and scanpy.pp.normalize_total() normalised counts
@@ -739,7 +750,7 @@ comparison = pd.DataFrame(
 comparison
 
 
-# In[209]:
+# In[14]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -803,6 +814,11 @@ print(f"Saving Gene_transcript_counts_vs_Negative_Control_probes_counts_{dataset
 # In[210]:
 
 
+
+
+# In[ ]:
+
+
 ## Summary of number of features
 # features = pd.read_csv(
 #     os.path.join(raw_path, "features", f"{dataset_name}", "features.tsv.gz"),
@@ -826,10 +842,10 @@ print(f"Saving Gene_transcript_counts_vs_Negative_Control_probes_counts_{dataset
 # print(negative_control_probes.tolist())
 
 
-# In[211]:
+# In[ ]:
 
 
-## Create a mask for cells with at least 1 negative probe counts
+# ------- Create a mask for cells with at least 1 negative probe counts ------ #
 neg_mask = adata.obs["control_probe_counts"] >= 1
 
 n_neg_cells = neg_mask.sum()
@@ -849,7 +865,7 @@ adata.obs["gene_transcripts_per_um2"] = ((adata.obs["nCount_Xenium"]) / adata.ob
 #adata.obs["gene_transcripts_per_um2"] = adata.obs["gene_transcripts_per_um2"]
 
 
-## percentage of negative controls vs transcripts detected per um^2
+# ----- percentage of negative controls vs transcripts detected per um^2 ----- #
 
 sns.set_theme(style="darkgrid")
 
@@ -857,14 +873,14 @@ fig, ax = plt.subplots(figsize=(7, 5))
 
 sns.scatterplot(
     data=adata.obs,
-    x="gene_transcripts_per_um2",
-    y="neg_probe_pct_of_gene_plus_neg_probe",
+    y="gene_transcripts_per_um2",
+    x="neg_probe_pct_of_gene_plus_neg_probe",
     ax=ax
 )
 
 ax.set_title("Negative control probe % vs raw gene transcripts per µm²")
-ax.set_ylabel("Percentage negative control counts per cell (%)")
-ax.set_xlabel("Transcripts per µm²")
+ax.set_xlabel("Percentage negative control counts per cell (%)")
+ax.set_ylabel("Transcripts per µm²")
 
 fig.tight_layout()
 fig.savefig(
@@ -909,7 +925,7 @@ print("AnnData cells:", adata.n_obs)
 
 
 
-# In[213]:
+# In[ ]:
 
 
 ## Subset transcripts parquet to negative probe transcripts
@@ -1036,6 +1052,85 @@ print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{datase
 # In[215]:
 
 
+
+
+# In[ ]:
+
+
+# ------------------- Negative control probe count per cell ------------------ #
+
+# Calculate, for each cell, what proportion of its negative-control signal
+# comes from each negative-control probe.
+
+neg_tx_assigned = neg_tx[neg_tx["cell_id"] != "UNASSIGNED"].copy()
+
+probe_counts = (
+    neg_tx_assigned
+    .groupby(["cell_id", "feature_name"])
+    .size()
+    .reset_index(name="probe_count")
+)
+
+probe_counts["total_neg_counts_per_cell"] = (
+    probe_counts
+    .groupby("cell_id")["probe_count"]
+    .transform("sum")
+)
+
+probe_counts["probe_proportion_within_cell"] = (
+    (probe_counts["probe_count"] / probe_counts["total_neg_counts_per_cell"])
+)
+
+probe_counts.head()
+
+## Negative probe proportion within cell
+probe_counts["probe_proportion_within_cell"].min(), probe_counts["probe_proportion_within_cell"].max()
+
+# ------------ Negative control probe count per cell violin plots ------------ #
+
+fig, ax = plt.subplots(figsize=(12, 8))
+
+sns.violinplot(
+    data=probe_counts,
+    x="feature_name",
+    y="probe_proportion_within_cell",
+    cut=0,
+    inner=None,
+    color="lightblue",
+    ax=ax
+)
+
+sns.stripplot(
+    data=probe_counts,
+    x="feature_name",
+    y="probe_proportion_within_cell",
+    color="black",
+    alpha=0.25,
+    size=2,
+    jitter=True,
+    ax=ax
+)
+
+ax.set_ylim(0, 1)
+ax.tick_params(axis="x", rotation=90)
+ax.set_ylabel("Proportion of negative-control probe counts in all negative probe counts")
+ax.set_xlabel("Negative control probe")
+ax.set_title("Within-cell Negative Control Probe Proportions/Total Probes")
+
+fig.tight_layout()
+fig.savefig(
+    os.path.join(qc_path, f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches="tight"
+)
+plt.show()
+plt.close(fig)
+print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")    
+
+
+# In[ ]:
+
+
 # ---------------------------------------------------------------------------- #
 #                          NEGATIVE CONTROL PROBE MASK                         #
 # ---------------------------------------------------------------------------- #
@@ -1089,7 +1184,7 @@ probe_order_official = (
 )
 
 
-# In[216]:
+# In[ ]:
 
 
 # ------- Plot location of cell with >= 1 negative control probe count ------- #
@@ -1102,7 +1197,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[217]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1191,6 +1286,58 @@ print(f"Cluster_by_negative_control_probe_detection_heatmap_{dataset_name}.png t
 # In[76]:
 
 
+
+
+# In[ ]:
+
+
+# ---------------------------------------------------------------------------- #
+#              PLOT 4 - CLUSTER BY NEGATIVE CONTROL PROBE HEATMAP              #
+# ---------------------------------------------------------------------------- #
+
+cluster_plot_col = cluster_ann_col if cluster_ann_col in adata.obs.columns else cluster_col
+
+cluster_probe_detection = probe_count_matrix_official.gt(0).copy()
+cluster_probe_detection[cluster_plot_col] = adata.obs[cluster_plot_col].astype(str).values
+
+cluster_probe_detection_percent = (
+    cluster_probe_detection
+    .groupby(cluster_plot_col)[probe_order_official]
+    .mean()
+    * 100
+)
+
+fig, ax = plt.subplots(figsize=(12, max(4, 0.35 * cluster_probe_detection_percent.shape[0])))
+
+sns.heatmap(
+    cluster_probe_detection_percent,
+    cmap="viridis",
+    linewidths=0.2,
+    cbar_kws={"label": "Cells with probe detected (%)"},
+    ax=ax
+)
+
+ax.set_ylabel("Cluster")
+ax.set_xlabel("Negative control probe")
+ax.set_title(f"{dataset_name}: negative-control probe detection by cluster (%)")
+fig.tight_layout()
+
+fig.savefig(
+    os.path.join(qc_path, f"Cluster_by_negative_control_probe_detection_heatmap_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+plt.close(fig)
+print(f"Cluster_by_negative_control_probe_detection_heatmap_{dataset_name}.png to {qc_path}")
+
+
+
+
+# In[ ]:
+
+
 negative_probe_vars = [
     v for v in adata.var_names
     if str(v).startswith("NegControlProbe_")
@@ -1199,15 +1346,8 @@ negative_probe_vars = [
 negative_probe_vars
 
 
-# In[21]:
+# In[ ]:
 
-
-# ---------------------------------------------------------------------------- #
-#                FILTER 2 - MINIMUM NUMBER OF TRANSCRIPTS FILTER               #
-# ---------------------------------------------------------------------------- #
-
-### Plot knee plot (log10 transcripts per cell)
-## Knee plot code adapted from https://pachterlab.github.io/kallistobustools/tutorials/kb_getting_started/python/kb_intro_2_python/
 
 # ------------------- Set the minimum transcript threshold ------------------- #
 threshold = 10
@@ -1243,6 +1383,11 @@ print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee
 # In[22]:
 
 
+
+
+# In[ ]:
+
+
 # ---------------- Apply the minimum transcripts per cell mask --------------- #
 
 ## Apply a mask to retrieve cells that don't pass the filter
@@ -1262,7 +1407,7 @@ adata.obs['min_trans_passed'] = adata.obs['nCount_Xenium'] > threshold #True = p
 
 
 
-# In[23]:
+# In[ ]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
@@ -1276,7 +1421,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[24]:
+# In[ ]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -1339,6 +1484,42 @@ plt.close()
 # In[26]:
 
 
+
+
+# In[ ]:
+
+
+# -------------- Plot of total transripts per cell across sample ------------- #
+# vmax set to the 99th percentile of transcript counts
+with rc_context({"figure.figsize": (12, 8)}):
+    sq.pl.spatial_scatter(
+        adata,
+        library_id="dataset_name",
+        spatial_key="xy",
+        color="nCount_Xenium",
+        shape=None,
+        size=2,
+        img=False,
+        vmax = adata.obs['nCount_Xenium'].quantile(0.99),
+        #cmap="gist_stern"
+        #cmap="gist_rainbow"
+        #cmap="rainbow"
+        cmap="Spectral"
+    )
+
+plt.savefig(
+    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_quantile_99_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+plt.show() 
+
+
+
+
+# In[ ]:
+
+
 # ---------------------------------------------------------------------------- #
 #                         EXPORT ADATA.X MATRIX TO .CSV                        #
 # ---------------------------------------------------------------------------- #
@@ -1356,7 +1537,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 
 
 
-# In[27]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1371,7 +1552,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 print("All files saved to:", qc_path)
 
 
-# In[28]:
+# In[ ]:
 
 
 # # ----------- Calculate the total counts for genes across all cells ---------- #
@@ -1391,7 +1572,7 @@ print("All files saved to:", qc_path)
 
 
 
-# In[29]:
+# In[ ]:
 
 
 # # --------------------------- Plot the top 50 genes -------------------------- #
@@ -1411,7 +1592,7 @@ print("All files saved to:", qc_path)
 
 
 
-# In[30]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1430,7 +1611,7 @@ adata.obs['max_trans_threshold_passed'] = max_trans_threshold_passed['max_transc
 
 
 
-# In[31]:
+# In[ ]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
@@ -1444,7 +1625,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[32]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1465,7 +1646,7 @@ else:
 
 
 
-# In[33]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1486,7 +1667,7 @@ adata.obs["max_area_threshold_99_cat"] = (
 )
 
 
-# In[34]:
+# In[ ]:
 
 
 # Plot the cell with negative controls on the tissue spatial plot
@@ -1515,6 +1696,11 @@ print(f"tissue_spatial_scatter_max_area_threshold_99_{dataset_name}.png to {qc_p
 # In[35]:
 
 
+
+
+# In[ ]:
+
+
 # Create a category to colour plots
 adata.obs["max_area_threshold_99_cat"] = (
     adata.obs["max_area_threshold_99"]
@@ -1530,7 +1716,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[36]:
+# In[ ]:
 
 
 # ------------------------- Top 2% cells by cell area ------------------------ #
@@ -1548,7 +1734,7 @@ adata.obs["max_area_threshold_98_cat"] = (
 )
 
 
-# In[37]:
+# In[ ]:
 
 
 ## Tissue plot of cells with max transcripts threshold 
@@ -1559,7 +1745,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[38]:
+# In[ ]:
 
 
 # ----------------------- Bottom 1% cells by cell area ----------------------- #
@@ -1576,7 +1762,7 @@ adata.obs["min_area_threshold_1_cat"] = (
 )
 
 
-# In[39]:
+# In[ ]:
 
 
 ## Tissue plot of cells with max transcripts threshold 
@@ -1587,7 +1773,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[40]:
+# In[ ]:
 
 
 # ----------------------- Bottom 2% cells by cell area ----------------------- #
@@ -1604,7 +1790,7 @@ adata.obs["min_area_threshold_2_cat"] = (
 )
 
 
-# In[41]:
+# In[ ]:
 
 
 ## Tissue plot of cells with 
@@ -1615,7 +1801,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[42]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1694,7 +1880,7 @@ else:
 
 
 
-# In[44]:
+# In[ ]:
 
 
 # Set the figure directory to your desired location
@@ -1733,11 +1919,16 @@ plt.close(ax.figure)
 # In[45]:
 
 
+
+
+# In[ ]:
+
+
 adata.obs[cluster_col].astype(str).value_counts().sort_index()
 adata.obs[cluster_ann_col].value_counts(dropna=False)
 
 
-# In[46]:
+# In[ ]:
 
 
 print(cluster_col)
@@ -1746,7 +1937,7 @@ print(adata.obs[cluster_col].nunique())
 print(adata.obs[cluster_ann_col].nunique())
 
 
-# In[47]:
+# In[ ]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -1766,7 +1957,7 @@ print(adata.obs[cluster_ann_col].nunique())
 
 
 
-# In[48]:
+# In[ ]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -1813,7 +2004,7 @@ print(adata.obs[cluster_ann_col].nunique())
 
 
 
-# In[49]:
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1875,6 +2066,43 @@ plt.close("all")
 # In[51]:
 
 
+
+
+# In[ ]:
+
+
+# ---------------------------------------------------------------------------- #
+#                                ANNOTATED UMAP                                #
+# ---------------------------------------------------------------------------- #
+
+### Cluster Annotated UMAP
+## Plot the umap with bulk labels
+import scanpy as sc
+from matplotlib.pyplot import rc_context
+
+color_vars = [
+cluster_ann_col
+]
+
+with rc_context({"figure.figsize": (5,5)}):
+    sc.pl.umap(
+        adata, 
+        color=color_vars, 
+        s=5, 
+        frameon=True, 
+        vmax="p99",
+        add_outline=True,
+        legend_fontsize=10,
+        title=f"{dataset_name} clusters",
+        save = f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_label}.png"
+        )
+
+
+
+
+# In[ ]:
+
+
 # # ---------- Plot the UMAP coloured by negative control probe counts --------- #
 # fig, axes = plot_umap_qc_metric(
 #     adata=adata,
@@ -1886,7 +2114,7 @@ plt.close("all")
 # )
 
 
-# In[52]:
+# In[ ]:
 
 
 # # --------------- Plot the UMAP coloured by minimum transcripts -------------- #
@@ -1900,7 +2128,7 @@ plt.close("all")
 # )
 
 
-# In[53]:
+# In[ ]:
 
 
 # # --------------- Plot the UMAP coloured by maximum transcripts -------------- #
@@ -1914,7 +2142,7 @@ plt.close("all")
 # )
 
 
-# In[54]:
+# In[ ]:
 
 
 # # ------------ Plot the UMAP coloured by top 2% cells by cell area ----------- #
@@ -1928,7 +2156,7 @@ plt.close("all")
 # )
 
 
-# In[55]:
+# In[ ]:
 
 
 # # ------------ Plot the UMAP coloured by top 1% cells by cell area ----------- #
@@ -1942,7 +2170,7 @@ plt.close("all")
 # )
 
 
-# In[56]:
+# In[ ]:
 
 
 # # ---------- Plot the UMAP coloured by bottom 1% cells by cell area ---------- #
@@ -1956,7 +2184,7 @@ plt.close("all")
 # )
 
 
-# In[57]:
+# In[ ]:
 
 
 # # ---------- Plot the UMAP coloured by bottom 2% cells by cell area ---------- #
