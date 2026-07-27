@@ -28,7 +28,7 @@ mkdir -p logs
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG_DIR="config/00_QC/vbct/small"
+CONFIG_DIR="config/00_QC/vbct"
 CONFIGS=("${CONFIG_DIR}"/*.json)
 CONFIG="${CONFIGS[$SLURM_ARRAY_TASK_ID]}"
 
