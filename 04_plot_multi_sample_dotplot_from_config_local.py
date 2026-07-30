@@ -60,9 +60,11 @@ DEFAULT_FIGURE = {
 
 # Local plotting is intentionally dense so large panels such as PTMT can show
 # many genes without requiring config-only micromanagement of dot spacing.
-DOTPLOT_WIDTH_COMPRESSION = 0.68
+DOTPLOT_WIDTH_COMPRESSION = 0.8
 DOTPLOT_HEIGHT_COMPRESSION = 0.82
 DOTPLOT_SIZE_BOOST = 1.12
+GENE_DENDROGRAM_HEIGHT = 1.9
+GENE_DENDROGRAM_HSPACE = 0.24
 
 
 def parse_args():
@@ -433,6 +435,120 @@ def apply_expression_zscore(df, cfg):
     return df
 
 
+def cluster_gene_order(df, gene_order, cfg):
+    """Optionally reorder genes by hierarchical clustering of expression summaries.
+
+    Args:
+        df: Filtered long-format dotplot summary table.
+        gene_order: Current ordered gene list from the marker/review files.
+        cfg: Plot config dictionary.
+
+    Returns:
+        Tuple of `(gene_order, linkage_matrix, clustered_genes)`. The linkage
+        output is `None` when clustering is disabled or cannot be computed.
+    """
+    if not cfg.get("cluster_genes", False):
+        return gene_order, None, []
+
+    import numpy as np
+    from scipy.cluster.hierarchy import leaves_list, linkage
+    from scipy.spatial.distance import pdist
+
+    value_column = cfg.get(
+        "gene_clustering_value_column",
+        cfg.get("color_value_column", "mean_expression"),
+    )
+    if value_column not in df.columns:
+        raise ValueError(
+            f"Gene clustering value column {value_column!r} was not found. "
+            f"Available columns: {list(df.columns)}"
+        )
+
+    matrix = df.pivot_table(
+        index="sample_group",
+        columns="gene",
+        values=value_column,
+        aggfunc="mean",
+    )
+    matrix = matrix.reindex(columns=gene_order)
+    matrix = matrix.apply(pd.to_numeric, errors="coerce")
+
+    fill_value = cfg.get("gene_clustering_fill_value", 0.0)
+    matrix = matrix.fillna(float(fill_value))
+
+    gene_matrix = matrix.T
+    missing_genes = [gene for gene in gene_order if gene not in gene_matrix.index]
+    if missing_genes:
+        print(f"Gene clustering skipped {len(missing_genes)} genes missing from matrix")
+
+    variance_threshold = float(cfg.get("gene_clustering_variance_threshold", 0.0))
+    gene_variance = gene_matrix.var(axis=1)
+    variable_genes = gene_variance[gene_variance > variance_threshold].index.tolist()
+    constant_genes = [
+        gene for gene in gene_order
+        if gene in gene_matrix.index and gene not in variable_genes
+    ]
+
+    if len(variable_genes) < 2:
+        print(
+            "Gene clustering skipped: fewer than two variable genes after "
+            "removing constant expression profiles"
+        )
+        return gene_order, None, []
+
+    variable_matrix = gene_matrix.loc[variable_genes]
+    metric = cfg.get("gene_clustering_metric", "correlation")
+    method = cfg.get("gene_clustering_method", "average")
+    fallback_metric = cfg.get("gene_clustering_fallback_metric")
+
+    try:
+        distances = pdist(variable_matrix.to_numpy(), metric=metric)
+        if not np.isfinite(distances).all():
+            raise ValueError(f"{metric!r} produced non-finite distances")
+    except Exception as error:
+        if not fallback_metric:
+            raise ValueError(
+                "Gene clustering failed. Consider setting "
+                "`gene_clustering_fallback_metric`, for example 'euclidean'."
+            ) from error
+        print(
+            f"Gene clustering metric {metric!r} failed ({error}); "
+            f"falling back to {fallback_metric!r}"
+        )
+        distances = pdist(variable_matrix.to_numpy(), metric=fallback_metric)
+        if not np.isfinite(distances).all():
+            raise ValueError(
+                f"Fallback gene clustering metric {fallback_metric!r} produced "
+                "non-finite distances"
+            )
+
+    linkage_matrix = linkage(distances, method=method)
+    leaf_order = leaves_list(linkage_matrix)
+    ordered_variable_genes = variable_matrix.index[leaf_order].tolist()
+
+    constant_gene_position = cfg.get("constant_gene_position", "end")
+    if constant_gene_position == "start":
+        ordered_genes = constant_genes + ordered_variable_genes
+    elif constant_gene_position == "drop":
+        ordered_genes = ordered_variable_genes
+    else:
+        ordered_genes = ordered_variable_genes + constant_genes
+
+    remaining_genes = [gene for gene in gene_order if gene not in ordered_genes]
+    ordered_genes.extend(remaining_genes)
+
+    print(
+        f"Clustered {len(ordered_variable_genes)} variable genes using "
+        f"{method} linkage and {metric} distance"
+    )
+    if constant_genes:
+        print(
+            f"Kept {len(constant_genes)} constant genes at "
+            f"{constant_gene_position!r} of gene order"
+        )
+    return ordered_genes, linkage_matrix, ordered_variable_genes
+
+
 def resolve_gene_order(df, cfg):
     """Filter genes and determine x-axis order.
 
@@ -643,7 +759,16 @@ def add_sample_separators(ax, df, cluster_order):
         previous_sample = sample
 
 
-def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cfg):
+def plot_dotplot(
+    df,
+    gene_order,
+    cluster_order,
+    gene_groups,
+    highlight_genes,
+    cfg,
+    gene_linkage=None,
+    clustered_genes=None,
+):
     """Render and save the multi-sample dotplot.
 
     Args:
@@ -653,6 +778,8 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
         gene_groups: Optional mapping from gene to group label.
         highlight_genes: Set of genes whose x-axis labels should be highlighted.
         cfg: Plot config dictionary.
+        gene_linkage: Optional hierarchical clustering linkage matrix for genes.
+        clustered_genes: Genes represented in `gene_linkage`, in dendrogram leaf order.
     """
     figure_cfg = {**DEFAULT_FIGURE, **cfg.get("figure", {})}
     output_png = cfg["output_png"]
@@ -687,7 +814,40 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
         compact_min_height,
         len(cluster_order) * compact_height_per_cluster,
     )
-    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    show_gene_dendrogram = bool(cfg.get("show_gene_dendrogram", False))
+    dendrogram_enabled = (
+        show_gene_dendrogram and gene_linkage is not None and bool(clustered_genes)
+    )
+    if dendrogram_enabled:
+        from scipy.cluster.hierarchy import dendrogram
+
+        dendrogram_height = GENE_DENDROGRAM_HEIGHT
+        dendrogram_hspace = GENE_DENDROGRAM_HSPACE
+        fig, (dendro_ax, ax) = plt.subplots(
+            2,
+            1,
+            figsize=(fig_width, fig_height + dendrogram_height),
+            gridspec_kw={
+                "height_ratios": [dendrogram_height, fig_height],
+                "hspace": dendrogram_hspace,
+            },
+            sharex=True,
+        )
+        dendrogram_data = dendrogram(
+            gene_linkage,
+            orientation="top",
+            no_plot=True,
+        )
+        clustered_x_offset = gene_to_x[clustered_genes[0]]
+        for xs, ys in zip(dendrogram_data["icoord"], dendrogram_data["dcoord"]):
+            # SciPy places leaves at 5, 15, 25, ...; transform those coordinates
+            # onto the dotplot's integer gene positions so branches align with ticks.
+            aligned_xs = [((x - 5.0) / 10.0) + clustered_x_offset for x in xs]
+            dendro_ax.plot(aligned_xs, ys, color="#555555", linewidth=0.8)
+        dendro_ax.set_axis_off()
+    else:
+        dendro_ax = None
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
     scatter = ax.scatter(
         plot_df["x"],
@@ -713,6 +873,8 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
     )
     ax.set_ylim(-0.75, len(cluster_order) - 0.25)
     ax.set_xlim(-0.75, len(gene_order) - 0.35)
+    if dendro_ax is not None:
+        dendro_ax.set_xlim(ax.get_xlim())
     ax.set_xlabel("Gene", fontsize=figure_cfg["axis_label_fontsize"])
     ax.set_ylabel(
         cfg.get("y_axis_label", "Sample / resolution / group"),
@@ -758,7 +920,28 @@ def plot_dotplot(df, gene_order, cluster_order, gene_groups, highlight_genes, cf
         frameon=False,
     )
 
-    fig.tight_layout(rect=figure_cfg["tight_layout_rect"])
+    if dendrogram_enabled:
+        rect = figure_cfg["tight_layout_rect"]
+        fig.subplots_adjust(
+            left=rect[0],
+            bottom=rect[1],
+            right=rect[2],
+            top=rect[3],
+            hspace=dendrogram_hspace,
+        )
+        # The colorbar narrows the dotplot axes but not the dendrogram axes.
+        # Match the final axes geometry so dendrogram leaves sit over the grid.
+        dotplot_position = ax.get_position()
+        dendrogram_position = dendro_ax.get_position()
+        dendro_ax.set_position([
+            dotplot_position.x0,
+            dendrogram_position.y0,
+            dotplot_position.width,
+            dendrogram_position.height,
+        ])
+        dendro_ax.set_xlim(ax.get_xlim())
+    else:
+        fig.tight_layout(rect=figure_cfg["tight_layout_rect"])
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
     archive_existing_output(output_png, cfg)
     fig.savefig(output_png, dpi=figure_cfg["dpi"], bbox_inches="tight")
@@ -825,6 +1008,7 @@ def main():
         cfg=cfg,
     )
     df = apply_expression_zscore(df, cfg)
+    gene_order, gene_linkage, clustered_genes = cluster_gene_order(df, gene_order, cfg)
     highlight_genes = load_highlight_genes(
         cfg.get("highlight_gene_file"),
         cfg.get("highlight_gene_column", cfg.get("gene_column", "Gene")),
@@ -841,6 +1025,8 @@ def main():
         gene_groups=gene_groups,
         highlight_genes=highlight_genes,
         cfg=cfg,
+        gene_linkage=gene_linkage,
+        clustered_genes=clustered_genes,
     )
 
 
