@@ -3,7 +3,7 @@
 
 """
 Title: Xenium BANKSY Clustering With Clean Expression Outputs
-Date: 2026-06-30
+Date: 2026-07-30
 Summary: Run config-driven BANKSY clustering for Xenium samples, save clean
 log-normalized expression AnnData before BANKSY feature expansion, and copy
 BANKSY metadata back onto the clean object for marker analysis.
@@ -137,6 +137,157 @@ def resolve_obs_column(adata, candidates, column_label):
     )
 
 
+def resolve_scree_n_pcs(adata, selected_n_pcs, cfg):
+    """Choose a valid PCA depth for scree plotting beyond the selected PC count."""
+    requested_n_pcs = int(cfg.get("scree_n_pcs", max(selected_n_pcs + 20, 50)))
+    max_valid_n_pcs = min(adata.n_obs - 1, adata.n_vars - 1)
+    scree_n_pcs = min(requested_n_pcs, max_valid_n_pcs)
+
+    if scree_n_pcs < 2:
+        print(
+            "Skipping PCA scree plot: fewer than two valid components are "
+            f"available for object shape {adata.shape}."
+        )
+        return None
+
+    if scree_n_pcs < requested_n_pcs:
+        print(
+            f"PCA scree requested {requested_n_pcs} PCs, capped at "
+            f"{scree_n_pcs} for object shape {adata.shape}."
+        )
+
+    return scree_n_pcs
+
+
+def plot_pca_scree(adata, output_dir, dataset_name, selected_n_pcs, scree_n_pcs):
+    """Run PCA and save scree plot plus variance summary for clean expression data."""
+    # Scanpy stores PCA results on the AnnData object. Keep this scree-only PCA
+    # from leaking into later BANKSY embedding transfer by restoring prior slots.
+    had_obsm_pca = "X_pca" in adata.obsm
+    existing_obsm_pca = adata.obsm.get("X_pca")
+    had_varm_pcs = "PCs" in adata.varm
+    existing_varm_pcs = adata.varm.get("PCs")
+    had_uns_pca = "pca" in adata.uns
+    existing_uns_pca = adata.uns.get("pca")
+
+    try:
+        sc.tl.pca(
+            adata,
+            n_comps=scree_n_pcs,
+            svd_solver="arpack",
+            random_state=seed,
+        )
+        variance_ratio = np.asarray(adata.uns["pca"]["variance_ratio"]).copy()
+    finally:
+        if had_obsm_pca:
+            adata.obsm["X_pca"] = existing_obsm_pca
+        else:
+            adata.obsm.pop("X_pca", None)
+
+        if had_varm_pcs:
+            adata.varm["PCs"] = existing_varm_pcs
+        else:
+            adata.varm.pop("PCs", None)
+
+        if had_uns_pca:
+            adata.uns["pca"] = existing_uns_pca
+        else:
+            adata.uns.pop("pca", None)
+
+    n_show = min(scree_n_pcs, len(variance_ratio))
+    pcs = np.arange(1, n_show + 1)
+    variance_percent = variance_ratio[:n_show] * 100
+    cumulative_percent = np.cumsum(variance_ratio[:n_show]) * 100
+
+    scree_dir = os.path.join(output_dir, "pca_qc")
+    ensure_directory(scree_dir, "PCA QC")
+
+    variance_df = pd.DataFrame(
+        {
+            "pc": pcs,
+            "variance_ratio": variance_ratio[:n_show],
+            "variance_percent": variance_percent,
+            "cumulative_variance_percent": cumulative_percent,
+            "selected_for_banksy": pcs <= selected_n_pcs,
+        }
+    )
+    variance_csv = os.path.join(
+        scree_dir,
+        f"{dataset_name}_pca_scree_variance.csv",
+    )
+    variance_df.to_csv(variance_csv, index=False)
+
+    fig, ax1 = plt.subplots(figsize=(9, 5))
+    bar_container = ax1.bar(
+        pcs,
+        variance_percent,
+        color="#4C78A8",
+        alpha=0.85,
+        label="Variance explained per PC",
+    )
+    ax1.set_xlabel("Principal component")
+    ax1.set_ylabel("Variance explained (%)")
+    ax1.set_xlim(0.5, n_show + 0.5)
+    x_ticks = [1] + list(range(10, n_show + 1, 10))
+    if selected_n_pcs <= n_show and selected_n_pcs not in x_ticks:
+        x_ticks.append(selected_n_pcs)
+    if n_show not in x_ticks:
+        x_ticks.append(n_show)
+    ax1.set_xticks(sorted(x_ticks))
+    ax1.set_title(
+        f"{dataset_name}: PCA scree plot before BANKSY clustering",
+        fontsize=13,
+    )
+
+    ax2 = ax1.twinx()
+    cumulative_line, = ax2.plot(
+        pcs,
+        cumulative_percent,
+        color="#222222",
+        marker="o",
+        linewidth=1.4,
+        label="Cumulative variance explained",
+    )
+    ax2.set_ylabel("Cumulative variance explained (%)")
+
+    legend_handles = [bar_container, cumulative_line]
+    if selected_n_pcs <= n_show:
+        selected_line = ax1.axvline(
+            selected_n_pcs,
+            color="#D62728",
+            linestyle="--",
+            linewidth=1.2,
+            label=f"Selected PC count ({selected_n_pcs})",
+        )
+        legend_handles.append(selected_line)
+        ax1.text(
+            selected_n_pcs,
+            ax1.get_ylim()[1] * 0.95,
+            f"selected PC {selected_n_pcs}",
+            color="#D62728",
+            ha="right",
+            va="top",
+            fontsize=9,
+        )
+    else:
+        print(
+            f"Selected PC count {selected_n_pcs} is beyond the scree plot range "
+            f"of {n_show} PCs."
+        )
+
+    ax1.legend(handles=legend_handles, loc="lower right", frameon=False)
+    fig.tight_layout()
+    scree_png = os.path.join(
+        scree_dir,
+        f"{dataset_name}_pca_scree_plot.png",
+    )
+    fig.savefig(scree_png, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"Saved PCA scree plot to: {scree_png}")
+    print(f"Saved PCA variance summary to: {variance_csv}")
+
+
 # In[ ]:
 
 
@@ -192,6 +343,7 @@ else:
         "nbr_weight_decay": "scaled_gaussian",
         "coord_keys": ["x", "y", "xy"],
         "max_workers": 8,
+        "scree_n_pcs": 75,
     }
 
 ## Set the dataset_name and related settings to use during this analysis by taking the argument values from the "cfg" dictionary read in from the JSON config
@@ -370,6 +522,17 @@ print(adata.X)
 ## Perform log-transformation and save the normalised and log-transformed data in adata.raw
 sc.pp.log1p(adata)
 print(adata.X)
+
+selected_n_pcs = int(pc_label)
+scree_n_pcs = resolve_scree_n_pcs(adata, selected_n_pcs, cfg)
+if scree_n_pcs is not None:
+    plot_pca_scree(
+        adata=adata,
+        output_dir=output_path,
+        dataset_name=dataset_name,
+        selected_n_pcs=selected_n_pcs,
+        scree_n_pcs=scree_n_pcs,
+    )
 
 adata.raw = adata.copy() ## This needs to be moved to after the creation of adata_spatial to truly save it in the BANKSY created anndata object
 

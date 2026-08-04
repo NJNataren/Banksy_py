@@ -1,6 +1,6 @@
 {
-    "output_png": "figures/dotplots/local_ptmt_panel_multi_sample_run_1_r0p70_zscore_gene_dendrogram_29072026.png",
-    "title": "PTMT panel dotplot, r0.70 clusters, z-scored by gene",
+    "output_png": "figures/dotplots/local_ptmt_panel_multi_sample_run_1_r0p7_zscore_gene_dendrogram_03082026.png",
+    "title": "PTMT panel dotplot, r0.7 clusters, z-scored by gene",
     "gene_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv",
     "gene_column": "Gene",
     "gene_group_column": "Tier_1_annotation",
@@ -94,7 +94,7 @@
     "z_score_clip": 2.5,
     "color_value_column": "mean_expression_zscore",
     "colorbar_label": "Mean expression z-score",
-    "y_axis_label": "PTMT sample / r0.70 cluster",
+    "y_axis_label": "PTMT sample / r0.7 cluster",
     "project": "ptmt",
     "cluster_genes": true,
     "show_gene_dendrogram": true,
