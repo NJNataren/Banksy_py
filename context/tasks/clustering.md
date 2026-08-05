@@ -219,9 +219,34 @@ If the parent exists and h5py still reports no such file or directory, suspect a
 - Prefer targeted syntax checks or argument/config smoke tests when feasible.
 - Preserve clean-expression marker analysis: biological marker ranking/plots should use `clean_adata`, while BANKSY spatial objects are for clustering structure.
 
+## Next Session: Clustree Resolution QC
+
+Add an R-based clustree step as `01a_clustree_cluster_resolution_qc.R` or similar. It should sit after script 00 and alongside script 01, before marker/dotplot review with scripts 03/04. The purpose is to assess cluster stability and splitting across BANKSY Leiden resolutions before choosing a resolution for annotation and downstream biological interpretation.
+
+Minimum input should be the script 00 cell-by-resolution cluster assignment CSV:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/<dataset_name>_cell_cluster_id_across_clustering_res_<resolutions>.csv
+```
+
+That table should have one row per cell and one cluster-label column per resolution, with a consistent prefix such as `labels_scaled_gaussian_pc30_nc0.20_r`. This is enough for a first `clustree::clustree()` plot. Optional later input can be a QC `.obs` export from script 01 joined by cell ID to colour or annotate clustree nodes by metrics such as median `nCount_Xenium`, median `cell_area`, percent high-area cells, or negative-control burden.
+
+Recommended first implementation:
+
+- Use `01a_merge_cluster_resolution_csvs.R` when large-sample cluster assignment CSVs are split by resolution; it joins one-resolution CSVs by `index` cell ID and writes a merged clustree-ready table.
+- Create a small config/CLI-driven R script that accepts `--cluster_csv`, `--dataset_name`, `--cluster_prefix`, and `--output_dir`.
+- Save PNG and PDF outputs under the sample output/QC area, for example `data/xenium/output/<project>/<dataset_name>/clustree_qc/`.
+- Set up local clustree dependencies with `setup_clustree_r_env.R`; this is intended for local analysis rather than HPC execution.
+- Optionally pass `--qc_config config/01_QC/<project>/<sample>.json` to add annotation labels from `new_labels` onto only the configured `cluster_col` resolution and export a label table.
+- Keep it separate from `01_QC_xenium_spatial_clean_clustered.py` because clustree is R-based and has a distinct resolution-stability purpose.
+- Start with cluster-resolution topology only; add QC-aware node overlays after the basic plot works.
+
+Use clustree together with script 01 QC and script 03/04 marker dotplots when deciding whether to accept a clustering solution, apply QC masks and rerun script 00, tune BANKSY parameters, or consider re-segmentation.
+
 ## Next Steps
 
 - Before running a Slurm array, check that `#SBATCH --array` matches the number of intended configs.
+- Implement the `01a` clustree resolution-QC script from the handoff notes above.
 - Consider reducing leftover notebook-export inspection cells/comments in the active script when stabilizing it.
 - Re-run clustering for any samples whose downstream workflows need the new project-scoped processed paths or the latest colour/order fixes.
 - Re-run the large-sample HPC job and inspect the new directory diagnostics before making further code changes.

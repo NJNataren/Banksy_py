@@ -1,0 +1,12 @@
+data/
+figures/
+logs/
+hpc/
+archive/
+__pycache__/
+*.ipynb
+*.h5ad
+*.pkl.gz
+*.png
+*.pdf
+*.csv
