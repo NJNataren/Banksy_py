@@ -1,0 +1,77 @@
+{
+    "output_png": "figures/dotplots/BE_brain_non_res_all_genes_all_res_zscore_dotplot.png",
+    "title": "BE_brain_non_res all-gene dotplot, all available BANKSY resolutions",
+    "gene_file": "data/xenium/raw_data/gene_markers/01_xenium_gene_list_annotation_master_v1_May_2026_Tier1_2026-06-15.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "BE_brain_non_res"
+    ],
+    "figure": {
+        "min_width": 48,
+        "min_height": 10,
+        "width_per_gene": 0.16,
+        "height_per_cluster": 0.42,
+        "max_dot_size": 160,
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "x_tick_fontsize": 7,
+        "y_tick_fontsize": 14,
+        "axis_label_fontsize": 16,
+        "title_fontsize": 18,
+        "title_y": 0.98,
+        "colorbar_fontsize": 16,
+        "colorbar_pad": 0.02,
+        "size_legend_bbox_to_anchor": [
+            1.16,
+            1.0
+        ],
+        "size_legend_loc": "upper left",
+        "tight_layout_rect": [
+            0.03,
+            0.08,
+            0.98,
+            0.88
+        ],
+        "gene_group_fontsize": 11,
+        "highlight_label_color": "#d62728",
+        "highlight_label_weight": "bold",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5,
+        "x_tick_labeltop": true,
+        "x_tick_labelbottom": true,
+        "show_gene_group_labels_top": true,
+        "show_gene_group_labels_bottom": true,
+        "gene_group_label_top_y": 1.03,
+        "gene_group_label_bottom_y": -0.03
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/all_genes_all_res/BE_brain_non_res_all_genes_dotplot_summary.csv"
+    ],
+    "sample_filters": [
+        {
+            "sample": "BE_brain_non_res",
+            "resolution": "all"
+        }
+    ],
+    "highlight_gene_file": "data/xenium/raw_data/gene_markers/02_xenium_melanoma_canonical_genes_2026-05-22.csv",
+    "highlight_gene_column": "Gene",
+    "gene_review_file": "data/xenium/raw_data/gene_markers/03_xenium_gene_review_for_dotplot_manual_annotation_2026-06-11.csv",
+    "gene_review_gene_column": "Gene",
+    "gene_review_keep_column": "manual_review_True_if_keep",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score",
+    "project": "vbct",
+    "resolution_order": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10"
+    ]
+}

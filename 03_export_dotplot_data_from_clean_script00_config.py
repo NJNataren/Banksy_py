@@ -3,12 +3,15 @@
 
 """
 Title: Export Dotplot Data From Script 00 Clean Objects
-Date: 2026-06-30
+Date: 2026-08-06
 Summary: Export long-format dotplot-ready gene expression summaries directly
 from clean expression AnnData objects created by script 00. The config defines
 one clean object per sample plus multiple `.obs` grouping columns, validates
 that the requested groupings are present, and writes combined or split CSV
-outputs for downstream multi-sample dotplots.
+outputs for downstream multi-sample dotplots. When QC configs or external
+cell-by-cluster CSVs are available, the exporter can attach readable labels or
+cluster columns for the requested resolutions while preserving clean expression
+values.
 """
 
 import argparse
@@ -48,6 +51,66 @@ def load_config(config_path):
     """
     with open(config_path) as f:
         return json.load(f)
+
+
+def resolve_qc_config_path(cfg, sample_cfg):
+    """Return the QC config path for a sample when annotations are enabled.
+
+    Args:
+        cfg: Dotplot export config dictionary.
+        sample_cfg: One sample entry from `cfg["samples"]`.
+
+    Returns:
+        Path to a QC config, or `None` when no candidate exists.
+    """
+    if sample_cfg.get("qc_config") is not None:
+        return sample_cfg["qc_config"]
+
+    if cfg.get("use_qc_annotations", True) is False:
+        return None
+
+    qc_config_dir = sample_cfg.get("qc_config_dir", cfg.get("qc_config_dir"))
+    project = sample_cfg.get("project", cfg.get("project"))
+    if not qc_config_dir and project:
+        qc_config_dir = os.path.join("config", "01_QC", project)
+
+    if not qc_config_dir:
+        return None
+
+    sample = sample_cfg["sample"]
+    candidate = os.path.join(qc_config_dir, f"{sample}.json")
+    if os.path.exists(candidate):
+        return candidate
+
+    return None
+
+
+def load_qc_annotation(qc_config_path):
+    """Load `cluster_col` and `new_labels` from a script 01 QC config.
+
+    Args:
+        qc_config_path: Path to a sample QC JSON config.
+
+    Returns:
+        Dictionary with `cluster_col`, `new_labels`, and `qc_config_path`, or
+        `None` when the config does not define usable annotations.
+    """
+    if not qc_config_path:
+        return None
+
+    with open(qc_config_path) as f:
+        qc_cfg = json.load(f)
+
+    cluster_col = qc_cfg.get("cluster_col")
+    new_labels = qc_cfg.get("new_labels") or {}
+    if not cluster_col or not new_labels:
+        return None
+
+    return {
+        "cluster_col": cluster_col,
+        "new_labels": {str(key): str(value) for key, value in new_labels.items()},
+        "qc_config_path": qc_config_path,
+    }
 
 
 def to_dense(x):
@@ -175,9 +238,14 @@ def expand_sample_groupings(cfg):
         adata_path = sample_cfg["adata_path"]
         default_groupby_label = sample_cfg.get("groupby_label")
         default_missing_group_label = sample_cfg.get("missing_group_label")
+        qc_annotation = load_qc_annotation(resolve_qc_config_path(cfg, sample_cfg))
 
         for grouping in sample_cfg["groupbys"]:
             groupby = grouping["groupby"]
+            grouping_qc_annotation = qc_annotation
+            if grouping.get("qc_config") is not None:
+                grouping_qc_annotation = load_qc_annotation(grouping["qc_config"])
+
             task = {
                 "sample": sample,
                 "adata_path": adata_path,
@@ -187,7 +255,21 @@ def expand_sample_groupings(cfg):
                     "groupby_label",
                     default_groupby_label or groupby,
                 ),
+                "label_csvs": grouping.get(
+                    "label_csvs",
+                    sample_cfg.get("label_csvs", []),
+                ),
+                "label_csv_cell_id_col": grouping.get(
+                    "label_csv_cell_id_col",
+                    sample_cfg.get("label_csv_cell_id_col", "index"),
+                ),
             }
+            if (
+                grouping_qc_annotation
+                and grouping_qc_annotation["cluster_col"] == groupby
+            ):
+                task["annotation_labels"] = grouping_qc_annotation["new_labels"]
+                task["annotation_source"] = grouping_qc_annotation["qc_config_path"]
             if default_missing_group_label is not None:
                 task["missing_group_label"] = default_missing_group_label
             if "missing_group_label" in grouping:
@@ -195,6 +277,110 @@ def expand_sample_groupings(cfg):
             tasks.append(task)
 
     return tasks
+
+
+def normalize_label_csv_configs(label_csvs, default_cell_id_col):
+    """Return normalized label CSV config dictionaries.
+
+    Args:
+        label_csvs: List of paths or dictionaries from a sample/grouping config.
+        default_cell_id_col: Default column containing cell IDs.
+
+    Returns:
+        List of dictionaries with `path` and `cell_id_col`.
+    """
+    if isinstance(label_csvs, (str, os.PathLike)):
+        label_csvs = [label_csvs]
+
+    normalized = []
+    for item in label_csvs or []:
+        if isinstance(item, dict):
+            normalized.append({
+                "path": item["path"],
+                "cell_id_col": item.get("cell_id_col", default_cell_id_col),
+            })
+        else:
+            normalized.append({
+                "path": str(item),
+                "cell_id_col": default_cell_id_col,
+            })
+
+    return normalized
+
+
+def drop_csv_index_columns(data):
+    """Drop accidental row-number columns from a CSV table."""
+    index_like_cols = [
+        col for col in data.columns
+        if str(col) in {"", "...1", "X", "X1", "Unnamed: 0"}
+    ]
+    if index_like_cols:
+        data = data.drop(columns=index_like_cols)
+    return data
+
+
+def attach_external_label_csvs(adata, adata_path, tasks):
+    """Attach configured cell-level cluster-label CSV columns to `.obs`.
+
+    Args:
+        adata: Clean expression AnnData receiving extra obs columns.
+        adata_path: Path to the clean AnnData object, for error messages.
+        tasks: Summary tasks that use this object.
+
+    Returns:
+        The same AnnData object with external label columns added to `.obs`.
+    """
+    import pandas as pd
+
+    csv_configs = []
+    for task in tasks:
+        csv_configs.extend(
+            normalize_label_csv_configs(
+                task.get("label_csvs", []),
+                task.get("label_csv_cell_id_col", "index"),
+            )
+        )
+
+    seen = set()
+    for csv_cfg in csv_configs:
+        key = (csv_cfg["path"], csv_cfg["cell_id_col"])
+        if key in seen:
+            continue
+        seen.add(key)
+
+        label_csv = csv_cfg["path"]
+        cell_id_col = csv_cfg["cell_id_col"]
+        print(f"Reading external cluster labels: {label_csv}")
+        labels = pd.read_csv(label_csv, low_memory=False)
+        labels = drop_csv_index_columns(labels)
+
+        if cell_id_col not in labels.columns:
+            raise KeyError(
+                f"Cell ID column {cell_id_col!r} was not found in {label_csv}. "
+                f"Available columns: {list(labels.columns)}"
+            )
+        if labels[cell_id_col].duplicated().any():
+            raise ValueError(f"Duplicate cell IDs found in {label_csv}")
+
+        labels = labels.set_index(cell_id_col)
+        label_columns = [col for col in labels.columns if col not in adata.obs.columns]
+        if not label_columns:
+            continue
+
+        aligned = labels[label_columns].reindex(adata.obs_names)
+        missing_counts = aligned.isna().sum()
+        missing_counts = missing_counts[missing_counts > 0]
+        if not missing_counts.empty:
+            raise ValueError(
+                f"External label CSV {label_csv} does not cover all cells in "
+                f"{adata_path}: {missing_counts.to_dict()}"
+            )
+
+        for column in label_columns:
+            adata.obs[column] = aligned[column].astype("category")
+            print(f"Attached external label column: {column}")
+
+    return adata
 
 
 def validate_clean_adata(adata, adata_path, tasks):
@@ -253,6 +439,7 @@ def load_clean_adatas(tasks):
     for adata_path, path_tasks in tasks_by_path.items():
         print(f"Reading clean script 00 AnnData: {adata_path}")
         adata = ad.read_h5ad(adata_path)
+        attach_external_label_csvs(adata, adata_path, path_tasks)
         validate_clean_adata(adata, adata_path, path_tasks)
         adatas[adata_path] = adata
 
@@ -290,6 +477,8 @@ def summarize_grouping(
     adata_path = obj["adata_path"]
     groupby = obj["groupby"]
     groupby_label = obj.get("groupby_label", groupby)
+    annotation_labels = obj.get("annotation_labels", {})
+    annotation_source = obj.get("annotation_source", "")
     missing_group_label = obj.get(
         "missing_group_label",
         default_missing_group_label,
@@ -326,6 +515,8 @@ def summarize_grouping(
         mean_expression = np.asarray(group_expr.mean(axis=0)).ravel()
         percent_expressing = np.asarray((group_expr > 0).mean(axis=0)).ravel() * 100
         sample_group = f"{sample}__{groupby_label}__{group_id}"
+        group_label = annotation_labels.get(group_id, group_id)
+        has_annotation = group_id in annotation_labels
 
         for i, gene in enumerate(present_genes):
             rows.append(
@@ -334,11 +525,13 @@ def summarize_grouping(
                     "resolution": resolution,
                     "cluster_id": group_id,
                     "group_id": group_id,
-                    "group_label": group_id,
+                    "group_label": group_label,
                     "sample_cluster": sample_group,
                     "sample_group": sample_group,
                     "groupby": groupby,
                     "groupby_label": groupby_label,
+                    "has_group_annotation": has_annotation,
+                    "annotation_source": annotation_source,
                     "gene": gene,
                     "marker_group": marker_groups.get(
                         gene,

@@ -1,0 +1,53 @@
+{
+    "project": "vbct",
+    "marker_file": "data/xenium/raw_data/gene_markers/02_xenium_melanoma_canonical_genes_2026-05-22.csv",
+    "gene_column": "Gene",
+    "marker_group_column": "Tier_1_annotation",
+    "expression_source": "raw",
+    "output_csv": "data/xenium/processed/vbct/cross_sample_dotplot_exports/canonical_all_res/CK_skin_res_canonical_markers_dotplot_summary.csv",
+    "samples": [
+        {
+            "sample": "CK_skin_res",
+            "adata_path": "data/xenium/processed/vbct/CK_skin_res/adata_expression_clean_CK_skin_res_with_banksy_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10.h5ad",
+            "groupbys": [
+                {
+                    "resolution": "0.50",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.50",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r0.50"
+                },
+                {
+                    "resolution": "0.60",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.60",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r0.60"
+                },
+                {
+                    "resolution": "0.70",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r0.70"
+                },
+                {
+                    "resolution": "0.80",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r0.80"
+                },
+                {
+                    "resolution": "0.90",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.90",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r0.90"
+                },
+                {
+                    "resolution": "1.00",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.00",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r1.00"
+                },
+                {
+                    "resolution": "1.10",
+                    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+                    "groupby_label": "labels_scaled_gaussian_pc30_nc0.20_r1.10"
+                }
+            ]
+        }
+    ],
+    "qc_config_dir": "config/01_QC/vbct",
+    "use_qc_annotations": true
+}

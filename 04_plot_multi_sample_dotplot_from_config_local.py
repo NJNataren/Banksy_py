@@ -3,13 +3,14 @@
 
 """
 Title: Plot Multi-Sample Dotplot From Config Local
-Date: 2026-07-06
+Date: 2026-08-07
 Summary: Local-working copy of the multi-sample dotplot renderer. Read one or
 more long-format dotplot summary CSVs produced by
 03_export_dotplot_data_from_config.py and render a combined multi-sample
 dotplot from a JSON config using a compact local layout. Rows can represent
 BANKSY clusters or any other exported grouping, including archived cell-type
-labels.
+labels. Per-sample filters can keep one resolution, several resolutions, or all
+available resolutions for cross-resolution marker review.
 """
 
 import argparse
@@ -51,7 +52,16 @@ DEFAULT_FIGURE = {
     "title_fontsize": 18,
     "title_y": 0.88,
     "colorbar_fontsize": 16,
+    "colorbar_pad": 0.01,
+    "size_legend_bbox_to_anchor": [1.16, 1.0],
+    "size_legend_loc": "upper left",
     "gene_group_fontsize": 16,
+    "show_gene_group_labels_top": True,
+    "show_gene_group_labels_bottom": True,
+    "gene_group_label_top_y": 1.03,
+    "gene_group_label_bottom_y": -0.03,
+    "x_tick_labeltop": True,
+    "x_tick_labelbottom": True,
     "highlight_label_color": "#d62728",
     "highlight_label_weight": "bold",
     "tight_layout_rect": [0.03, 0.04, 0.98, 0.88],
@@ -156,32 +166,76 @@ def load_export_tables(input_csvs):
     return combined
 
 
+def normalize_resolution_value(value):
+    """Return a comparable resolution label while preserving non-numeric values."""
+    value = str(value).strip()
+    if not value:
+        return value
+
+    try:
+        return f"{float(value):.6g}"
+    except ValueError:
+        return value
+
+
 def filter_values(df, column, allowed_values):
     """Filter a DataFrame column when an allowed-value list is configured."""
     if not allowed_values:
         return df
 
     allowed_values = [str(value) for value in allowed_values]
-    filtered = df[df[column].astype(str).isin(allowed_values)].copy()
+    if column == "resolution":
+        allowed_normalized = {normalize_resolution_value(value) for value in allowed_values}
+        value_series = df[column].astype(str).map(normalize_resolution_value)
+        filtered = df[value_series.isin(allowed_normalized)].copy()
+    else:
+        filtered = df[df[column].astype(str).isin(allowed_values)].copy()
+
     if filtered.empty:
         raise ValueError(f"Filtering {column!r} to {allowed_values} removed all rows")
     return filtered
 
 
+def resolve_sample_filter_resolutions(item):
+    """Return the configured resolutions for one sample filter.
+
+    Args:
+        item: One `sample_filters` entry.
+
+    Returns:
+        `None` when all resolutions should be kept, otherwise a list of
+        requested resolution labels.
+    """
+    if item.get("include_all_resolutions", False):
+        return None
+
+    if "resolutions" in item:
+        resolutions = item["resolutions"]
+        if isinstance(resolutions, str):
+            resolutions = [resolutions]
+        return [str(value).strip() for value in resolutions if str(value).strip()]
+
+    resolution = str(item.get("resolution", "")).strip()
+    if not resolution or resolution.lower() == "all":
+        return None
+
+    return [resolution]
+
+
 def apply_sample_filters(df, sample_filters):
-    """Apply sample-specific filters such as chosen resolution per sample.
+    """Apply sample-specific filters such as chosen resolutions per sample.
 
     Args:
         df: Combined dotplot summary table.
-        sample_filters: List of config entries with `sample` and optional
-            `resolution` values.
+        sample_filters: List of config entries with `sample` plus optional
+            `resolution`, `resolutions`, or `include_all_resolutions`.
 
     Returns:
         Filtered DataFrame containing only requested sample/resolution rows.
 
     Raises:
         ValueError: If a requested sample is absent, if a sample is listed more
-            than once, or if a requested resolution is unavailable.
+            than once, or if requested resolutions are unavailable.
     """
     if not sample_filters:
         return df
@@ -191,7 +245,7 @@ def apply_sample_filters(df, sample_filters):
 
     for item in sample_filters:
         sample = str(item["sample"])
-        resolution = str(item.get("resolution", "")).strip()
+        requested_resolutions = resolve_sample_filter_resolutions(item)
 
         if sample in seen_samples:
             raise ValueError(f"Sample {sample!r} appears more than once in sample_filters")
@@ -201,13 +255,18 @@ def apply_sample_filters(df, sample_filters):
         if sample_df.empty:
             raise ValueError(f"Sample {sample!r} was not found in the input CSVs")
 
-        # Leave resolution blank in template configs so the user can fill their
-        # preferred comparison level later without breaking the JSON structure.
-        if resolution:
-            sample_df = sample_df[sample_df["resolution"].astype(str) == resolution].copy()
+        if requested_resolutions is not None:
+            requested_normalized = {
+                normalize_resolution_value(value) for value in requested_resolutions
+            }
+            available_normalized = sample_df["resolution"].astype(str).map(
+                normalize_resolution_value
+            )
+            sample_df = sample_df[available_normalized.isin(requested_normalized)].copy()
             if sample_df.empty:
                 raise ValueError(
-                    f"Resolution {resolution!r} was not found for sample {sample!r}"
+                    f"Resolutions {requested_resolutions!r} were not found for "
+                    f"sample {sample!r}"
                 )
 
         filtered_parts.append(sample_df)
@@ -597,15 +656,40 @@ def resolve_gene_order(df, cfg):
     return df, gene_order, gene_groups
 
 
-def sort_with_optional_order(values, configured_order):
+def numeric_aware_sort(values):
+    """Sort labels numerically when possible, then lexicographically."""
+    def sort_key(value):
+        text_value = str(value)
+        try:
+            return (0, float(text_value), text_value)
+        except ValueError:
+            return (1, text_value)
+
+    return sorted([str(value) for value in values], key=sort_key)
+
+
+def sort_with_optional_order(values, configured_order, normalize_values=False):
     """Sort values using a configured prefix order followed by remaining values."""
     values = [str(value) for value in values]
     if not configured_order:
-        return sorted(values)
+        return numeric_aware_sort(values)
 
     configured_order = [str(value) for value in configured_order]
-    configured_present = [value for value in configured_order if value in values]
-    remaining = sorted(value for value in values if value not in configured_present)
+    if normalize_values:
+        value_lookup = {normalize_resolution_value(value): value for value in values}
+        configured_present = [
+            value_lookup[normalize_resolution_value(value)]
+            for value in configured_order
+            if normalize_resolution_value(value) in value_lookup
+        ]
+        configured_present_set = set(configured_present)
+    else:
+        configured_present = [value for value in configured_order if value in values]
+        configured_present_set = set(configured_present)
+
+    remaining = numeric_aware_sort(
+        value for value in values if value not in configured_present_set
+    )
     return configured_present + remaining
 
 
@@ -625,6 +709,7 @@ def build_cluster_order(df, cfg):
     resolution_order = sort_with_optional_order(
         df["resolution"].drop_duplicates(),
         cfg.get("resolution_order"),
+        normalize_values=True,
     )
 
     ordered_rows = []
@@ -634,7 +719,10 @@ def build_cluster_order(df, cfg):
     for sample in sample_order:
         sample_df = unique_clusters[unique_clusters["sample"] == sample]
         for resolution in resolution_order:
-            res_df = sample_df[sample_df["resolution"] == resolution].copy()
+            resolution_mask = sample_df["resolution"].astype(str).map(
+                normalize_resolution_value
+            ) == normalize_resolution_value(resolution)
+            res_df = sample_df[resolution_mask].copy()
             if res_df.empty:
                 continue
             res_df["cluster_sort"] = pd.to_numeric(
@@ -651,7 +739,14 @@ def build_cluster_order(df, cfg):
 def make_cluster_labels(df, cluster_order, cfg):
     """Create readable y-axis labels for sample/resolution/group rows."""
     label_df = (
-        df[["sample_group", "sample", "resolution", "group_label", "groupby_label"]]
+        df[[
+            "sample_group",
+            "sample",
+            "resolution",
+            "group_id",
+            "group_label",
+            "groupby_label",
+        ]]
         .drop_duplicates("sample_group")
         .set_index("sample_group")
     )
@@ -666,6 +761,8 @@ def make_cluster_labels(df, cluster_order, cfg):
             label_template.format(
                 sample=row["sample"],
                 resolution=row["resolution"],
+                group_id=row["group_id"],
+                cluster_id=row["group_id"],
                 group_label=row["group_label"],
                 groupby_label=row["groupby_label"],
             )
@@ -682,8 +779,9 @@ def add_gene_group_labels(ax, gene_order, gene_groups, figure_cfg):
         gene_groups: Optional mapping from gene name to group label.
         figure_cfg: Plot sizing and style options from the config.
     """
+    label_artists = []
     if not gene_groups or not gene_order:
-        return
+        return label_artists
 
     current_group = gene_groups.get(gene_order[0], "unannotated")
     start = 0
@@ -698,33 +796,47 @@ def add_gene_group_labels(ax, gene_order, gene_groups, figure_cfg):
             start = idx
 
     group_runs.append((current_group, start, len(gene_order) - 1))
-    # These ax.text function calls control the distance of the cell type labels from the x-axis at the top and bottom of the plot
+    show_top = figure_cfg.get("show_gene_group_labels_top", True)
+    show_bottom = figure_cfg.get("show_gene_group_labels_bottom", True)
+    top_y = figure_cfg.get("gene_group_label_top_y", 1.03)
+    bottom_y = figure_cfg.get("gene_group_label_bottom_y", -0.03)
+
     for group_name, start, end in group_runs:
         midpoint = (start + end) / 2
-        ax.text(
-            midpoint,
-            1.03,
-            group_name,
-            ha="center",
-            va="bottom",
-            rotation=90,
-            fontsize=figure_cfg["gene_group_fontsize"],
-            color="#333333",
-            transform=ax.get_xaxis_transform(),
-            clip_on=False,
-        )
-        ax.text(
-            midpoint,
-            -0.03,
-            group_name,
-            ha="center",
-            va="top",
-            rotation=90,
-            fontsize=figure_cfg["gene_group_fontsize"],
-            color="#333333",
-            transform=ax.get_xaxis_transform(),
-            clip_on=False,
-        )
+        if show_top:
+            top_label = ax.text(
+                midpoint,
+                top_y,
+                group_name,
+                ha="center",
+                va="bottom",
+                rotation=90,
+                fontsize=figure_cfg["gene_group_fontsize"],
+                color="#333333",
+                transform=ax.get_xaxis_transform(),
+                clip_on=False,
+            )
+            # Keep outside-axis group labels from forcing tight_layout to shrink
+            # the dot panel when their configured offset changes.
+            top_label.set_in_layout(False)
+            label_artists.append(top_label)
+        if show_bottom:
+            bottom_label = ax.text(
+                midpoint,
+                bottom_y,
+                group_name,
+                ha="center",
+                va="top",
+                rotation=90,
+                fontsize=figure_cfg["gene_group_fontsize"],
+                color="#333333",
+                transform=ax.get_xaxis_transform(),
+                clip_on=False,
+            )
+            bottom_label.set_in_layout(False)
+            label_artists.append(bottom_label)
+
+    return label_artists
 
 
 def style_highlighted_gene_labels(ax, highlight_genes, figure_cfg):
@@ -744,19 +856,29 @@ def style_highlighted_gene_labels(ax, highlight_genes, figure_cfg):
             tick_label.set_fontweight(figure_cfg["highlight_label_weight"])
 
 
-def add_sample_separators(ax, df, cluster_order):
-    """Draw horizontal separators between sample blocks on the y-axis."""
+def add_group_separators(ax, df, cluster_order, cfg):
+    """Draw horizontal separators between sample and resolution blocks."""
     label_df = (
-        df[["sample_group", "sample"]]
+        df[["sample_group", "sample", "resolution"]]
         .drop_duplicates("sample_group")
         .set_index("sample_group")
     )
     previous_sample = None
+    previous_resolution = None
     for idx, sample_group in enumerate(cluster_order):
-        sample = label_df.loc[sample_group, "sample"]
+        row = label_df.loc[sample_group]
+        sample = row["sample"]
+        resolution = row["resolution"]
         if previous_sample is not None and sample != previous_sample:
             ax.axhline(idx - 0.5, color="#555555", linewidth=1.0)
+        elif (
+            cfg.get("show_resolution_separators", True)
+            and previous_resolution is not None
+            and resolution != previous_resolution
+        ):
+            ax.axhline(idx - 0.5, color="#9a9a9a", linewidth=0.7, linestyle="--")
         previous_sample = sample
+        previous_resolution = resolution
 
 
 def plot_dotplot(
@@ -865,7 +987,13 @@ def plot_dotplot(
     ax.set_xticklabels(
         gene_order, rotation=90, fontsize=figure_cfg["x_tick_fontsize"]
     )
-    ax.tick_params(axis="x", top=True, labeltop=True)
+    ax.tick_params(
+        axis="x",
+        top=figure_cfg.get("x_tick_labeltop", True),
+        labeltop=figure_cfg.get("x_tick_labeltop", True),
+        bottom=figure_cfg.get("x_tick_labelbottom", True),
+        labelbottom=figure_cfg.get("x_tick_labelbottom", True),
+    )
     ax.set_yticks(range(len(cluster_order)))
     ax.set_yticklabels(
         make_cluster_labels(df, cluster_order, cfg),
@@ -883,19 +1011,28 @@ def plot_dotplot(
     ax.tick_params(axis="x", labelsize=figure_cfg["x_tick_fontsize"])
     ax.tick_params(axis="y", labelsize=figure_cfg["y_tick_fontsize"])
     style_highlighted_gene_labels(ax, highlight_genes, figure_cfg)
-    fig.suptitle(
+    title_artist = fig.suptitle(
         cfg.get("title", "Multi-sample dotplot summary"),
         fontsize=figure_cfg["title_fontsize"],
         y=figure_cfg["title_y"],
     )
 
-    add_gene_group_labels(ax, gene_order, gene_groups, figure_cfg)
-    add_sample_separators(ax, df, cluster_order)
+    gene_group_label_artists = add_gene_group_labels(
+        ax,
+        gene_order,
+        gene_groups,
+        figure_cfg,
+    )
+    add_group_separators(ax, df, cluster_order, cfg)
 
     ax.grid(axis="both", color="#e6e6e6", linewidth=0.5)
     ax.set_axisbelow(True)
 
-    cbar = fig.colorbar(scatter, ax=ax, pad=0.01)
+    cbar = fig.colorbar(
+        scatter,
+        ax=ax,
+        pad=figure_cfg.get("colorbar_pad", 0.01),
+    )
     cbar.set_label(
         cfg.get("colorbar_label", "Mean expression"),
         fontsize=figure_cfg["colorbar_fontsize"],
@@ -912,10 +1049,10 @@ def plot_dotplot(
             linewidths=0.25,
             label=f"{pct}%",
         )
-    ax.legend(
+    size_legend_artist = ax.legend(
         title="Percent expressing",
-        bbox_to_anchor=(1.02, 1),
-        loc="upper left",
+        bbox_to_anchor=figure_cfg.get("size_legend_bbox_to_anchor", [1.16, 1.0]),
+        loc=figure_cfg.get("size_legend_loc", "upper left"),
         borderaxespad=0,
         frameon=False,
     )
@@ -944,7 +1081,12 @@ def plot_dotplot(
         fig.tight_layout(rect=figure_cfg["tight_layout_rect"])
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
     archive_existing_output(output_png, cfg)
-    fig.savefig(output_png, dpi=figure_cfg["dpi"], bbox_inches="tight")
+    fig.savefig(
+        output_png,
+        dpi=figure_cfg["dpi"],
+        bbox_inches="tight",
+        bbox_extra_artists=[title_artist, size_legend_artist, *gene_group_label_artists],
+    )
     print(f"Wrote {output_png}")
 
 

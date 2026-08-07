@@ -154,6 +154,71 @@ Rscript 01a_clustree_cluster_resolution_qc.R \
   --qc_config config/01_QC/vbct/CK_skin_res.json
 ```
 
+## Clustree QC Details
+
+`01a_merge_cluster_resolution_csvs.R` is for large samples where script 00 outputs one cluster-assignment CSV per resolution instead of one combined CSV. It accepts:
+
+```text
+--input_dir       sample processed directory containing split CSVs
+--dataset_name    sample name used to select default input files and output name
+--cluster_prefix  shared cluster-label prefix, for example labels_scaled_gaussian_pc30_nc0.20_r
+--output_csv      optional explicit merged output path
+--file_pattern    optional regex for candidate split CSV basenames
+--cell_id_col     cell ID join column; default index
+```
+
+The merge helper:
+
+- reads only CSVs with one matching cluster-label column;
+- skips existing merged multi-resolution CSVs and `_merge_summary.csv` files;
+- drops accidental row-number columns such as `...1`, `X`, and `X1`;
+- joins by `index` cell barcode by default;
+- errors if cell ID sets differ across split files;
+- errors if duplicate resolution columns contain conflicting assignments;
+- sorts resolution columns numerically before writing;
+- writes a merged CSV plus `<merged>_merge_summary.csv`.
+
+`01a_clustree_cluster_resolution_qc.R` accepts:
+
+```text
+--cluster_csv     one row per cell, one cluster-label column per BANKSY resolution
+--dataset_name    sample name used in output filenames and titles
+--cluster_prefix  shared cluster-label prefix
+--output_dir      clustree QC output directory
+--qc_config       optional script 01 QC JSON config containing cluster_col and new_labels
+--width           plot width in inches; default 12
+--height          plot height in inches; default 8
+--dpi             PNG resolution; default 300
+```
+
+The clustree script always writes:
+
+- standard topology clustree PNG/PDF;
+- SC3-stability-coloured clustree PNG/PDF using `node_colour = "sc3_stability"`;
+- `<sample>_clustree_input_columns.csv` listing detected resolutions, cell counts, and cluster counts.
+
+When `--qc_config` is supplied and the config has both `cluster_col` and `new_labels`, the script also writes:
+
+- `<sample>_clustree_annotation_labels.csv`;
+- annotated clustree PNG/PDF with labels placed only on the configured `cluster_col` resolution.
+
+Annotation labels are deliberately not projected onto every resolution. For example, if `cluster_col` is `labels_scaled_gaussian_pc30_nc0.20_r0.70`, only the `0.70` nodes are labelled. Labels are placed with `ggrepel` to reduce overlap and draw leader lines back to the annotated nodes.
+
+Current local VBCT clustree runs completed:
+
+```text
+BE_brain_non_res       0.50 0.60 0.70 0.80 0.90 1.00 1.10   annotated
+CK_bowel_res           0.40 0.50 0.60 0.70 0.80 1.10        annotated
+CK_skin_res            0.50 0.60 0.70 0.80 0.90 1.00 1.10   annotated
+EL_skin_res            0.50 0.60 0.70 0.80 0.90 1.00 1.10   annotated
+GR_lung_non_res_roi    0.50 0.60 0.70 0.80 0.90 1.00 1.10   annotated
+HW_brain_res           0.40 0.50 0.60 0.70 0.80 1.10        annotated
+MF_skin_non_res        0.40 0.50 0.60 0.70 0.80 1.10        no active new_labels
+MG_gastric_non_res     0.50 0.60 0.70 0.80 0.90 1.00 1.10   annotated
+```
+
+For merged large-sample inputs, rerun `01a_merge_cluster_resolution_csvs.R` after new split files such as `0.90` or `1.00` become available, then point `01a_clustree_cluster_resolution_qc.R` at the newly merged CSV. Use the cluster prefix detected in the CSV headers; for example, the current merged `CK_bowel_res`, `HW_brain_res`, and `MF_skin_non_res` files use `labels_scaled_gaussian_pc30_nc0.20_r`.
+
 ## Archived Labels
 
 Archived-label workflows require:

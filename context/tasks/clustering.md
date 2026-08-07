@@ -246,8 +246,7 @@ Use clustree together with script 01 QC and script 03/04 marker dotplots when de
 ## Next Steps
 
 - Before running a Slurm array, check that `#SBATCH --array` matches the number of intended configs.
-- Implement the `01a` clustree resolution-QC script from the handoff notes above.
 - Consider reducing leftover notebook-export inspection cells/comments in the active script when stabilizing it.
-- Re-run clustering for any samples whose downstream workflows need the new project-scoped processed paths or the latest colour/order fixes.
-- Re-run the large-sample HPC job and inspect the new directory diagnostics before making further code changes.
 - Keep `new_labels` config handling in 01 QC only unless the workflow explicitly changes.
+-Generate dot plots on a per sample basis across all available resolutions, this way we can assess maker expression across resoltions and comepare them back to clustree results.
+  -The dot plot should annotate cell types where available using cell type annotations from qc 01 script configs.

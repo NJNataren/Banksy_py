@@ -1,0 +1,70 @@
+{
+    "project": "vbct",
+    "output_png": "figures/dotplots/EL_skin_res_canonical_markers_all_res_zscore_dotplot.png",
+    "title": "EL_skin_res canonical marker dotplot, all available BANKSY resolutions",
+    "gene_file": "data/xenium/raw_data/gene_markers/02_xenium_melanoma_canonical_genes_2026-05-22.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "EL_skin_res"
+    ],
+    "resolution_order": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10"
+    ],
+    "y_label_template": "r{resolution} | c{cluster_id} | {group_label}",
+    "y_axis_label": "BANKSY resolution / cluster / QC label",
+    "show_resolution_separators": true,
+    "figure": {
+        "min_width": 14,
+        "min_height": 13,
+        "width_per_gene": 0.35,
+        "height_per_cluster": 0.32,
+        "max_dot_size": 180,
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5,
+        "x_tick_fontsize": 11,
+        "y_tick_fontsize": 8,
+        "axis_label_fontsize": 13,
+        "title_fontsize": 15,
+        "title_y": 0.98,
+        "colorbar_fontsize": 11,
+        "gene_group_fontsize": 10,
+        "x_tick_labeltop": true,
+        "x_tick_labelbottom": true,
+        "show_gene_group_labels_top": true,
+        "show_gene_group_labels_bottom": true,
+        "gene_group_label_top_y": 1.15,
+        "tight_layout_rect": [
+            0.03,
+            0.08,
+            0.98,
+            0.88
+        ],
+        "gene_group_label_bottom_y": -0.14
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/canonical_all_res/EL_skin_res_canonical_markers_dotplot_summary.csv"
+    ],
+    "sample_filters": [
+        {
+            "sample": "EL_skin_res",
+            "resolution": "all"
+        }
+    ],
+    "gene_review_file": "data/xenium/raw_data/gene_markers/xenium_gene_review_for_dotplot.csv",
+    "gene_review_gene_column": "Gene",
+    "gene_review_keep_column": "keep_for_dotplot",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score"
+}
