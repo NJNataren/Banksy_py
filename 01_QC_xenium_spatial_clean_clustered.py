@@ -66,7 +66,7 @@ random.seed(seed)
 # #                              LOCAL TESTING BLOCK                             #
 # # ---------------------------------------------------------------------------- #
 
-# ## These values mirror config/00_clustering/vbct/small/CK_skin_res.json.
+# ## These values mirror config/01_clustering/vbct/small/CK_skin_res.json.
 # ## Leave this block commented when using --config from Slurm/the shell.
 # dataset_name = "CK_skin_res"
 # pc_label = "30"
@@ -175,6 +175,43 @@ new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell t
 # In[6]:
 
 
+QC_PASS_FAIL_ORDER = ["Pass", "Fail"]
+QC_PASS_FAIL_PALETTE = {
+    "Pass": "orange",
+    "Fail": "dodgerblue",
+}
+
+
+def standardize_pass_fail_series(series):
+    """Return a categorical series with pass/fail labels standardized."""
+    standardized = series.astype(str).str.strip().replace(
+        {
+            "pass": "Pass",
+            "PASS": "Pass",
+            "Pass": "Pass",
+            "fail": "Fail",
+            "FAIL": "Fail",
+            "Fail": "Fail",
+            "No negative control": "Pass",
+            "No negative control probe": "Pass",
+            "Has negative control": "Fail",
+            "Has negative control probe": "Fail",
+        }
+    )
+
+    return pd.Categorical(
+        standardized,
+        categories=QC_PASS_FAIL_ORDER,
+        ordered=True,
+    )
+
+
+def is_pass_fail_series(series):
+    """Return True when a series contains only standardized Pass/Fail values."""
+    values = set(series.dropna().astype(str).unique())
+    return bool(values) and values.issubset(set(QC_PASS_FAIL_ORDER))
+
+
 def plot_qc_spatial_tissue(
     data,
     qc_metric,
@@ -210,24 +247,57 @@ def plot_qc_spatial_tissue(
 
     os.makedirs(output_path, exist_ok=True)
 
-    with rc_context({"figure.figsize": (12, 8)}):
-        sq.pl.spatial_scatter(
-            data,
-            library_id="dataset_name",
-            spatial_key="xy",
-            color=f"{qc_metric}",
-            shape=None,
-            size=2,
-            img=False
-        )
-        plt.legend(fontsize=20)
+    plot_obs = data.obs[[qc_metric]].copy()
+    plot_obs[qc_metric] = standardize_pass_fail_series(plot_obs[qc_metric])
+
+    if is_pass_fail_series(plot_obs[qc_metric]):
+        xy = data.obsm["xy"]
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        # Draw Pass first and Fail second so failing cells remain visible in
+        # dense tissue plots.
+        for status in QC_PASS_FAIL_ORDER:
+            mask = np.asarray(plot_obs[qc_metric].astype(str) == status)
+            if not mask.any():
+                continue
+
+            ax.scatter(
+                xy[mask, 0],
+                xy[mask, 1],
+                s=2,
+                c=QC_PASS_FAIL_PALETTE[status],
+                label=status,
+                linewidths=0,
+                alpha=0.9,
+                rasterized=True,
+                zorder=2 if status == "Pass" else 3,
+            )
+
+        ax.set_aspect("equal")
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_title(f"{sample_name}: {qc_metric}")
+        ax.legend(fontsize=14, markerscale=4, frameon=False)
+    else:
+        with rc_context({"figure.figsize": (12, 8)}):
+            sq.pl.spatial_scatter(
+                data,
+                library_id="dataset_name",
+                spatial_key="xy",
+                color=f"{qc_metric}",
+                shape=None,
+                size=2,
+                img=False
+            )
+            plt.legend(fontsize=20)
+            fig = plt.gcf()
 
     output_file = os.path.join(
         output_path,
         f"tissue_spatial_scatter_{qc_metric}_{sample_name}.png"
     )
 
-    plt.savefig(
+    fig.savefig(
         output_file,
         dpi=300,
         bbox_inches="tight"
@@ -237,11 +307,9 @@ def plot_qc_spatial_tissue(
 
     if show:
         plt.show()
-        plt.close()
+        plt.close(fig)
     else:
-        plt.close()
-
-
+        plt.close(fig)
 
 
 # In[7]:
@@ -307,7 +375,7 @@ def cluster_qc_violin(
 
     plot_obs = data.obs.copy()
     plot_obs[cluster_col] = plot_obs[cluster_col].astype("category")
-    plot_obs[qc_metric] = plot_obs[qc_metric].astype("category")
+    plot_obs[qc_metric] = standardize_pass_fail_series(plot_obs[qc_metric])
 
     cell_types = plot_obs[cluster_col].cat.categories
     n_cell_types = len(cell_types)
@@ -329,13 +397,39 @@ def cluster_qc_violin(
         legend=False
     )
 
-    sns.stripplot(
-        data=plot_obs,
-        y="nCount_Xenium",
-        x=cluster_col,
-        hue=qc_metric,
-        size=4
-    )
+    # Overlay Pass first and Fail second so failing cells are not hidden by
+    # the much larger passing population.
+    for status in QC_PASS_FAIL_ORDER:
+        status_obs = plot_obs[plot_obs[qc_metric].astype(str) == status]
+        if status_obs.empty:
+            continue
+
+        sns.stripplot(
+            data=status_obs,
+            y="nCount_Xenium",
+            x=cluster_col,
+            order=cell_types,
+            color=QC_PASS_FAIL_PALETTE[status],
+            size=4,
+            alpha=0.85,
+            jitter=True,
+            zorder=2 if status == "Pass" else 3,
+        )
+
+    handles = [
+        mpl.lines.Line2D(
+            [],
+            [],
+            marker="o",
+            linestyle="",
+            color=QC_PASS_FAIL_PALETTE[status],
+            label=status,
+            markersize=6,
+        )
+        for status in QC_PASS_FAIL_ORDER
+        if (plot_obs[qc_metric].astype(str) == status).any()
+    ]
+    plt.legend(handles=handles, title=qc_metric, bbox_to_anchor=(1.02, 1), loc="upper left")
 
     if qc_title is None:
         qc_title = qc_metric.replace("_", " ").title()
@@ -500,18 +594,50 @@ def plot_umap_qc_metric(
         show=False,
     )
 
-    sc.pl.umap(
-        adata,
-        color=qc_metric,
-        s=point_size,
-        frameon=True,
-        vmax=vmax,
-        add_outline=add_outline,
-        legend_fontsize=legend_fontsize,
-        title=qc_title,
-        ax=axes[1],
-        show=False,
+    qc_values = pd.Series(
+        standardize_pass_fail_series(adata.obs[qc_metric]),
+        index=adata.obs_names,
+        name=qc_metric,
     )
+
+    if is_pass_fail_series(qc_values):
+        umap = adata.obsm["X_umap"]
+
+        # Draw Pass first and Fail second so rare failing cells sit on top.
+        for status in QC_PASS_FAIL_ORDER:
+            mask = np.asarray(qc_values.astype(str) == status)
+            if not mask.any():
+                continue
+
+            axes[1].scatter(
+                umap[mask, 0],
+                umap[mask, 1],
+                s=point_size,
+                c=QC_PASS_FAIL_PALETTE[status],
+                label=status,
+                linewidths=0,
+                alpha=0.9,
+                rasterized=True,
+                zorder=2 if status == "Pass" else 3,
+            )
+
+        axes[1].set_title(qc_title)
+        axes[1].set_xlabel("UMAP1")
+        axes[1].set_ylabel("UMAP2")
+        axes[1].legend(frameon=False, markerscale=2)
+    else:
+        sc.pl.umap(
+            adata,
+            color=qc_metric,
+            s=point_size,
+            frameon=True,
+            vmax=vmax,
+            add_outline=add_outline,
+            legend_fontsize=legend_fontsize,
+            title=qc_title,
+            ax=axes[1],
+            show=False,
+        )
 
     fig.tight_layout()
 
@@ -553,6 +679,623 @@ def plot_umap_qc_metric(
         plt.close(fig)
 
     return fig, axes
+
+
+def _safe_filename_token(value):
+    """Return a conservative filename token for labels used in saved figures."""
+    return (
+        str(value)
+        .replace(" ", "_")
+        .replace("/", "_")
+        .replace("\\", "_")
+        .replace("(", "")
+        .replace(")", "")
+        .replace(".", "p")
+    )
+
+
+def summarize_cell_area_thresholds_by_group(
+    adata,
+    groupby,
+    area_col="cell_area",
+    percentiles=(0.95, 0.98, 0.99),
+):
+    """Summarize cell-area quantiles within each cluster or cell-type group.
+
+    Args:
+        adata: AnnData object with cell metadata in `.obs`.
+        groupby: `.obs` column used to define cell types or clusters.
+        area_col: `.obs` column containing cell area values.
+        percentiles: Quantiles to report as candidate upper-tail thresholds.
+
+    Returns:
+        DataFrame with one row per group and area quantile columns.
+    """
+    required_cols = [groupby, area_col]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+
+    if missing_cols:
+        raise KeyError(f"Columns not found in adata.obs: {missing_cols}")
+
+    plot_obs = adata.obs[required_cols].copy()
+    plot_obs[area_col] = pd.to_numeric(plot_obs[area_col], errors="coerce")
+    plot_obs = plot_obs.dropna(subset=required_cols)
+
+    rows = []
+
+    for group, group_obs in plot_obs.groupby(groupby, observed=True):
+        values = group_obs[area_col].astype(float)
+
+        row = {
+            "groupby": groupby,
+            "group": group,
+            "n_cells": int(values.shape[0]),
+            "cell_area_min": values.min(),
+            "cell_area_median": values.median(),
+            "cell_area_mean": values.mean(),
+            "cell_area_max": values.max(),
+        }
+
+        for percentile in percentiles:
+            percentile_label = int(round(percentile * 100))
+            row[f"cell_area_p{percentile_label}"] = values.quantile(percentile)
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def plot_cell_area_cdf_by_group(
+    adata,
+    groupby,
+    sample_name,
+    output_path,
+    area_col="cell_area",
+    percentiles=(0.95, 0.98, 0.99),
+    show=True,
+):
+    """Plot one cumulative cell-area distribution line per group.
+
+    Args:
+        adata: AnnData object with cell metadata in `.obs`.
+        groupby: `.obs` column used to define cell types or clusters.
+        sample_name: Sample name used in plot titles and filenames.
+        output_path: Directory where the PNG file is saved.
+        area_col: `.obs` column containing cell area values.
+        percentiles: Horizontal CDF guide lines to draw.
+        show: Whether to display the plot interactively.
+    """
+    required_cols = [groupby, area_col]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+
+    if missing_cols:
+        raise KeyError(f"Columns not found in adata.obs: {missing_cols}")
+
+    plot_obs = adata.obs[required_cols].copy()
+    plot_obs[area_col] = pd.to_numeric(plot_obs[area_col], errors="coerce")
+    plot_obs = plot_obs.dropna(subset=required_cols)
+
+    groups = list(plot_obs.groupby(groupby, observed=True))
+    palette = sns.color_palette("husl", n_colors=len(groups))
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+
+    for (group, group_obs), color in zip(groups, palette):
+        values = np.sort(group_obs[area_col].astype(float).to_numpy())
+
+        if values.size == 0:
+            continue
+
+        cumulative_fraction = np.arange(1, values.size + 1) / values.size
+        ax.plot(
+            values,
+            cumulative_fraction,
+            label=str(group),
+            linewidth=1.8,
+            color=color,
+        )
+
+    for percentile in percentiles:
+        ax.axhline(
+            percentile,
+            color="grey",
+            linestyle="--",
+            linewidth=0.8,
+        )
+        ax.text(
+            x=ax.get_xlim()[1],
+            y=percentile,
+            s=f" p{int(round(percentile * 100))}",
+            va="center",
+            ha="left",
+            fontsize=8,
+            color="grey",
+        )
+
+    ax.set_title(f"{sample_name}: cell area cumulative distribution by {groupby}")
+    ax.set_xlabel("Cell area (um^2)")
+    ax.set_ylabel("Cumulative fraction of cells")
+    ax.set_ylim(0, 1.02)
+    ax.legend(
+        bbox_to_anchor=(1.05, 1),
+        loc="upper left",
+        fontsize=8,
+        frameon=False,
+    )
+
+    fig.tight_layout()
+    os.makedirs(output_path, exist_ok=True)
+    output_file = os.path.join(
+        output_path,
+        f"{sample_name}_cell_area_cdf_by_{_safe_filename_token(groupby)}.png",
+    )
+    fig.savefig(output_file, dpi=300, bbox_inches="tight")
+    print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def plot_cell_area_cdf_facets_by_group(
+    adata,
+    groupby,
+    sample_name,
+    output_path,
+    area_col="cell_area",
+    percentiles=(0.95, 0.98, 0.99),
+    ncols=3,
+    show=True,
+):
+    """Plot separate cumulative cell-area distributions for each group.
+
+    Args:
+        adata: AnnData object with cell metadata in `.obs`.
+        groupby: `.obs` column used to define cell types or clusters.
+        sample_name: Sample name used in plot titles and filenames.
+        output_path: Directory where the PNG file is saved.
+        area_col: `.obs` column containing cell area values.
+        percentiles: Quantile guide lines to draw as vertical thresholds.
+        ncols: Number of subplot columns.
+        show: Whether to display the plot interactively.
+    """
+    required_cols = [groupby, area_col]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+
+    if missing_cols:
+        raise KeyError(f"Columns not found in adata.obs: {missing_cols}")
+
+    plot_obs = adata.obs[required_cols].copy()
+    plot_obs[area_col] = pd.to_numeric(plot_obs[area_col], errors="coerce")
+    plot_obs = plot_obs.dropna(subset=required_cols)
+    groups = list(plot_obs.groupby(groupby, observed=True))
+
+    n_groups = len(groups)
+    nrows = int(np.ceil(n_groups / ncols))
+    fig, axes = plt.subplots(
+        nrows,
+        ncols,
+        figsize=(5 * ncols, 3.8 * nrows),
+        squeeze=False,
+        sharey=True,
+    )
+
+    for ax, (group, group_obs) in zip(axes.ravel(), groups):
+        values = np.sort(group_obs[area_col].astype(float).to_numpy())
+
+        if values.size == 0:
+            ax.set_visible(False)
+            continue
+
+        cumulative_fraction = np.arange(1, values.size + 1) / values.size
+        ax.plot(values, cumulative_fraction, linewidth=2)
+
+        # Vertical percentile lines make candidate area cutoffs readable inside
+        # each cell type instead of forcing one global threshold.
+        for percentile in percentiles:
+            threshold = np.quantile(values, percentile)
+            ax.axvline(
+                threshold,
+                color="grey",
+                linestyle="--",
+                linewidth=0.8,
+            )
+            ax.text(
+                threshold,
+                0.04,
+                f"p{int(round(percentile * 100))}",
+                rotation=90,
+                va="bottom",
+                ha="right",
+                fontsize=7,
+                color="grey",
+            )
+
+        ax.set_title(f"{group}\nn={values.size}", fontsize=10)
+        ax.set_xlabel("Cell area (um^2)")
+        ax.set_ylim(0, 1.02)
+
+    for ax in axes[:, 0]:
+        ax.set_ylabel("Cumulative fraction")
+
+    for ax in axes.ravel()[n_groups:]:
+        ax.set_visible(False)
+
+    fig.suptitle(
+        f"{sample_name}: cell area cumulative distributions by {groupby}",
+        y=1.02,
+    )
+    fig.tight_layout()
+    os.makedirs(output_path, exist_ok=True)
+    output_file = os.path.join(
+        output_path,
+        f"{sample_name}_cell_area_cdf_facets_by_{_safe_filename_token(groupby)}.png",
+    )
+    fig.savefig(output_file, dpi=300, bbox_inches="tight")
+    print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+
+
+def plot_cell_area_violin_by_group(
+    adata,
+    groupby,
+    sample_name,
+    output_path,
+    area_col="cell_area",
+    show=True,
+):
+    """Plot cell-area distributions as violins grouped by cluster or cell type.
+
+    Args:
+        adata: AnnData object with cell metadata in `.obs`.
+        groupby: `.obs` column used to define cell types or clusters.
+        sample_name: Sample name used in plot titles and filenames.
+        output_path: Directory where the PNG file is saved.
+        area_col: `.obs` column containing cell area values.
+        show: Whether to display the plot interactively.
+    """
+    required_cols = [groupby, area_col]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+
+    if missing_cols:
+        raise KeyError(f"Columns not found in adata.obs: {missing_cols}")
+
+    plot_obs = adata.obs[required_cols].copy()
+    plot_obs[area_col] = pd.to_numeric(plot_obs[area_col], errors="coerce")
+    plot_obs = plot_obs.dropna(subset=required_cols)
+    plot_obs[groupby] = plot_obs[groupby].astype("category")
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+
+    sns.violinplot(
+        data=plot_obs,
+        x=groupby,
+        y=area_col,
+        hue=groupby,
+        palette="husl",
+        cut=0,
+        inner="quartile",
+        linewidth=0.8,
+        legend=False,
+        ax=ax,
+    )
+
+    ax.set_title(f"{sample_name}: cell area by {groupby}")
+    ax.set_xlabel(groupby)
+    ax.set_ylabel("Cell area (um^2)")
+    ax.tick_params(axis="x", rotation=45)
+
+    for tick_label in ax.get_xticklabels():
+        tick_label.set_ha("right")
+
+    fig.tight_layout()
+    os.makedirs(output_path, exist_ok=True)
+    output_file = os.path.join(
+        output_path,
+        f"{sample_name}_cell_area_violin_by_{_safe_filename_token(groupby)}.png",
+    )
+    fig.savefig(output_file, dpi=300, bbox_inches="tight")
+    print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+CELL_AREA_PERCENTILE_BAND_ORDER = [
+    "below_p95",
+    "p95_to_p98",
+    "p98_to_p99",
+    "above_p99",
+]
+
+CELL_AREA_PERCENTILE_BAND_PALETTE = {
+    "below_p95": "lightgrey",
+    "p95_to_p98": "#f2c94c",
+    "p98_to_p99": "#f2994a",
+    "above_p99": QC_PASS_FAIL_PALETTE["Fail"],
+}
+
+
+def add_groupwise_cell_area_percentile_bands(
+    adata,
+    groupby,
+    area_col="cell_area",
+    percentiles=(0.95, 0.98, 0.99),
+    threshold_prefix="cell_area_threshold",
+    band_col="cell_area_percentile_band_by_cluster",
+):
+    """Store within-cluster cell-area thresholds and percentile bands in `.obs`.
+
+    Args:
+        adata: AnnData object to update in place.
+        groupby: `.obs` column used to define cluster or cell-type groups.
+        area_col: `.obs` column containing cell area values.
+        percentiles: Quantiles to calculate within each group.
+        threshold_prefix: Prefix for threshold columns written to `.obs`.
+        band_col: Categorical output column describing each cell's percentile band.
+
+    Returns:
+        The name of the percentile-band column written to `.obs`.
+    """
+    required_cols = [groupby, area_col]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+
+    if missing_cols:
+        raise KeyError(f"Columns not found in adata.obs: {missing_cols}")
+
+    area_values = pd.to_numeric(adata.obs[area_col], errors="coerce")
+
+    for percentile in percentiles:
+        percentile_label = int(round(percentile * 100))
+        threshold_col = f"{threshold_prefix}_{percentile_label}_by_cluster"
+        adata.obs[threshold_col] = area_values.groupby(
+            adata.obs[groupby],
+            observed=True,
+        ).transform(lambda values: values.quantile(percentile))
+
+    threshold_95_col = f"{threshold_prefix}_95_by_cluster"
+    threshold_98_col = f"{threshold_prefix}_98_by_cluster"
+    threshold_99_col = f"{threshold_prefix}_99_by_cluster"
+
+    band_values = pd.Series("below_p95", index=adata.obs_names, dtype="object")
+
+    band_values.loc[area_values >= adata.obs[threshold_95_col]] = "p95_to_p98"
+    band_values.loc[area_values >= adata.obs[threshold_98_col]] = "p98_to_p99"
+    band_values.loc[area_values >= adata.obs[threshold_99_col]] = "above_p99"
+
+    adata.obs[band_col] = pd.Categorical(
+        band_values,
+        categories=CELL_AREA_PERCENTILE_BAND_ORDER,
+        ordered=True,
+    )
+
+    return band_col
+
+
+def plot_cell_area_percentile_violin_by_group(
+    adata,
+    groupby,
+    sample_name,
+    output_path,
+    area_col="cell_area",
+    band_col="cell_area_percentile_band_by_cluster",
+    threshold_prefix="cell_area_threshold",
+    show=True,
+):
+    """Plot cell-area violins with within-cluster upper percentile cells overlaid.
+
+    Args:
+        adata: AnnData object with cell metadata in `.obs`.
+        groupby: `.obs` column used to define cluster or cell-type groups.
+        sample_name: Sample name used in plot titles and filenames.
+        output_path: Directory where the PNG file is saved.
+        area_col: `.obs` column containing cell area values.
+        band_col: `.obs` categorical column with percentile-band labels.
+        threshold_prefix: Prefix for p95/p98/p99 threshold columns in `.obs`.
+        show: Whether to display the plot interactively.
+    """
+    required_cols = [groupby, area_col, band_col]
+    threshold_cols = [
+        f"{threshold_prefix}_95_by_cluster",
+        f"{threshold_prefix}_98_by_cluster",
+        f"{threshold_prefix}_99_by_cluster",
+    ]
+    missing_cols = [
+        col for col in required_cols + threshold_cols
+        if col not in adata.obs.columns
+    ]
+
+    if missing_cols:
+        raise KeyError(f"Columns not found in adata.obs: {missing_cols}")
+
+    plot_obs = adata.obs[required_cols + threshold_cols].copy()
+    plot_obs[area_col] = pd.to_numeric(plot_obs[area_col], errors="coerce")
+    plot_obs = plot_obs.dropna(subset=[groupby, area_col, band_col])
+    plot_obs[groupby] = plot_obs[groupby].astype("category")
+    plot_obs[band_col] = pd.Categorical(
+        plot_obs[band_col],
+        categories=CELL_AREA_PERCENTILE_BAND_ORDER,
+        ordered=True,
+    )
+
+    group_order = list(plot_obs[groupby].cat.categories)
+    fig, ax = plt.subplots(figsize=(14, 7))
+
+    sns.violinplot(
+        data=plot_obs,
+        x=groupby,
+        y=area_col,
+        order=group_order,
+        color="lightgrey",
+        cut=0,
+        inner="quartile",
+        linewidth=0.8,
+        ax=ax,
+    )
+
+    # Overlay only the upper-tail cells; draw the most extreme band last.
+    for band in ["p95_to_p98", "p98_to_p99", "above_p99"]:
+        band_obs = plot_obs[plot_obs[band_col] == band]
+        if band_obs.empty:
+            continue
+
+        sns.stripplot(
+            data=band_obs,
+            x=groupby,
+            y=area_col,
+            order=group_order,
+            color=CELL_AREA_PERCENTILE_BAND_PALETTE[band],
+            size=4,
+            alpha=0.9,
+            jitter=True,
+            linewidth=0.2,
+            edgecolor="black" if band == "above_p99" else None,
+            zorder=CELL_AREA_PERCENTILE_BAND_ORDER.index(band) + 2,
+            ax=ax,
+        )
+
+    # Short horizontal ticks show the exact p95/p98/p99 threshold for each group.
+    threshold_styles = [
+        ("95", "#f2c94c", "p95"),
+        ("98", "#f2994a", "p98"),
+        ("99", QC_PASS_FAIL_PALETTE["Fail"], "p99"),
+    ]
+
+    for x_position, group in enumerate(group_order):
+        group_obs = plot_obs[plot_obs[groupby] == group]
+        if group_obs.empty:
+            continue
+
+        for percentile_label, color, label in threshold_styles:
+            threshold_col = f"{threshold_prefix}_{percentile_label}_by_cluster"
+            threshold = group_obs[threshold_col].iloc[0]
+            ax.hlines(
+                y=threshold,
+                xmin=x_position - 0.34,
+                xmax=x_position + 0.34,
+                colors=color,
+                linestyles="--",
+                linewidth=1.2,
+                zorder=6,
+            )
+
+    handles = [
+        mpl.lines.Line2D(
+            [],
+            [],
+            marker="o",
+            linestyle="",
+            color=CELL_AREA_PERCENTILE_BAND_PALETTE[band],
+            markeredgecolor="black" if band == "above_p99" else "none",
+            label=band,
+            markersize=6,
+        )
+        for band in ["p95_to_p98", "p98_to_p99", "above_p99"]
+        if (plot_obs[band_col] == band).any()
+    ]
+    handles.extend(
+        mpl.lines.Line2D(
+            [],
+            [],
+            color=color,
+            linestyle="--",
+            label=label,
+            linewidth=1.2,
+        )
+        for _, color, label in threshold_styles
+    )
+
+    ax.legend(
+        handles=handles,
+        title="Within-cluster area band",
+        bbox_to_anchor=(1.02, 1),
+        loc="upper left",
+        frameon=False,
+    )
+    ax.set_title(
+        f"{sample_name}: cell area by {groupby} with within-cluster upper percentiles"
+    )
+    ax.set_xlabel(groupby)
+    ax.set_ylabel("Cell area (um^2)")
+    ax.tick_params(axis="x", rotation=45)
+
+    for tick_label in ax.get_xticklabels():
+        tick_label.set_ha("right")
+
+    fig.tight_layout()
+    os.makedirs(output_path, exist_ok=True)
+    output_file = os.path.join(
+        output_path,
+        f"{sample_name}_cell_area_percentile_violin_by_{_safe_filename_token(groupby)}.png",
+    )
+    fig.savefig(output_file, dpi=300, bbox_inches="tight")
+    print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+def add_groupwise_max_area_mask(
+    adata,
+    groupby,
+    percentile=0.99,
+    area_col="cell_area",
+    mask_col=None,
+    category_col=None,
+):
+    """Store a per-group upper-tail cell-area inspection mask in `.obs`.
+
+    Args:
+        adata: AnnData object to update in place.
+        groupby: `.obs` column used to define per-group thresholds.
+        percentile: Quantile above which cells are marked as failures.
+        area_col: `.obs` column containing cell area values.
+        mask_col: Optional boolean output column name.
+        category_col: Optional categorical pass/fail output column name.
+
+    Returns:
+        Tuple containing the boolean mask column and categorical plotting column.
+    """
+    required_cols = [groupby, area_col]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+
+    if missing_cols:
+        raise KeyError(f"Columns not found in adata.obs: {missing_cols}")
+
+    percentile_label = int(round(percentile * 100))
+
+    if mask_col is None:
+        mask_col = f"max_area_threshold_{percentile_label}_by_group"
+
+    if category_col is None:
+        category_col = f"{mask_col}_cat"
+
+    area_values = pd.to_numeric(adata.obs[area_col], errors="coerce")
+    group_thresholds = area_values.groupby(adata.obs[groupby], observed=True).transform(
+        lambda values: values.quantile(percentile)
+    )
+
+    adata.obs[mask_col] = area_values >= group_thresholds
+    adata.obs[category_col] = (
+        adata.obs[mask_col]
+        .map({True: "Fail", False: "Pass"})
+        .astype("category")
+    )
+
+    threshold_col = f"{mask_col}_threshold"
+    adata.obs[threshold_col] = group_thresholds
+
+    return mask_col, category_col
 
 
 # In[9]:
@@ -615,8 +1358,9 @@ else:
 ## Keep high-volume QC plot families in dedicated subfolders.
 qc_umap_path = os.path.join(qc_path, "umap_qc")
 qc_violin_path = os.path.join(qc_path, "violin_qc")
+qc_area_path = os.path.join(qc_path, "area_qc")
 
-for plot_path in [qc_umap_path, qc_violin_path]:
+for plot_path in [qc_umap_path, qc_violin_path, qc_area_path]:
     if not os.path.isdir(plot_path):
         os.makedirs(plot_path)
         print(f"Directory '{plot_path}' created successfully.")
@@ -1135,16 +1879,19 @@ print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{datase
 #                          NEGATIVE CONTROL PROBE MASK                         #
 # ---------------------------------------------------------------------------- #
 
-# Mask cells with at least 1 or more negative control probe counts
-adata.obs["has_negative_control_probe_counts"] = (
+# Mask cells with at least 1 or more negative control probe counts.
+# Here True means the cell fails this inspection metric.
+adata.obs["negative_control_probe_greater_equal_1"] = (
     adata.obs["control_probe_counts"] >= 1
 )
+adata.obs["has_negative_control_probe_counts"] = adata.obs["negative_control_probe_greater_equal_1"]
 
-# Create a category to colour plots
+# Create a standardized Pass/Fail category so Fail cells are drawn on top by
+# the shared QC plotting helpers.
 adata.obs["negative_control_probe_greater_equal_1_cat"] = (
-    adata.obs["has_negative_control_probe_counts"]
-    .map({True: "Has negative control", False: "No negative control"})
-    .astype("category")
+    adata.obs["negative_control_probe_greater_equal_1"]
+    .map({True: "Fail", False: "Pass"})
+    .astype(pd.CategoricalDtype(categories=QC_PASS_FAIL_ORDER, ordered=True))
 )
 
 
@@ -1653,6 +2400,85 @@ else:
 #                         FILTER 4 - CELL AREA FILTERS                         #
 # ---------------------------------------------------------------------------- #
 
+# -------- Per-cluster cumulative cell-area plots and threshold table -------- #
+area_group_col = cluster_ann_col if cluster_ann_col in adata.obs.columns else cluster_col
+area_percentiles = (0.95, 0.98, 0.99)
+
+cell_area_summary = summarize_cell_area_thresholds_by_group(
+    adata=adata,
+    groupby=area_group_col,
+    area_col="cell_area",
+    percentiles=area_percentiles,
+)
+
+cell_area_summary_path = os.path.join(
+    qc_area_path,
+    f"{dataset_name}_cell_area_thresholds_by_{_safe_filename_token(area_group_col)}.csv",
+)
+cell_area_summary.to_csv(cell_area_summary_path, index=False)
+print(f"Saved cell-area threshold summary to: {cell_area_summary_path}")
+
+plot_cell_area_cdf_by_group(
+    adata=adata,
+    groupby=area_group_col,
+    sample_name=dataset_name,
+    output_path=qc_area_path,
+    area_col="cell_area",
+    percentiles=area_percentiles,
+)
+
+plot_cell_area_cdf_facets_by_group(
+    adata=adata,
+    groupby=area_group_col,
+    sample_name=dataset_name,
+    output_path=qc_area_path,
+    area_col="cell_area",
+    percentiles=area_percentiles,
+)
+
+plot_cell_area_violin_by_group(
+    adata=adata,
+    groupby=area_group_col,
+    sample_name=dataset_name,
+    output_path=qc_area_path,
+    area_col="cell_area",
+)
+
+cell_area_percentile_band_col = add_groupwise_cell_area_percentile_bands(
+    adata=adata,
+    groupby=area_group_col,
+    area_col="cell_area",
+    percentiles=area_percentiles,
+    threshold_prefix="cell_area_threshold",
+    band_col="cell_area_percentile_band_by_cluster",
+)
+
+plot_cell_area_percentile_violin_by_group(
+    adata=adata,
+    groupby=area_group_col,
+    sample_name=dataset_name,
+    output_path=qc_area_path,
+    area_col="cell_area",
+    band_col=cell_area_percentile_band_col,
+    threshold_prefix="cell_area_threshold",
+)
+
+max_area_by_group_mask_col, max_area_by_group_cat_col = add_groupwise_max_area_mask(
+    adata=adata,
+    groupby=area_group_col,
+    percentile=0.99,
+    area_col="cell_area",
+    mask_col="max_area_threshold_99_by_cluster",
+    category_col="max_area_threshold_99_by_cluster_cat",
+)
+
+plot_qc_spatial_tissue(
+    data=adata,
+    qc_metric=max_area_by_group_cat_col,
+    sample_name=dataset_name,
+    output_path=qc_area_path,
+)
+
 # ------------------------- Top 1% cells by cell area ------------------------ #
 cell_area = adata.obs["cell_area"]
 area_quantile = np.quantile(cell_area, 0.99)
@@ -1820,6 +2646,7 @@ cluster_qc_violin_plots = [
     ("max_trans_passed_cat", "Top 2% transcript count threshold"),
     ("max_area_threshold_98_cat", "Top 2% of cells by cell area"),
     ("max_area_threshold_99_cat", "Top 1% of cells by cell area"),
+    ("max_area_threshold_99_by_cluster_cat", "Top 1% cell area within annotated cluster"),
     ("min_area_threshold_1_cat", "Bottom 1% of cells by cell area"),
     ("min_area_threshold_2_cat", "Bottom 2% of cells by cell area"),
 ]
@@ -2210,6 +3037,7 @@ qc_umap_plots = [
     ("min_trans_passed_cat", "Minimum transcript threshold"),
     ("max_trans_passed_cat", "Top 2% transcript count threshold"),
     ("max_area_threshold_99_cat", "Top 1% of cells by cell area"),
+    ("max_area_threshold_99_by_cluster_cat", "Top 1% cell area within annotated cluster"),
     ("max_area_threshold_98_cat", "Top 2% of cells by cell area"),
     ("min_area_threshold_1_cat", "Bottom 1% of cells by cell area"),
     ("min_area_threshold_2_cat", "Bottom 2% of cells by cell area")
@@ -2293,6 +3121,7 @@ qc_umap_plots = [
     ("min_trans_passed_cat", "Minimum transcript threshold"),
     ("max_trans_passed_cat", "Top 2% transcript count threshold"),
     ("max_area_threshold_99_cat", "Top 1% of cells by cell area"),
+    ("max_area_threshold_99_by_cluster_cat", "Top 1% cell area within annotated cluster"),
     ("max_area_threshold_98_cat", "Top 2% of cells by cell area"),
     ("min_area_threshold_1_cat", "Bottom 1% of cells by cell area"),
     ("min_area_threshold_2_cat", "Bottom 2% of cells by cell area"),
