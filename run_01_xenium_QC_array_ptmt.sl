@@ -29,8 +29,16 @@ mkdir -p logs
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG_DIR="config/01_QC/ptmt"
+CONFIG_DIR="${CONFIG_DIR:-config/01_QC/ptmt}"
+# Example override:
+# sbatch --export=ALL,CONFIG_DIR=config/01_QC/ptmt_pc55 run_01_xenium_QC_array_ptmt.sl
 CONFIGS=("${CONFIG_DIR}"/*.json)
+
+if (( SLURM_ARRAY_TASK_ID >= ${#CONFIGS[@]} )); then
+    echo "Array task ID ${SLURM_ARRAY_TASK_ID} is outside the config count (${#CONFIGS[@]}) for ${CONFIG_DIR}."
+    exit 0
+fi
+
 CONFIG="${CONFIGS[$SLURM_ARRAY_TASK_ID]}"
 
 ## Print a timestamp for each job and the config contents

@@ -50,6 +50,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 - HPC: scripts 00-03, plus optional script 00a for scree QC backfill.
 - Local: script 01a for clustree resolution QC and script 04 after copying summary CSVs from the HPC.
 - Slurm array ranges should match the number of JSON configs in the selected leaf config directory; `run_00a_pca_scree_array.sl` exits cleanly for array IDs beyond the config count.
+- `run_00_xenium_clustering.sl` and `run_01_xenium_QC_array_ptmt.sl` accept `CONFIG_DIR` overrides at submission time, for example `--export=ALL,CONFIG_DIR=config/00_clustering/ptmt_pc55`.
 
 ## Important Config Roots
 
@@ -66,6 +67,15 @@ Preferred clean script 00 export configs:
 config/03_export_summary/vbct_clean_script00/
 config/03_export_summary/ptmt_clean_script00/
 ```
+
+PTMT PC-depth comparison configs:
+
+```text
+config/00_clustering/ptmt_pc55/
+config/01_QC/ptmt_pc55/
+```
+
+These mirror the PTMT script 00 and script 01 configs but use `project = ptmt_pc55` and `pc_label = 55` so outputs are kept separate from the standard `ptmt`/PC35 run.
 
 ## Key Paths
 

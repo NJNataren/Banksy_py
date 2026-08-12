@@ -34,9 +34,16 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 #CONFIG=/hpcfs/users/a1210419/Banksy_py/config/vbct/CK_skin_res.json #local testing
-CONFIG_DIR="config/00_clustering/vbct/small"
-#CONFIG_DIR="config/00_clustering/ptmt"
-CONFIGS=($CONFIG_DIR/*.json)
+CONFIG_DIR="${CONFIG_DIR:-config/00_clustering/vbct/small}"
+# Example override:
+# sbatch --export=ALL,CONFIG_DIR=config/00_clustering/ptmt_pc55 run_00_xenium_clustering.sl
+CONFIGS=("${CONFIG_DIR}"/*.json)
+
+if (( SLURM_ARRAY_TASK_ID >= ${#CONFIGS[@]} )); then
+    echo "Array task ID ${SLURM_ARRAY_TASK_ID} is outside the config count (${#CONFIGS[@]}) for ${CONFIG_DIR}."
+    exit 0
+fi
+
 CONFIG=${CONFIGS[$SLURM_ARRAY_TASK_ID]}
 
 ## Print a timestamp for each job and the config contents
