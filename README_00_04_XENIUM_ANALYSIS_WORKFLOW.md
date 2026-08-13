@@ -695,17 +695,17 @@ config/03_export_summary/
 Current production-style examples include:
 
 ```text
-config/03_export_summary/vbct_small/all_genes/*.json
-config/03_export_summary/vbct_small/canonical_markers/*.json
-config/03_export_summary/vbct_small/all_genes_archive_labels/*.json
-config/03_export_summary/vbct_small/canonical_markers_archive_labels/*.json
+config/03_export_summary/archive/vbct_small_legacy_script02/all_genes/*.json
+config/03_export_summary/archive/vbct_small_legacy_script02/canonical_markers/*.json
+config/03_export_summary/archive/vbct_small_legacy_script02/all_genes_archive_labels/*.json
+config/03_export_summary/archive/vbct_archive_labels/canonical_markers_archive_labels/*.json
 ```
 
 Testing examples include:
 
 ```text
-config/03_export_summary/testing/export_summary/*.json
-config/03_export_summary/testing/legacy/*.json
+config/03_export_summary/archive/testing/export_summary/*.json
+config/03_export_summary/archive/testing/legacy/*.json
 ```
 
 Important config keys:
@@ -809,28 +809,28 @@ All genes:
 
 ```bash
 conda run -n banksy python 03_export_dotplot_data_from_config.py \
-  --config config/03_export_summary/vbct_small/all_genes/CK_skin_res_all_genes.json
+  --config config/03_export_summary/archive/vbct_small_legacy_script02/all_genes/CK_skin_res_all_genes.json
 ```
 
 Canonical markers:
 
 ```bash
 conda run -n banksy python 03_export_dotplot_data_from_config.py \
-  --config config/03_export_summary/vbct_small/canonical_markers/CK_skin_res_canonical_markers.json
+  --config config/03_export_summary/archive/vbct_small_legacy_script02/canonical_markers/CK_skin_res_canonical_markers.json
 ```
 
 Canonical markers grouped by archived labels:
 
 ```bash
 conda run -n banksy python 03_export_dotplot_data_from_config.py \
-  --config config/03_export_summary/vbct_small/canonical_markers_archive_labels/CK_skin_res_canonical_markers_archive_cell_type_labels.json
+  --config config/03_export_summary/archive/vbct_archive_labels/canonical_markers_archive_labels/CK_skin_res_canonical_markers_archive_cell_type_labels.json
 ```
 
 All genes grouped by archived labels:
 
 ```bash
 conda run -n banksy python 03_export_dotplot_data_from_config.py \
-  --config config/03_export_summary/vbct_small/all_genes_archive_labels/CK_skin_res_all_genes_archive_cell_type_labels.json
+  --config config/03_export_summary/archive/vbct_small_legacy_script02/all_genes_archive_labels/CK_skin_res_all_genes_archive_cell_type_labels.json
 ```
 
 ### How To Run On The HPC
@@ -847,7 +847,7 @@ Cluster-grouped all genes:
 
 ```bash
 sbatch --array=0-7 \
-  --export=CONFIG_DIR=config/03_export_summary/vbct_small/all_genes \
+  --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/all_genes \
   run_03_xenium_dotplot_export_from_config.sl
 ```
 
@@ -855,7 +855,7 @@ Cluster-grouped canonical markers:
 
 ```bash
 sbatch --array=0-7 \
-  --export=CONFIG_DIR=config/03_export_summary/vbct_small/canonical_markers \
+  --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/canonical_markers \
   run_03_xenium_dotplot_export_from_config.sl
 ```
 
@@ -863,7 +863,7 @@ Archived-label canonical markers:
 
 ```bash
 sbatch --array=0-7 \
-  --export=CONFIG_DIR=config/03_export_summary/vbct_small/canonical_markers_archive_labels \
+  --export=CONFIG_DIR=config/03_export_summary/archive/vbct_archive_labels/canonical_markers_archive_labels \
   run_03_xenium_dotplot_export_from_config.sl
 ```
 
@@ -871,7 +871,7 @@ Archived-label all genes:
 
 ```bash
 sbatch --array=0-7 \
-  --export=CONFIG_DIR=config/03_export_summary/vbct_small/all_genes_archive_labels \
+  --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/all_genes_archive_labels \
   run_03_xenium_dotplot_export_from_config.sl
 ```
 
@@ -942,9 +942,10 @@ Configs use one clean object per sample plus a list of grouping columns:
 Current clean script 00 export configs live under:
 
 ```text
-config/03_export_summary/vbct_clean_script00/all_genes/*.json
-config/03_export_summary/vbct_clean_script00/canonical_markers/*.json
-config/03_export_summary/ptmt_clean_script00/ptmt_panel/*.json
+config/03_export_summary/active/vbct_clean_script00/all_genes/*.json
+config/03_export_summary/active/vbct_clean_script00/canonical_markers/*.json
+config/03_export_summary/active/ptmt_clean_script00/ptmt_panel_pc35/*.json
+config/03_export_summary/active/ptmt_pc55_clean_script00/ptmt_panel/*.json
 ```
 
 The PTMT configs use the combined PTMT panel marker file:
@@ -982,7 +983,7 @@ For the eight VBC/T canonical-marker clean script 00 configs:
 
 ```bash
 sbatch --array=0-7 \
-  --export=CONFIG_DIR=config/03_export_summary/vbct_clean_script00/canonical_markers \
+  --export=CONFIG_DIR=config/03_export_summary/active/vbct_clean_script00/canonical_markers \
   run_03_xenium_dotplot_export_from_clean_script00_config.sl
 ```
 
@@ -990,7 +991,7 @@ For the eight VBC/T all-gene clean script 00 configs:
 
 ```bash
 sbatch --array=0-7 \
-  --export=CONFIG_DIR=config/03_export_summary/vbct_clean_script00/all_genes \
+  --export=CONFIG_DIR=config/03_export_summary/active/vbct_clean_script00/all_genes \
   run_03_xenium_dotplot_export_from_clean_script00_config.sl
 ```
 
@@ -998,11 +999,11 @@ For the 24 PTMT panel configs:
 
 ```bash
 sbatch --array=0-23%3 \
-  --export=CONFIG_DIR=config/03_export_summary/ptmt_clean_script00/ptmt_panel \
+  --export=CONFIG_DIR=config/03_export_summary/active/ptmt_clean_script00/ptmt_panel_pc35 \
   run_03_xenium_dotplot_export_from_clean_script00_config.sl
 ```
 
-The wrapper defaults to `config/03_export_summary/vbct_clean_script00/canonical_markers` when `CONFIG_DIR` is not provided. Always check that the `#SBATCH --array` range matches the number of JSON configs in the selected directory.
+The wrapper defaults to `config/03_export_summary/active/vbct_clean_script00/canonical_markers` when `CONFIG_DIR` is not provided. Always check that the `#SBATCH --array` range matches the number of JSON configs in the selected directory.
 
 ## Script 04: Render Multi-Sample Dotplots
 

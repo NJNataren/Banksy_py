@@ -20,9 +20,9 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 # Override at submit time when needed, for example:
-# sbatch --export=CONFIG_DIR=config/03_export_summary/vbct_small run_03_xenium_dotplot_export_from_config.sl
-#CONFIG_DIR="${CONFIG_DIR:-config/03_export_summary/vbct_small}"
-CONFIG_DIR="${CONFIG_DIR:-config/03_export_summary/vbct_small/canonical_markers_archive_labels}"
+# sbatch --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/canonical_markers run_03_xenium_dotplot_export_from_config.sl
+#CONFIG_DIR="${CONFIG_DIR:-config/03_export_summary/archive/vbct_small_legacy_script02/canonical_markers}"
+CONFIG_DIR="${CONFIG_DIR:-config/03_export_summary/archive/vbct_archive_labels/canonical_markers_archive_labels}"
 
 shopt -s nullglob
 CONFIGS=("$CONFIG_DIR"/*.json)

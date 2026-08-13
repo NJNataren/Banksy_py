@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-CONFIG="config/03_export_summary/testing/legacy/local_test_CK_skin_res_0p5.json"
+CONFIG="config/03_export_summary/archive/testing/legacy/local_test_CK_skin_res_0p5.json"
 OUTPUT="data/xenium/processed/cross_sample_dotplot_exports/local_test_CK_skin_res_0p5_dotplot_summary.csv"
 
 conda run -n banksy python 03_export_dotplot_data_from_config.py --config "$CONFIG"

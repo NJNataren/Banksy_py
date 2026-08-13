@@ -64,8 +64,9 @@ config/04_plot_dotplot/local/
 Preferred clean script 00 export configs:
 
 ```text
-config/03_export_summary/vbct_clean_script00/
-config/03_export_summary/ptmt_clean_script00/
+config/03_export_summary/active/vbct_clean_script00/
+config/03_export_summary/active/ptmt_clean_script00/ptmt_panel_pc35/
+config/03_export_summary/active/ptmt_pc55_clean_script00/ptmt_panel/
 ```
 
 PTMT PC-depth comparison configs:
