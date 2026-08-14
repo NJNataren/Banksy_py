@@ -1032,18 +1032,20 @@ config/04_plot_dotplot/
 Current local configs:
 
 ```text
-config/04_plot_dotplot/local/all_genes_multi_sample_local.json
-config/04_plot_dotplot/local/canonical_markers_multi_sample_local.json
-config/04_plot_dotplot/local/all_genes_archive_cell_type_labels_multi_sample_local.json
-config/04_plot_dotplot/local/canonical_markers_archive_cell_type_labels_multi_sample_local.json
-config/04_plot_dotplot/local/ptmt_panel_multi_sample_local.json
+config/04_plot_dotplot/active/vbct_clean_script00/multi_sample/all_genes_multi_sample_local.json
+config/04_plot_dotplot/active/vbct_clean_script00/multi_sample/canonical_markers_multi_sample_local.json
+config/04_plot_dotplot/archive/vbct_archive_labels/all_genes_archive_cell_type_labels_multi_sample_local.json
+config/04_plot_dotplot/archive/vbct_archive_labels/canonical_markers_archive_cell_type_labels_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_clean_script00/multi_sample/ptmt_panel_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/multi_sample/ptmt_pc55_panel_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/per_sample_panel_all_res/run_1/*.json
 ```
 
 HPC examples:
 
 ```text
-config/04_plot_dotplot/vbct_small/canonical_markers_multi_sample.json
-config/04_plot_dotplot/vbct_large/canonical_markers_multi_sample.json
+config/04_plot_dotplot/archive/vbct_hpc_or_old_layout/vbct_small/canonical_markers_multi_sample.json
+config/04_plot_dotplot/archive/vbct_hpc_or_old_layout/vbct_large/canonical_markers_multi_sample.json
 ```
 
 Important config keys:
@@ -1104,7 +1106,9 @@ data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_fo
 The PTMT local plotting config is:
 
 ```text
-config/04_plot_dotplot/local/ptmt_panel_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_clean_script00/multi_sample/ptmt_panel_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/multi_sample/ptmt_pc55_panel_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/per_sample_panel_all_res/run_1/*.json
 ```
 
 It expects script 03 PTMT panel summary CSVs at:
@@ -1212,35 +1216,37 @@ All genes, cluster grouped:
 
 ```bash
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/all_genes_multi_sample_local.json
+  --config config/04_plot_dotplot/active/vbct_clean_script00/multi_sample/all_genes_multi_sample_local.json
 ```
 
 Canonical markers, cluster grouped:
 
 ```bash
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/canonical_markers_multi_sample_local.json
+  --config config/04_plot_dotplot/active/vbct_clean_script00/multi_sample/canonical_markers_multi_sample_local.json
 ```
 
 All genes grouped by archived labels:
 
 ```bash
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/all_genes_archive_cell_type_labels_multi_sample_local.json
+  --config config/04_plot_dotplot/archive/vbct_archive_labels/all_genes_archive_cell_type_labels_multi_sample_local.json
 ```
 
 Canonical markers grouped by archived labels:
 
 ```bash
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/canonical_markers_archive_cell_type_labels_multi_sample_local.json
+  --config config/04_plot_dotplot/archive/vbct_archive_labels/canonical_markers_archive_cell_type_labels_multi_sample_local.json
 ```
 
 PTMT panel, current clusters at resolution 0.7:
 
 ```bash
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/ptmt_panel_multi_sample_local.json
+  --config config/04_plot_dotplot/active/ptmt_clean_script00/multi_sample/ptmt_panel_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/multi_sample/ptmt_pc55_panel_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/per_sample_panel_all_res/run_1/*.json
 ```
 
 ### HPC Slurm Entrypoint
@@ -1372,23 +1378,23 @@ python -m py_compile 00_xenium_clustering_clean_adata.py \
 Validate one JSON config:
 
 ```bash
-python -m json.tool config/04_plot_dotplot/local/all_genes_multi_sample_local.json
+python -m json.tool config/04_plot_dotplot/active/vbct_clean_script00/multi_sample/all_genes_multi_sample_local.json
 ```
 
 Render current local plots:
 
 ```bash
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/all_genes_multi_sample_local.json
+  --config config/04_plot_dotplot/active/vbct_clean_script00/multi_sample/all_genes_multi_sample_local.json
 
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/canonical_markers_multi_sample_local.json
+  --config config/04_plot_dotplot/active/vbct_clean_script00/multi_sample/canonical_markers_multi_sample_local.json
 
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/all_genes_archive_cell_type_labels_multi_sample_local.json
+  --config config/04_plot_dotplot/archive/vbct_archive_labels/all_genes_archive_cell_type_labels_multi_sample_local.json
 
 conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
-  --config config/04_plot_dotplot/local/canonical_markers_archive_cell_type_labels_multi_sample_local.json
+  --config config/04_plot_dotplot/archive/vbct_archive_labels/canonical_markers_archive_cell_type_labels_multi_sample_local.json
 ```
 
 ## Cautions

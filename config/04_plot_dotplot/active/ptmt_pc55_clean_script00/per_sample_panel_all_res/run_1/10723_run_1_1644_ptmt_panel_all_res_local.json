@@ -1,0 +1,77 @@
+{
+    "output_png": "figures/dotplots/ptmt_pc55/10723_run_1_1644_ptmt_panel_all_res_zscore_gene_dendrogram_dotplot.png",
+    "title": "10723_run_1_1644 PTMT PC55 panel dotplot, all available BANKSY resolutions",
+    "gene_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "10723_run_1_1644"
+    ],
+    "figure": {
+        "min_width": 64,
+        "min_height": 14,
+        "width_per_gene": 0.13,
+        "height_per_cluster": 0.36,
+        "max_dot_size": 120,
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "x_tick_fontsize": 6,
+        "y_tick_fontsize": 9,
+        "axis_label_fontsize": 13,
+        "title_fontsize": 16,
+        "title_y": 0.9,
+        "colorbar_fontsize": 12,
+        "tight_layout_rect": [
+            0.03,
+            0.04,
+            0.98,
+            0.9
+        ],
+        "gene_group_fontsize": 9,
+        "highlight_label_color": "#d62728",
+        "highlight_label_weight": "bold",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/ptmt_pc55/cross_sample_dotplot_exports/10723_run_1_1644_ptmt_panel_dotplot_summary.csv"
+    ],
+    "sample_filters": [
+        {
+            "sample": "10723_run_1_1644",
+            "include_all_resolutions": true
+        }
+    ],
+    "gene_review_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv",
+    "gene_review_gene_column": "Gene",
+    "gene_review_keep_column": "keep_for_dotplot",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score",
+    "y_axis_label": "PTMT PC55 sample / resolution / cluster",
+    "project": "ptmt_pc55",
+    "highlight_gene_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv",
+    "highlight_gene_column": "colour_canonical",
+    "cluster_genes": true,
+    "show_gene_dendrogram": true,
+    "gene_clustering_value_column": "mean_expression_zscore",
+    "gene_clustering_metric": "correlation",
+    "gene_clustering_method": "average",
+    "gene_clustering_fallback_metric": "euclidean",
+    "constant_gene_position": "end",
+    "resolution_order": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10",
+        "1.20",
+        "1.30",
+        "1.40",
+        "1.50"
+    ]
+}

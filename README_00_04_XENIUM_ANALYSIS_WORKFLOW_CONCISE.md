@@ -58,7 +58,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 config/00_clustering/
 config/02_create_expression/
 config/03_export_summary/
-config/04_plot_dotplot/local/
+config/04_plot_dotplot/active/
 ```
 
 Preferred clean script 00 export configs:
@@ -153,6 +153,20 @@ Rscript 01a_merge_cluster_resolution_csvs.R \
 ```
 
 The merge helper consumes one-resolution CSVs, skips existing merged or summary CSVs, checks that cell IDs match across files, sorts resolution columns numerically, and writes a merged CSV named from the available resolutions. Rerun it after new 0.90 or 1.00 files are generated.
+
+PTMT PC55 clustree local run after copying script 00 cluster CSVs back from the HPC:
+
+```bash
+./run_01a_clustree_ptmt_pc55_local.sh
+```
+
+Copy inputs from the HPC before running, for example:
+
+```bash
+rsync -av --include='*/' --include='*_cell_cluster_id_across_clustering_res_*.csv' --exclude='*' \
+  a1210419@phoenix:/scratchdata1/users/a1210419/Banksy_py/data/xenium/processed/ptmt_pc55/ \
+  data/xenium/processed/ptmt_pc55/
+```
 
 Example CK clustree local run:
 

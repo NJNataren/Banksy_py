@@ -1,0 +1,81 @@
+{
+    "output_png": "figures/dotplots/ptmt_pc55/10329_run_1_DMSO_all_genes_all_res_zscore_dotplot.png",
+    "title": "10329_run_1_DMSO PTMT PC55 all-gene dotplot, all available BANKSY resolutions",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "10329_run_1_DMSO"
+    ],
+    "figure": {
+        "min_width": 48,
+        "min_height": 10,
+        "width_per_gene": 0.16,
+        "height_per_cluster": 0.42,
+        "max_dot_size": 160,
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "x_tick_fontsize": 7,
+        "y_tick_fontsize": 14,
+        "axis_label_fontsize": 16,
+        "title_fontsize": 18,
+        "title_y": 0.98,
+        "colorbar_fontsize": 16,
+        "tight_layout_rect": [
+            0.03,
+            0.08,
+            0.98,
+            0.88
+        ],
+        "gene_group_fontsize": 11,
+        "highlight_label_color": "#d62728",
+        "highlight_label_weight": "bold",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5,
+        "x_tick_labeltop": true,
+        "x_tick_labelbottom": true,
+        "show_gene_group_labels_top": true,
+        "show_gene_group_labels_bottom": true,
+        "gene_group_label_top_y": 1.04,
+        "gene_group_label_bottom_y": -0.06,
+        "colorbar_pad": 0.02,
+        "size_legend_bbox_to_anchor": [
+            1.08,
+            1.0
+        ],
+        "size_legend_loc": "upper left"
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/ptmt_pc55/cross_sample_dotplot_exports/all_genes_all_res/10329_run_1_DMSO_all_genes_dotplot_summary.csv"
+    ],
+    "sample_filters": [
+        {
+            "sample": "10329_run_1_DMSO",
+            "resolution": "all"
+        }
+    ],
+    "highlight_gene_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv",
+    "highlight_gene_column": "colour_canonical",
+    "gene_review_file": "data/xenium/raw_data/gene_markers/ptmt/ptmt_combined_xenium_panel_gene_review_for_dotplot.csv",
+    "gene_review_gene_column": "Gene",
+    "gene_review_keep_column": "keep_for_dotplot",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score",
+    "y_axis_label": "PTMT PC55 sample / resolution / cluster",
+    "project": "ptmt_pc55",
+    "resolution_order": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10",
+        "1.20",
+        "1.30",
+        "1.40",
+        "1.50"
+    ]
+}
