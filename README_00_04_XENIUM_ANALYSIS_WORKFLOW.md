@@ -1407,3 +1407,102 @@ conda run -n banksy python 04_plot_multi_sample_dotplot_from_config_local.py \
 - Files under `data/xenium/`, `figures/`, `logs/`, and `hpc/` may be large or machine-specific.
 - Review CSVs currently live under `data/xenium/raw_data/gene_markers/`; check whether they are git-ignored before relying on git to track them.
 - Slurm array ranges must match the number of configs in the selected config directory.
+
+## August 2026 PTMT PC55 Notes and Future Work
+
+### PTMT PC55 Project Separation
+
+PTMT PC55 is intentionally project-scoped separately from standard PTMT/PC35:
+
+```text
+config/00_clustering/ptmt_pc55/
+config/01_QC/ptmt_pc55/
+data/xenium/processed/ptmt_pc55/<sample>/
+data/xenium/output/ptmt_pc55/<sample>/
+```
+
+The script 00 PC55 configs use this full resolution list:
+
+```text
+0.50 0.60 0.70 0.80 0.90 1.00 1.10 1.2 1.3 1.4 1.5
+```
+
+Script 01 constructs the clean clustered input filename from the literal `res_label` strings in its config. Therefore the `config/01_QC/ptmt_pc55/*.json` files must stay synced to the matching script 00 configs. If they contain only `0.50` through `1.10`, script 01 will look for a missing 7-resolution `.h5ad` file instead of the current PC55 output.
+
+### Script 03 and Script 04 Config Layouts
+
+Script 03 configs now use active/helper/archive folders:
+
+```text
+config/03_export_summary/active/
+config/03_export_summary/local_helpers/
+config/03_export_summary/archive/
+```
+
+Current PTMT PC55 script 03 configs include:
+
+```text
+config/03_export_summary/active/ptmt_pc55_clean_script00/ptmt_panel/
+config/03_export_summary/active/ptmt_pc55_clean_script00/all_genes/
+```
+
+Script 04 configs now use active/archive folders:
+
+```text
+config/04_plot_dotplot/active/
+config/04_plot_dotplot/archive/
+```
+
+See `config/04_plot_dotplot/README.md` for the active layout. Current PTMT PC55 plot configs include:
+
+```text
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/multi_sample/ptmt_pc55_panel_multi_sample_local.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/multi_sample/ptmt_pc55_panel_run_1_local.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/per_sample_panel_all_res/run_1/*.json
+config/04_plot_dotplot/active/ptmt_pc55_clean_script00/per_sample_all_genes_all_res/*.json
+```
+
+The temporary `available` PC55 plot configs were removed after `10708_run_1_1644` script 03 outputs were copied back. The run 1 PC55 config now includes all eight run 1 samples.
+
+Important distinction: PTMT panel script 03 exports already include all exported resolutions for PTMT panel genes. The PC55 `all_genes` script 03 configs are only needed when plotting every gene in the clean AnnData object.
+
+### PTMT PC55 Clustree
+
+PTMT PC55 clustree is run locally from script 00 cluster-assignment CSVs. Copy the CSVs from the HPC first:
+
+```bash
+rsync -av --include='*/' --include='*_cell_cluster_id_across_clustering_res_*.csv' --exclude='*' \
+  a1210419@phoenix:/scratchdata1/users/a1210419/Banksy_py/data/xenium/processed/ptmt_pc55/ \
+  data/xenium/processed/ptmt_pc55/
+```
+
+Then run:
+
+```bash
+./run_01a_clustree_ptmt_pc55_local.sh
+```
+
+Outputs are written under:
+
+```text
+data/xenium/output/ptmt_pc55/<sample>/clustree_qc/
+```
+
+The runner uses prefix `labels_scaled_gaussian_pc55_nc0.20_r`. Annotated clustrees require `cluster_col` and `new_labels` in the matching script 01 QC config; otherwise only standard topology and SC3-stability plots are produced.
+
+### Future Work: SpaNorm Normalisation Pilot
+
+SpaNorm was discussed as a possible spatially aware replacement for the current Scanpy normalisation used before BANKSY clustering. Treat this as future work.
+
+Recommended approach:
+
+- Keep current Scanpy normalisation as the baseline.
+- Add a separate experimental project such as `ptmt_pc55_spanorm` rather than changing `ptmt_pc55` in place.
+- Avoid full R/Python object conversion where possible. SpatialExperiment/Seurat/AnnData round-trips are fragile for cell order, gene order, sparse matrices, layers, and categoricals.
+- If official R/Bioconductor SpaNorm is used, exchange minimal files instead: counts matrix, cells, genes, spatial coordinates, then a SpaNorm output matrix plus explicit cell/gene IDs.
+- Validate cell and gene order before injecting SpaNorm output into an AnnData layer such as `layers["spanorm"]`.
+- Verify the SpaNorm output scale before deciding whether to call `log1p`; do not double-log adjusted logcounts.
+- A suggested Python package/API named `py_spanorm` was not verified during this session, so confirm availability and behaviour before building around it.
+
+Pilot comparisons should include PCA scree, UMAP/spatial cluster plots, clustree stability, marker dotplots, and association of clusters with QC/library-size metrics.
+

@@ -9,9 +9,10 @@
 
 """
 Title: Clean Clustered Xenium QC And Inspection
-Date: 2026-06-29
+Date: 2026-08-17
 Summary: Run QC and exploratory spatial plots from clean expression AnnData
-objects that already contain BANKSY cluster labels and embeddings.
+objects that already contain BANKSY cluster labels and embeddings, including
+cell-area and transcript-count diagnostics for filtering decisions.
 """
 
 
@@ -2166,6 +2167,168 @@ plot_qc_spatial_tissue(
     qc_metric = "min_trans_passed_cat",
     sample_name = dataset_name
 )
+
+
+# In[ ]:
+
+
+# -------- Cell area by transcript count with minimum transcript threshold -------- #
+
+x_quantile_limit = 0.15
+y_limit = 200
+
+fig, ax = plt.subplots(figsize=(7, 5))
+
+sns.scatterplot(
+    data=adata.obs,
+    x="cell_area",
+    y="nCount_Xenium",
+    hue="min_trans_passed_cat",
+    hue_order=["Pass", "Fail"],
+    palette=QC_PASS_FAIL_PALETTE,
+    s=8,
+    alpha=0.45,
+    linewidth=0,
+    ax=ax,
+    rasterized=True,
+)
+
+ax.axhline(
+    y=threshold,
+    color="red",
+    linestyle="--",
+    linewidth=1.5,
+    label=f"Minimum transcript threshold ({threshold})",
+)
+
+area_p1 = adata.obs["cell_area"].quantile(0.01)
+
+ax.set_xlim(0, adata.obs["cell_area"].quantile(x_quantile_limit))
+ax.set_ylim(0, y_limit)
+
+ax.axvline(
+    area_p1,
+    color="black",
+    linestyle=":",
+    linewidth=1,
+    label="Cell area 1st percentile",
+)
+
+ax.set_title(
+    f"{dataset_name}: cell area vs transcript count, "
+    f"x <= p{int(x_quantile_limit * 100)}, y <= {y_limit}"
+)
+ax.set_xlabel("Cell area")
+ax.set_ylabel("nCount_Xenium")
+ax.legend(frameon=False, fontsize=9)
+
+fig.tight_layout()
+fig.savefig(
+    os.path.join(
+        qc_path,
+        (
+            f"cell_area_vs_nCount_Xenium_min_transcript_threshold_{threshold}"
+            f"_x_p{int(x_quantile_limit * 100)}_y{y_limit}_{dataset_name}.png"
+        ),
+    ),
+    dpi=300,
+    bbox_inches="tight",
+)
+plt.show()
+plt.close(fig)
+
+# In[ ]:
+
+
+# -------- Summarize overlap of low-transcript and smallest-area cells -------- #
+
+low_transcript_mask = adata.obs["nCount_Xenium"] <= threshold
+bottom_area_1pct_mask = adata.obs["cell_area"] <= area_p1
+low_transcript_and_bottom_area_mask = low_transcript_mask & bottom_area_1pct_mask
+bottom_area_not_low_transcript_mask = bottom_area_1pct_mask & ~low_transcript_mask
+
+n_total_cells = adata.n_obs
+n_low_transcript = int(low_transcript_mask.sum())
+n_bottom_area_1pct = int(bottom_area_1pct_mask.sum())
+n_low_transcript_and_bottom_area = int(low_transcript_and_bottom_area_mask.sum())
+n_bottom_area_not_low_transcript = int(bottom_area_not_low_transcript_mask.sum())
+
+low_transcript_area_overlap_summary = pd.DataFrame(
+    [
+        {
+            "metric": "low_transcript_cells",
+            "description": f"Cells with nCount_Xenium <= {threshold}",
+            "n_cells": n_low_transcript,
+            "percent_all_cells": n_low_transcript / n_total_cells * 100,
+            "percent_bottom_area_1pct_cells": np.nan,
+        },
+        {
+            "metric": "bottom_area_1pct_cells",
+            "description": "Cells in the bottom 1% by cell_area",
+            "n_cells": n_bottom_area_1pct,
+            "percent_all_cells": n_bottom_area_1pct / n_total_cells * 100,
+            "percent_bottom_area_1pct_cells": 100.0,
+        },
+        {
+            "metric": "low_transcript_and_bottom_area_1pct",
+            "description": (
+                f"Cells with nCount_Xenium <= {threshold} and in the bottom "
+                "1% by cell_area"
+            ),
+            "n_cells": n_low_transcript_and_bottom_area,
+            "percent_all_cells": n_low_transcript_and_bottom_area / n_total_cells * 100,
+            "percent_bottom_area_1pct_cells": (
+                n_low_transcript_and_bottom_area / n_bottom_area_1pct * 100
+                if n_bottom_area_1pct > 0 else np.nan
+            ),
+        },
+        {
+            "metric": "bottom_area_1pct_not_low_transcript",
+            "description": (
+                f"Cells in the bottom 1% by cell_area but with nCount_Xenium > "
+                f"{threshold}"
+            ),
+            "n_cells": n_bottom_area_not_low_transcript,
+            "percent_all_cells": n_bottom_area_not_low_transcript / n_total_cells * 100,
+            "percent_bottom_area_1pct_cells": (
+                n_bottom_area_not_low_transcript / n_bottom_area_1pct * 100
+                if n_bottom_area_1pct > 0 else np.nan
+            ),
+        },
+    ]
+)
+
+low_transcript_area_overlap_summary_path = os.path.join(
+    qc_path,
+    (
+        f"{dataset_name}_low_transcript_threshold_{threshold}"
+        "_bottom_area_1pct_overlap_summary.csv"
+    ),
+)
+low_transcript_area_overlap_summary.to_csv(
+    low_transcript_area_overlap_summary_path,
+    index=False,
+)
+
+print(low_transcript_area_overlap_summary)
+if n_bottom_area_1pct > 0:
+    print(
+        "Bottom 1% area cells captured by low-transcript threshold: "
+        f"{n_low_transcript_and_bottom_area:,} / {n_bottom_area_1pct:,} "
+        f"({n_low_transcript_and_bottom_area / n_bottom_area_1pct * 100:.2f}%)"
+    )
+    print(
+        "Bottom 1% area cells not captured by low-transcript threshold: "
+        f"{n_bottom_area_not_low_transcript:,} / {n_bottom_area_1pct:,} "
+        f"({n_bottom_area_not_low_transcript / n_bottom_area_1pct * 100:.2f}%)"
+    )
+else:
+    print("No bottom 1% area cells were detected.")
+print(
+    "Saved low-transcript/bottom-area overlap summary to: "
+    f"{low_transcript_area_overlap_summary_path}"
+)
+
 
 
 # In[ ]:

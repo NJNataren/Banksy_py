@@ -250,3 +250,46 @@ Use clustree together with script 01 QC and script 03/04 marker dotplots when de
 - Keep `new_labels` config handling in 01 QC only unless the workflow explicitly changes.
 -Generate dot plots on a per sample basis across all available resolutions, this way we can assess maker expression across resoltions and comepare them back to clustree results.
   -The dot plot should annotate cell types where available using cell type annotations from qc 01 script configs.
+
+## Session Update: PTMT PC55 and SpaNorm Future Work
+
+PTMT PC55 clustering uses a separated project label so outputs do not collide with the standard PTMT PC35 workflow:
+
+```text
+config/00_clustering/ptmt_pc55/
+data/xenium/processed/ptmt_pc55/<sample>/
+data/xenium/output/ptmt_pc55/<sample>/
+```
+
+The PC55 script 00 configs currently use the full resolution set:
+
+```text
+0.50 0.60 0.70 0.80 0.90 1.00 1.10 1.2 1.3 1.4 1.5
+```
+
+That exact `res_label` list matters because script 00 uses the literal strings to build clean clustered object filenames, for example:
+
+```text
+adata_expression_clean_<sample>_with_banksy_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.2_1.3_1.4_1.5.h5ad
+```
+
+Script 01 QC configs for `ptmt_pc55` must stay synced to that full resolution list or script 01 will look for a missing 7-resolution object. The QC cluster columns themselves use formatted numeric suffixes such as `labels_scaled_gaussian_pc55_nc0.20_r1.20`, but the file name uses `1.2` because that is the literal config value.
+
+### Future Work: SpaNorm Normalisation Pilot
+
+We discussed testing SpaNorm as a spatially aware replacement for the current Scanpy `normalize_total`/`log1p` clustering normalisation. Treat this as future work and do not replace the current script 00 path yet.
+
+Current recommendation:
+
+- Keep current Scanpy normalisation as the baseline branch.
+- Add a separate experimental project such as `ptmt_pc55_spanorm` or `vbct_spanorm_test`.
+- Avoid full R/Python object conversion if possible; SpatialExperiment/Seurat/AnnData round-trips are fragile for cell order, gene order, sparse matrices, layers, and categoricals.
+- Prefer a minimal matrix-exchange interface if the official R/Bioconductor SpaNorm package is used:
+  - Python exports raw counts, cells, genes, and spatial coordinates.
+  - R SpaNorm writes a normalised matrix plus explicit cell/gene index files.
+  - Python validates cell/gene order and injects the result into an AnnData layer such as `layers["spanorm"]`.
+- Only set `adata.X` to SpaNorm values for the BANKSY clustering branch after confirming the output scale. Do not blindly apply `log1p` after SpaNorm; first verify whether the SpaNorm output is adjusted counts, logcounts, PAC, Pearson residuals, or another scale.
+- The Python package/API suggested as `py_spanorm` was not verified from public documentation during this session. Verify availability on the HPC before designing around it.
+
+Pilot comparison should include PCA scree, UMAP/spatial cluster plots, clustree stability, marker dotplots, and association between cluster labels and library-size/QC metrics such as `nCount_Xenium`.
+

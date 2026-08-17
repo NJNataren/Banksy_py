@@ -3,10 +3,11 @@
 
 """
 Title: Xenium BANKSY Clustering With Clean Expression Outputs
-Date: 2026-07-30
+Date: 2026-08-17
 Summary: Run config-driven BANKSY clustering for Xenium samples, save clean
 log-normalized expression AnnData before BANKSY feature expansion, and copy
-BANKSY metadata back onto the clean object for marker analysis.
+BANKSY metadata back onto the clean object for marker analysis. Pre-filter
+zero-count cell QC plots are saved before empty cells are removed.
 """
 # In[43]:
 
@@ -439,6 +440,77 @@ res_label
 
 
 # In[51]:
+
+
+############################################
+#       PLOT ZERO COUNT / EMPTY CELLS      #
+############################################
+
+zero_count_mask = adata.obs["nCount_Xenium"] <= 0
+adata.obs["zero_count_cell_cat"] = (
+    zero_count_mask
+    .map({True: "Fail", False: "Pass"})
+    .astype("category")
+)
+
+zero_count_summary = (
+    adata.obs["zero_count_cell_cat"]
+    .value_counts()
+    .rename_axis("qc_status")
+    .reset_index(name="n_cells")
+)
+zero_count_summary["percent_cells"] = (
+    zero_count_summary["n_cells"] / adata.n_obs * 100
+)
+
+zero_count_summary_path = os.path.join(
+    qc_path,
+    f"{dataset_name}_zero_count_cell_summary.csv",
+)
+zero_count_summary.to_csv(zero_count_summary_path, index=False)
+
+xy = adata.obsm["xy"]
+fig, ax = plt.subplots(figsize=(12, 8))
+
+# Draw Pass cells first and failed empty cells second so sparse failures remain visible.
+for status, color, zorder, alpha in [
+    ("Pass", "orange", 2, 0.45),
+    ("Fail", "dodgerblue", 3, 0.9),
+]:
+    mask = np.asarray(adata.obs["zero_count_cell_cat"].astype(str) == status)
+    if not mask.any():
+        continue
+
+    ax.scatter(
+        xy[mask, 0],
+        xy[mask, 1],
+        s=2,
+        c=color,
+        label=status,
+        linewidths=0,
+        alpha=alpha,
+        rasterized=True,
+        zorder=zorder,
+    )
+
+ax.set_aspect("equal")
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+ax.set_title(f"{dataset_name}: zero-count cells before filtering")
+ax.legend(fontsize=14, markerscale=4, frameon=False)
+
+zero_count_plot_path = os.path.join(
+    qc_path,
+    f"tissue_spatial_scatter_zero_count_cell_cat_{dataset_name}.png",
+)
+fig.savefig(zero_count_plot_path, dpi=300, bbox_inches="tight")
+plt.close(fig)
+
+print(f"Saved zero-count cell QC summary to: {zero_count_summary_path}")
+print(f"Saved zero-count cell QC plot to: {zero_count_plot_path}")
+
+
+# In[52]:
 
 
 #####################################

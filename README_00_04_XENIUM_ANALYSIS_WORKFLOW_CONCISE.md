@@ -244,6 +244,19 @@ MG_gastric_non_res     0.50 0.60 0.70 0.80 0.90 1.00 1.10   annotated
 
 For merged large-sample inputs, rerun `01a_merge_cluster_resolution_csvs.R` after new split files such as `0.90` or `1.00` become available, then point `01a_clustree_cluster_resolution_qc.R` at the newly merged CSV. Use the cluster prefix detected in the CSV headers; for example, the current merged `CK_bowel_res`, `HW_brain_res`, and `MF_skin_non_res` files use `labels_scaled_gaussian_pc30_nc0.20_r`.
 
+
+## August 2026 PTMT PC55 Session Notes
+
+- PTMT PC55 outputs are kept under the separate `ptmt_pc55` project. Do not mix these with standard `ptmt`/PC35 outputs.
+- Script 00 PC55 configs use resolutions `0.50 0.60 0.70 0.80 0.90 1.00 1.10 1.2 1.3 1.4 1.5`. Script 01 QC configs must use the same literal `res_label` list so the clean clustered `.h5ad` filename matches script 00 output.
+- Script 03 configs are organised under `active/`, `local_helpers/`, and `archive/`. Current PC55 exports live under `config/03_export_summary/active/ptmt_pc55_clean_script00/`.
+- Script 04 configs are organised under `active/` and `archive/`; see `config/04_plot_dotplot/README.md`.
+- Current PC55 panel plotting configs include the full 24-sample multi-sample plot, the full run 1 plot with all eight run 1 samples, and per-sample run 1 all-resolution panel plots.
+- Temporary `available` PC55 plot configs were removed after `10708_run_1_1644` script 03 results became available.
+- Existing PTMT panel script 03 CSVs already contain all exported resolutions for the PTMT panel genes. Only use the new PC55 `all_genes` script 03 configs when plotting every gene in the AnnData object.
+- PTMT PC55 clustree is local. Copy script 00 cluster assignment CSVs from the HPC, then run `./run_01a_clustree_ptmt_pc55_local.sh`.
+- Future SpaNorm work should be a separate experimental branch/project, not an immediate replacement for Scanpy normalisation. Prefer minimal matrix exchange over full R/Python object conversion, and verify output scale before applying `log1p`.
+
 ## Archived Labels
 
 Archived-label workflows require:
