@@ -1,0 +1,5 @@
+{
+  "project": "vbct",
+  "dataset_name": "GR_lung_non_res_roi",
+  "output_label": "filtered_qc_v1"
+}

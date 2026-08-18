@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[24]:
 
 
 #!/usr/bin/env python
@@ -9,15 +9,14 @@
 
 """
 Title: Clean Clustered Xenium QC And Inspection
-Date: 2026-08-17
+Date: 2026-06-29
 Summary: Run QC and exploratory spatial plots from clean expression AnnData
-objects that already contain BANKSY cluster labels and embeddings, including
-cell-area and transcript-count diagnostics for filtering decisions.
+objects that already contain BANKSY cluster labels and embeddings.
 """
 
 
 
-# In[2]:
+# In[25]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -29,7 +28,7 @@ cell-area and transcript-count diagnostics for filtering decisions.
 
 
 
-# In[3]:
+# In[26]:
 
 
 ### Import packages
@@ -60,7 +59,7 @@ random.seed(seed)
 
 
 
-# In[4]:
+# In[27]:
 
 
 # # ---------------------------------------------------------------------------- #
@@ -98,7 +97,7 @@ random.seed(seed)
 
 
 
-# In[5]:
+# In[28]:
 
 
 # --------------------- PARSE ARGUMENTS FROM JSON CONFIG --------------------- #
@@ -173,7 +172,7 @@ new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell t
 
 
 
-# In[6]:
+# In[29]:
 
 
 QC_PASS_FAIL_ORDER = ["Pass", "Fail"]
@@ -313,7 +312,7 @@ def plot_qc_spatial_tissue(
         plt.close(fig)
 
 
-# In[7]:
+# In[30]:
 
 
 def cluster_qc_violin(
@@ -486,7 +485,7 @@ def cluster_qc_violin(
         plt.close()
 
 
-# In[8]:
+# In[ ]:
 
 
 # ------ Plot the UMAP with clusters and a selected QC metric ------ #
@@ -1299,7 +1298,7 @@ def add_groupwise_max_area_mask(
     return mask_col, category_col
 
 
-# In[9]:
+# In[32]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1376,7 +1375,7 @@ for plot_path in [qc_umap_path, qc_violin_path, qc_area_path]:
 
 
 
-# In[10]:
+# In[33]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1412,7 +1411,7 @@ if banksy_pca_key in adata.obsm and "X_pca" not in adata.obsm:
 
 
 
-# In[11]:
+# In[34]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1426,7 +1425,7 @@ adata = adata
 
 
 
-# In[12]:
+# In[35]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1465,7 +1464,7 @@ plt.close()
 
 
 
-# In[13]:
+# In[36]:
 
 
 ## Check to compare nCount_Xenium, adata.X and adata.layers["counts"]
@@ -1495,7 +1494,7 @@ comparison = pd.DataFrame(
 comparison
 
 
-# In[14]:
+# In[37]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1561,7 +1560,7 @@ print(f"Saving Gene_transcript_counts_vs_Negative_Control_probes_counts_{dataset
 
 
 
-# In[ ]:
+# In[38]:
 
 
 ## Summary of number of features
@@ -1587,7 +1586,7 @@ print(f"Saving Gene_transcript_counts_vs_Negative_Control_probes_counts_{dataset
 # print(negative_control_probes.tolist())
 
 
-# In[ ]:
+# In[39]:
 
 
 # ------- Create a mask for cells with at least 1 negative probe counts ------ #
@@ -1638,7 +1637,7 @@ plt.close(fig)
 print(f"Saving Negative_Control_%_vs_Transcript_Density_{dataset_name}.png to {qc_path}")
 
 
-# In[ ]:
+# In[40]:
 
 
 ## Read in transcript parquet to get raw negative control probe counts.
@@ -1670,7 +1669,7 @@ print("AnnData cells:", adata.n_obs)
 
 
 
-# In[ ]:
+# In[41]:
 
 
 ## Subset transcripts parquet to negative probe transcripts
@@ -1799,7 +1798,7 @@ print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{datase
 
 
 
-# In[ ]:
+# In[42]:
 
 
 # ------------------- Negative control probe count per cell ------------------ #
@@ -1873,7 +1872,7 @@ plt.close(fig)
 print(f"Percentage_negative_control_probe_in_total_negative_probe_counts_{dataset_name}.png to {qc_path}")    
 
 
-# In[ ]:
+# In[43]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1932,7 +1931,77 @@ probe_order_official = (
 )
 
 
-# In[ ]:
+# In[44]:
+
+
+# -------- Cells with transcripts from >=2 distinct negative-control probes -------- #
+
+neg_probe_diversity = (
+    neg_tx_assigned
+    .groupby("cell_id")["feature_name"]
+    .nunique()
+    .rename("n_neg_control_probes_detected")
+)
+
+adata.obs["n_neg_control_probes_detected"] = (
+    adata.obs_names.astype(str)
+    .map(neg_probe_diversity)
+    .fillna(0)
+    .astype(int)
+)
+
+adata.obs["negative_control_probe_ge2"] = (
+    adata.obs["n_neg_control_probes_detected"] >= 2
+)
+
+adata.obs["negative_control_probe_ge2_cat"] = (
+    adata.obs["negative_control_probe_ge2"]
+    .map({True: "Fail", False: "Pass"})
+    .astype("category")
+)
+
+n_ge2 = adata.obs["negative_control_probe_ge2"].sum()
+print(
+    f"{n_ge2:,} / {adata.n_obs:,} cells "
+    f"({n_ge2 / adata.n_obs * 100:.2f}%) have transcripts from >=2 distinct negative-control probes"
+)
+
+plot_qc_spatial_tissue(
+    data=adata,
+    qc_metric="negative_control_probe_ge2_cat",
+    sample_name=dataset_name,
+)
+
+
+# In[45]:
+
+
+# -------------------- Negative control distribution table ------------------- #
+neg_probe_diversity_summary = (
+    adata.obs["n_neg_control_probes_detected"]
+    .value_counts()
+    .sort_index()
+    .rename_axis("n_distinct_negative_control_probes")
+    .reset_index(name="n_cells")
+)
+
+neg_probe_diversity_summary["percent_cells"] = (
+    neg_probe_diversity_summary["n_cells"] / adata.n_obs * 100
+)
+
+neg_probe_diversity_summary.to_csv(
+    os.path.join(qc_path, f"{dataset_name}_negative_control_probe_diversity_summary.csv"),
+    index=False,
+)
+
+
+# In[46]:
+
+
+qc_path
+
+
+# In[47]:
 
 
 # ------- Plot location of cell with >= 1 negative control probe count ------- #
@@ -1945,11 +2014,11 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[ ]:
+# In[48]:
 
 
 # ---------------------------------------------------------------------------- #
-#          PLOT 2 - NEGATIVE CONTROL PROBE DETECTION RATE BAR PLOT             #
+#                NEGATIVE CONTROL PROBE DETECTION RATE BAR PLOT                #
 # ---------------------------------------------------------------------------- #
 
 neg_probe_detection_rate = (
@@ -1986,9 +2055,8 @@ print(f"Negative_control_probe_detection_rate_{dataset_name}.png to {qc_path}")
 
 # In[218]:
 
-
 # ---------------------------------------------------------------------------- #
-#              PLOT 4 - CLUSTER BY NEGATIVE CONTROL PROBE HEATMAP              #
+#                   CLUSTER BY NEGATIVE CONTROL PROBE HEATMAP                  #
 # ---------------------------------------------------------------------------- #
 
 cluster_plot_col = cluster_ann_col if cluster_ann_col in adata.obs.columns else cluster_col
@@ -2036,11 +2104,11 @@ print(f"Cluster_by_negative_control_probe_detection_heatmap_{dataset_name}.png t
 
 
 
-# In[ ]:
+# In[49]:
 
 
 # ---------------------------------------------------------------------------- #
-#              PLOT 4 - CLUSTER BY NEGATIVE CONTROL PROBE HEATMAP              #
+#                   CLUSTER BY NEGATIVE CONTROL PROBE HEATMAP                  #
 # ---------------------------------------------------------------------------- #
 
 cluster_plot_col = cluster_ann_col if cluster_ann_col in adata.obs.columns else cluster_col
@@ -2083,7 +2151,7 @@ print(f"Cluster_by_negative_control_probe_detection_heatmap_{dataset_name}.png t
 
 
 
-# In[ ]:
+# In[50]:
 
 
 negative_probe_vars = [
@@ -2094,10 +2162,13 @@ negative_probe_vars = [
 negative_probe_vars
 
 
-# In[ ]:
+# In[51]:
 
 
-# ------------------- Set the minimum transcript threshold ------------------- #
+# ---------------------------------------------------------------------------- #
+#                FILTER 2 - Set the minimum transcript threshold               #
+# ---------------------------------------------------------------------------- #
+
 threshold = 10
 knee = np.sort((np.array(adata.X.sum(axis=1))).flatten())[::-1]
 
@@ -2133,7 +2204,7 @@ print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee
 
 
 
-# In[ ]:
+# In[52]:
 
 
 # ---------------- Apply the minimum transcripts per cell mask --------------- #
@@ -2155,7 +2226,7 @@ adata.obs['min_trans_passed'] = adata.obs['nCount_Xenium'] > threshold #True = p
 
 
 
-# In[ ]:
+# In[53]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
@@ -2169,169 +2240,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[ ]:
-
-
-# -------- Cell area by transcript count with minimum transcript threshold -------- #
-
-x_quantile_limit = 0.15
-y_limit = 200
-
-fig, ax = plt.subplots(figsize=(7, 5))
-
-sns.scatterplot(
-    data=adata.obs,
-    x="cell_area",
-    y="nCount_Xenium",
-    hue="min_trans_passed_cat",
-    hue_order=["Pass", "Fail"],
-    palette=QC_PASS_FAIL_PALETTE,
-    s=8,
-    alpha=0.45,
-    linewidth=0,
-    ax=ax,
-    rasterized=True,
-)
-
-ax.axhline(
-    y=threshold,
-    color="red",
-    linestyle="--",
-    linewidth=1.5,
-    label=f"Minimum transcript threshold ({threshold})",
-)
-
-area_p1 = adata.obs["cell_area"].quantile(0.01)
-
-ax.set_xlim(0, adata.obs["cell_area"].quantile(x_quantile_limit))
-ax.set_ylim(0, y_limit)
-
-ax.axvline(
-    area_p1,
-    color="black",
-    linestyle=":",
-    linewidth=1,
-    label="Cell area 1st percentile",
-)
-
-ax.set_title(
-    f"{dataset_name}: cell area vs transcript count, "
-    f"x <= p{int(x_quantile_limit * 100)}, y <= {y_limit}"
-)
-ax.set_xlabel("Cell area")
-ax.set_ylabel("nCount_Xenium")
-ax.legend(frameon=False, fontsize=9)
-
-fig.tight_layout()
-fig.savefig(
-    os.path.join(
-        qc_path,
-        (
-            f"cell_area_vs_nCount_Xenium_min_transcript_threshold_{threshold}"
-            f"_x_p{int(x_quantile_limit * 100)}_y{y_limit}_{dataset_name}.png"
-        ),
-    ),
-    dpi=300,
-    bbox_inches="tight",
-)
-plt.show()
-plt.close(fig)
-
-# In[ ]:
-
-
-# -------- Summarize overlap of low-transcript and smallest-area cells -------- #
-
-low_transcript_mask = adata.obs["nCount_Xenium"] <= threshold
-bottom_area_1pct_mask = adata.obs["cell_area"] <= area_p1
-low_transcript_and_bottom_area_mask = low_transcript_mask & bottom_area_1pct_mask
-bottom_area_not_low_transcript_mask = bottom_area_1pct_mask & ~low_transcript_mask
-
-n_total_cells = adata.n_obs
-n_low_transcript = int(low_transcript_mask.sum())
-n_bottom_area_1pct = int(bottom_area_1pct_mask.sum())
-n_low_transcript_and_bottom_area = int(low_transcript_and_bottom_area_mask.sum())
-n_bottom_area_not_low_transcript = int(bottom_area_not_low_transcript_mask.sum())
-
-low_transcript_area_overlap_summary = pd.DataFrame(
-    [
-        {
-            "metric": "low_transcript_cells",
-            "description": f"Cells with nCount_Xenium <= {threshold}",
-            "n_cells": n_low_transcript,
-            "percent_all_cells": n_low_transcript / n_total_cells * 100,
-            "percent_bottom_area_1pct_cells": np.nan,
-        },
-        {
-            "metric": "bottom_area_1pct_cells",
-            "description": "Cells in the bottom 1% by cell_area",
-            "n_cells": n_bottom_area_1pct,
-            "percent_all_cells": n_bottom_area_1pct / n_total_cells * 100,
-            "percent_bottom_area_1pct_cells": 100.0,
-        },
-        {
-            "metric": "low_transcript_and_bottom_area_1pct",
-            "description": (
-                f"Cells with nCount_Xenium <= {threshold} and in the bottom "
-                "1% by cell_area"
-            ),
-            "n_cells": n_low_transcript_and_bottom_area,
-            "percent_all_cells": n_low_transcript_and_bottom_area / n_total_cells * 100,
-            "percent_bottom_area_1pct_cells": (
-                n_low_transcript_and_bottom_area / n_bottom_area_1pct * 100
-                if n_bottom_area_1pct > 0 else np.nan
-            ),
-        },
-        {
-            "metric": "bottom_area_1pct_not_low_transcript",
-            "description": (
-                f"Cells in the bottom 1% by cell_area but with nCount_Xenium > "
-                f"{threshold}"
-            ),
-            "n_cells": n_bottom_area_not_low_transcript,
-            "percent_all_cells": n_bottom_area_not_low_transcript / n_total_cells * 100,
-            "percent_bottom_area_1pct_cells": (
-                n_bottom_area_not_low_transcript / n_bottom_area_1pct * 100
-                if n_bottom_area_1pct > 0 else np.nan
-            ),
-        },
-    ]
-)
-
-low_transcript_area_overlap_summary_path = os.path.join(
-    qc_path,
-    (
-        f"{dataset_name}_low_transcript_threshold_{threshold}"
-        "_bottom_area_1pct_overlap_summary.csv"
-    ),
-)
-low_transcript_area_overlap_summary.to_csv(
-    low_transcript_area_overlap_summary_path,
-    index=False,
-)
-
-print(low_transcript_area_overlap_summary)
-if n_bottom_area_1pct > 0:
-    print(
-        "Bottom 1% area cells captured by low-transcript threshold: "
-        f"{n_low_transcript_and_bottom_area:,} / {n_bottom_area_1pct:,} "
-        f"({n_low_transcript_and_bottom_area / n_bottom_area_1pct * 100:.2f}%)"
-    )
-    print(
-        "Bottom 1% area cells not captured by low-transcript threshold: "
-        f"{n_bottom_area_not_low_transcript:,} / {n_bottom_area_1pct:,} "
-        f"({n_bottom_area_not_low_transcript / n_bottom_area_1pct * 100:.2f}%)"
-    )
-else:
-    print("No bottom 1% area cells were detected.")
-print(
-    "Saved low-transcript/bottom-area overlap summary to: "
-    f"{low_transcript_area_overlap_summary_path}"
-)
-
-
-
-# In[ ]:
+# In[54]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -2396,7 +2305,7 @@ plt.close()
 
 
 
-# In[ ]:
+# In[55]:
 
 
 # -------------- Plot of total transripts per cell across sample ------------- #
@@ -2427,7 +2336,7 @@ plt.show()
 
 
 
-# In[ ]:
+# In[56]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -2447,7 +2356,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 
 
 
-# In[ ]:
+# In[57]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -2462,7 +2371,7 @@ obs.to_csv(os.path.join(qc_path, f"obs_{dataset_name}.csv"))
 print("All files saved to:", qc_path)
 
 
-# In[ ]:
+# In[58]:
 
 
 # # ----------- Calculate the total counts for genes across all cells ---------- #
@@ -2482,7 +2391,7 @@ print("All files saved to:", qc_path)
 
 
 
-# In[ ]:
+# In[59]:
 
 
 # # --------------------------- Plot the top 50 genes -------------------------- #
@@ -2502,7 +2411,7 @@ print("All files saved to:", qc_path)
 
 
 
-# In[ ]:
+# In[60]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -2521,7 +2430,7 @@ adata.obs['max_trans_threshold_passed'] = max_trans_threshold_passed['max_transc
 
 
 
-# In[ ]:
+# In[61]:
 
 
 # ------------------- Plot location of poor cells on tissue ------------------ #
@@ -2535,7 +2444,7 @@ plot_qc_spatial_tissue(
 )
 
 
-# In[ ]:
+# In[62]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -2556,7 +2465,7 @@ else:
 
 
 
-# In[ ]:
+# In[63]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -2657,6 +2566,258 @@ adata.obs["max_area_threshold_99_cat"] = (
 
 
 # In[ ]:
+
+
+# -------- Cell area by transcript count with minimum transcript threshold -------- #
+
+x_quantile_limit = 0.15
+y_limit = 200
+
+fig, ax = plt.subplots(figsize=(7, 5))
+
+sns.scatterplot(
+    data=adata.obs,
+    x="cell_area",
+    y="nCount_Xenium",
+    hue="min_trans_passed_cat",
+    hue_order=["Pass", "Fail"],
+    palette=QC_PASS_FAIL_PALETTE,
+    s=8,
+    alpha=0.45,
+    linewidth=0,
+    ax=ax,
+    rasterized=True,
+)
+
+ax.axhline(
+    y=threshold,
+    color="red",
+    linestyle="--",
+    linewidth=1.5,
+    label=f"Minimum transcript threshold ({threshold})",
+)
+
+area_p1 = adata.obs["cell_area"].quantile(0.01)
+
+ax.set_xlim(0, adata.obs["cell_area"].quantile(x_quantile_limit))
+ax.set_ylim(0, y_limit)
+
+ax.axvline(
+    area_p1,
+    color="black",
+    linestyle=":",
+    linewidth=1,
+    label="Cell area 1st percentile",
+)
+
+ax.set_title(
+    f"{dataset_name}: cell area vs transcript count, "
+    f"x <= p{int(x_quantile_limit * 100)}, y <= {y_limit}"
+)
+ax.set_xlabel("Cell area")
+ax.set_ylabel("nCount_Xenium")
+ax.legend(frameon=False, fontsize=9)
+
+fig.tight_layout()
+fig.savefig(
+    os.path.join(
+        qc_path,
+        (
+            f"cell_area_vs_nCount_Xenium_min_transcript_threshold_{threshold}"
+            f"_x_p{int(x_quantile_limit * 100)}_y{y_limit}_{dataset_name}.png"
+        ),
+    ),
+    dpi=300,
+    bbox_inches="tight",
+)
+plt.show()
+plt.close(fig)
+
+
+# In[ ]:
+
+
+# In[ ]:
+
+
+# -------- Summarize overlap of low-transcript and smallest-area cells -------- #
+
+low_transcript_mask = adata.obs["nCount_Xenium"] <= threshold
+bottom_area_1pct_mask = adata.obs["cell_area"] <= area_p1
+low_transcript_and_bottom_area_mask = low_transcript_mask & bottom_area_1pct_mask
+bottom_area_not_low_transcript_mask = bottom_area_1pct_mask & ~low_transcript_mask
+
+n_total_cells = adata.n_obs
+n_low_transcript = int(low_transcript_mask.sum())
+n_bottom_area_1pct = int(bottom_area_1pct_mask.sum())
+n_low_transcript_and_bottom_area = int(low_transcript_and_bottom_area_mask.sum())
+n_bottom_area_not_low_transcript = int(bottom_area_not_low_transcript_mask.sum())
+
+low_transcript_area_overlap_summary = pd.DataFrame(
+    [
+        {
+            "metric": "low_transcript_cells",
+            "description": f"Cells with nCount_Xenium <= {threshold}",
+            "n_cells": n_low_transcript,
+            "percent_all_cells": n_low_transcript / n_total_cells * 100,
+            "percent_bottom_area_1pct_cells": np.nan,
+        },
+        {
+            "metric": "bottom_area_1pct_cells",
+            "description": "Cells in the bottom 1% by cell_area",
+            "n_cells": n_bottom_area_1pct,
+            "percent_all_cells": n_bottom_area_1pct / n_total_cells * 100,
+            "percent_bottom_area_1pct_cells": 100.0,
+        },
+        {
+            "metric": "low_transcript_and_bottom_area_1pct",
+            "description": (
+                f"Cells with nCount_Xenium <= {threshold} and in the bottom "
+                "1% by cell_area"
+            ),
+            "n_cells": n_low_transcript_and_bottom_area,
+            "percent_all_cells": n_low_transcript_and_bottom_area / n_total_cells * 100,
+            "percent_bottom_area_1pct_cells": (
+                n_low_transcript_and_bottom_area / n_bottom_area_1pct * 100
+                if n_bottom_area_1pct > 0 else np.nan
+            ),
+        },
+        {
+            "metric": "bottom_area_1pct_not_low_transcript",
+            "description": (
+                f"Cells in the bottom 1% by cell_area but with nCount_Xenium > "
+                f"{threshold}"
+            ),
+            "n_cells": n_bottom_area_not_low_transcript,
+            "percent_all_cells": n_bottom_area_not_low_transcript / n_total_cells * 100,
+            "percent_bottom_area_1pct_cells": (
+                n_bottom_area_not_low_transcript / n_bottom_area_1pct * 100
+                if n_bottom_area_1pct > 0 else np.nan
+            ),
+        },
+    ]
+)
+
+low_transcript_area_overlap_summary_path = os.path.join(
+    qc_path,
+    (
+        f"{dataset_name}_low_transcript_threshold_{threshold}"
+        "_bottom_area_1pct_overlap_summary.csv"
+    ),
+)
+low_transcript_area_overlap_summary.to_csv(
+    low_transcript_area_overlap_summary_path,
+    index=False,
+)
+
+print(low_transcript_area_overlap_summary)
+if n_bottom_area_1pct > 0:
+    print(
+        "Bottom 1% area cells captured by low-transcript threshold: "
+        f"{n_low_transcript_and_bottom_area:,} / {n_bottom_area_1pct:,} "
+        f"({n_low_transcript_and_bottom_area / n_bottom_area_1pct * 100:.2f}%)"
+    )
+    print(
+        "Bottom 1% area cells not captured by low-transcript threshold: "
+        f"{n_bottom_area_not_low_transcript:,} / {n_bottom_area_1pct:,} "
+        f"({n_bottom_area_not_low_transcript / n_bottom_area_1pct * 100:.2f}%)"
+    )
+else:
+    print("No bottom 1% area cells were detected.")
+print(
+    "Saved low-transcript/bottom-area overlap summary to: "
+    f"{low_transcript_area_overlap_summary_path}"
+)
+
+
+# In[68]:
+
+
+# -------- Spatial overlap: smallest-area cells vs low-transcript cells -------- #
+
+min_transcript_threshold = 10
+small_area_percentile = 0.01  # bottom 1% by cell area
+
+low_transcript_mask = adata.obs["nCount_Xenium"] <= min_transcript_threshold
+
+small_area_threshold = adata.obs["cell_area"].quantile(small_area_percentile)
+small_area_mask = adata.obs["cell_area"] <= small_area_threshold
+
+overlap_col = f"small_area_p{int(small_area_percentile * 100)}_low_transcript_overlap"
+
+adata.obs[overlap_col] = "Neither"
+adata.obs.loc[small_area_mask, overlap_col] = "Small area only"
+adata.obs.loc[low_transcript_mask, overlap_col] = "Low transcript only"
+adata.obs.loc[small_area_mask & low_transcript_mask, overlap_col] = "Both"
+
+overlap_order = [
+    "Neither",
+    "Small area only",
+    "Low transcript only",
+    "Both",
+]
+
+adata.obs[overlap_col] = pd.Categorical(
+    adata.obs[overlap_col],
+    categories=overlap_order,
+    ordered=True,
+)
+
+overlap_palette = {
+    "Neither": "lightgrey",
+    "Small area only": "purple",
+    "Low transcript only": "dodgerblue",
+    "Both": "red",
+}
+
+xy = adata.obsm["xy"]
+
+fig, ax = plt.subplots(figsize=(12, 8))
+
+for category in overlap_order:
+    mask = np.asarray(adata.obs[overlap_col] == category)
+    if not mask.any():
+        continue
+
+    ax.scatter(
+        xy[mask, 0],
+        xy[mask, 1],
+        s=2,
+        c=overlap_palette[category],
+        label=category,
+        linewidths=0,
+        alpha=0.9 if category != "Neither" else 0.25,
+        rasterized=True,
+        zorder=1 if category == "Neither" else 3,
+    )
+
+ax.set_aspect("equal")
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+ax.set_title(
+    f"{dataset_name}: bottom {small_area_percentile:.0%} cell area vs "
+    f"nCount_Xenium <= {min_transcript_threshold}"
+)
+ax.legend(fontsize=12, markerscale=4, frameon=False)
+
+fig.tight_layout()
+
+output_file = os.path.join(
+    qc_path,
+    (
+        f"tissue_spatial_scatter_small_area_p{int(small_area_percentile * 100)}"
+        f"_low_transcript_threshold_{min_transcript_threshold}_{dataset_name}.png"
+    ),
+)
+
+fig.savefig(output_file, dpi=300, bbox_inches="tight")
+plt.show()
+plt.close(fig)
+
+print(f"Saved small-area/low-transcript overlap plot to: {output_file}")
+
+
+# In[65]:
 
 
 # Plot the cell with negative controls on the tissue spatial plot
@@ -3309,6 +3470,22 @@ if cluster_ann_col in adata.obs.columns:
         )
 else:
     print(f"Skipping annotated QC UMAP plots; missing column: {cluster_ann_col}")
+
+
+# In[ ]:
+
+
+# ---------------------------------------------------------------------------- #
+#                         SAVE QC-ANNOTATED ANNDATA                            #
+# ---------------------------------------------------------------------------- #
+
+qc_annotated_adata_path = os.path.join(
+    processed_path,
+    f"adata_expression_clean_{dataset_name}_qc_annotated.h5ad"
+)
+
+adata.write_h5ad(qc_annotated_adata_path)
+print(f"Saved QC-annotated AnnData object to: {qc_annotated_adata_path}")
 
 
 # In[ ]:

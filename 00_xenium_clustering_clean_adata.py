@@ -1,15 +1,22 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[11]:
+
+
+#!/usr/bin/env python
+# coding: utf-8
+
 """
 Title: Xenium BANKSY Clustering With Clean Expression Outputs
-Date: 2026-08-17
+Date: 2026-07-30
 Summary: Run config-driven BANKSY clustering for Xenium samples, save clean
 log-normalized expression AnnData before BANKSY feature expansion, and copy
-BANKSY metadata back onto the clean object for marker analysis. Pre-filter
-zero-count cell QC plots are saved before empty cells are removed.
+BANKSY metadata back onto the clean object for marker analysis.
 """
-# In[43]:
+
+
+# In[12]:
 
 
 # # Xenium spatial clustering with BANKSY
@@ -20,7 +27,9 @@ zero-count cell QC plots are saved before empty cells are removed.
 # 
 
 
-# In[44]:
+
+
+# In[13]:
 
 
 import anndata as ad
@@ -289,7 +298,9 @@ def plot_pca_scree(adata, output_dir, dataset_name, selected_n_pcs, scree_n_pcs)
     print(f"Saved PCA variance summary to: {variance_csv}")
 
 
-# In[ ]:
+
+
+# In[14]:
 
 
 # ##################################
@@ -312,7 +323,9 @@ def plot_pca_scree(adata, output_dir, dataset_name, selected_n_pcs, scree_n_pcs)
 # max_workers = 8 # Maximum CPUs for Leiden clustering
 
 
-# In[ ]:
+
+
+# In[15]:
 
 
 ########################
@@ -364,7 +377,9 @@ project = cfg.get("project", "")
 max_workers = int(os.environ.get("SLURM_CPUS_PER_TASK", cfg.get("max_workers", 4))) # Parameter for the run_Leiden_partition_parallel() clustering function 
 
 
-# In[47]:
+
+
+# In[16]:
 
 
 ########################
@@ -403,7 +418,9 @@ qc_path = os.path.join(base_dir, "output", project, "QC_testing", dataset_name)
 ensure_directory(qc_path, "QC testing sample")
 
 
-# In[48]:
+
+
+# In[17]:
 
 
 ## Function to log sub task start time
@@ -411,7 +428,9 @@ def log_time(step):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {step}")
 
 
-# In[49]:
+
+
+# In[18]:
 
 
 ###########################
@@ -433,13 +452,17 @@ log_time(f"Loading in data for {dataset_name}")
 adata.obsm['xy'] = np.vstack([adata.obs['x'], adata.obs['y']]).T
 
 
-# In[50]:
+
+
+# In[19]:
 
 
 res_label
 
 
-# In[51]:
+
+
+# In[20]:
 
 
 ############################################
@@ -510,7 +533,7 @@ print(f"Saved zero-count cell QC summary to: {zero_count_summary_path}")
 print(f"Saved zero-count cell QC plot to: {zero_count_plot_path}")
 
 
-# In[52]:
+# In[ ]:
 
 
 #####################################
@@ -521,7 +544,9 @@ print(f"Saved zero-count cell QC plot to: {zero_count_plot_path}")
 adata = adata[adata.obs['nCount_Xenium'] > 0].copy()
 
 
-# In[52]:
+
+
+# In[ ]:
 
 
 ####################################
@@ -546,7 +571,9 @@ adata.write_h5ad(
 float_adata = f"{dataset_name}_float_32.h5ad"
 
 
-# In[53]:
+
+
+# In[ ]:
 
 
 #######################################
@@ -564,7 +591,9 @@ coord_keys = coord_keys
 raw_y, raw_x, adata = load_adata(filepath=processed_path, adata_filename=float_adata, load_adata_directly=True, coord_keys=coord_keys)
 
 
-# In[54]:
+
+
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -578,7 +607,9 @@ adata.layers["counts"] = adata.X.copy()
 print(adata.layers["counts"][:5,:5])
 
 
-# In[55]:
+
+
+# In[ ]:
 
 
 from banksy_utils.filter_utils import normalize_total, filter_hvg, print_max_min
@@ -588,7 +619,9 @@ normalize_total(adata)
 print(adata.X)
 
 
-# In[56]:
+
+
+# In[ ]:
 
 
 ## Perform log-transformation and save the normalised and log-transformed data in adata.raw
@@ -609,7 +642,9 @@ if scree_n_pcs is not None:
 adata.raw = adata.copy() ## This needs to be moved to after the creation of adata_spatial to truly save it in the BANKSY created anndata object
 
 
-# In[57]:
+
+
+# In[ ]:
 
 
 ###############################################################
@@ -629,7 +664,9 @@ print(f"Wrote clean expression AnnData: {clean_expression_h5ad}")
 print(adata)
 
 
-# In[58]:
+
+
+# In[ ]:
 
 
 # ## Generate spatial weights graph
@@ -665,7 +702,9 @@ log_time(f"Finished generating spatil weights graph for {dataset_name}.")
 
 
 
-# In[59]:
+
+
+# In[ ]:
 
 
 # ### Generate spatial weights from distance
@@ -700,7 +739,9 @@ banksy_dict = initialize_banksy(
 log_time(f"Finished generating spatial weights from distance for {dataset_name}.")
 
 
-# In[60]:
+
+
+# In[ ]:
 
 
 # ## Generate BANKSY matrix
@@ -719,7 +760,9 @@ banksy_dict, banksy_matrix = generate_banksy_matrix(adata, banksy_dict, lambda_l
 log_time(f"Finished generating BANKSY matrix for {dataset_name}.")
 
 
-# In[61]:
+
+
+# In[ ]:
 
 
 # ### Append Non-spatial results to the `banksy_dict` for comparsion
@@ -734,7 +777,9 @@ banksy_dict["nonspatial"] = {
 print(banksy_dict['nonspatial'][0.0]['adata'])
 
 
-# In[62]:
+
+
+# In[ ]:
 
 
 ## Perform UMAP embedding
@@ -748,7 +793,9 @@ pca_umap(banksy_dict,
 log_time(f"Finish PCA and UMAP embedding for {dataset_name}.")
 
 
-# In[63]:
+
+
+# In[ ]:
 
 
 # ### Cluster cells using a partition algorithm
@@ -770,7 +817,9 @@ results_df, max_num_labels = run_Leiden_partition_parallel(
 log_time(f"Finished Leiden clustering for {dataset_name}.")
 
 
-# In[64]:
+
+
+# In[ ]:
 
 
 # ## Dynamically extract the number of principal components from the results_df
@@ -778,7 +827,9 @@ log_time(f"Finished Leiden clustering for {dataset_name}.")
 # pc_dims = pc_label['num_pcs'].iloc[0]
 
 
-# In[65]:
+
+
+# In[ ]:
 
 
 # ## Plot results
@@ -813,13 +864,17 @@ plot_results(
 print(results_df)
 
 
-# In[66]:
+
+
+# In[ ]:
 
 
 max_num_labels
 
 
-# In[67]:
+
+
+# In[ ]:
 
 
 ##########################################################
@@ -855,13 +910,17 @@ def determine_max_num_labels(nonspatial_labels, spatial_labels):
 max_num_labels=determine_max_num_labels(nonspatial_labels, spatial_labels)
 
 
-# In[68]:
+
+
+# In[ ]:
 
 
 print(max_num_labels)
 
 
-# In[69]:
+
+
+# In[ ]:
 
 
 ########################################################
@@ -887,7 +946,9 @@ print(cluster2annotation_nonspatial)
 pad_clusters(cluster2annotation_spatial, list(range(max_num_labels)))
 
 
-# In[70]:
+
+
+# In[ ]:
 
 
 print("results_df.index:")
@@ -899,7 +960,9 @@ print(f"lambda_list = {lambda_list}")
 print(f"resolutions = {resolutions}")
 
 
-# In[71]:
+
+
+# In[ ]:
 
 
 #########################################################
@@ -920,7 +983,9 @@ for resolution in resolutions:
     adata_dict[resolution] = {"spatial": adata_spatial, "nonspatial": adata_nonspatial}
 
 
-# In[72]:
+
+
+# In[ ]:
 
 
 res_label
@@ -928,7 +993,9 @@ res_label
 
 # 
 
-# In[73]:
+
+
+# In[ ]:
 
 
 ## Create a flat dictionary of the spatial and non-spatial 
@@ -938,7 +1005,9 @@ for res, adatas in adata_dict.items():
     spatial_adatas[res]  = adatas["spatial"]
 
 
-# In[74]:
+
+
+# In[ ]:
 
 
 # Save individaul anndata objects at each resolution
@@ -958,7 +1027,9 @@ for res in resolutions:
     spatial_adatas[res].write_h5ad(spatial_output_path)
 
 
-# In[75]:
+
+
+# In[ ]:
 
 
 import gzip
@@ -978,7 +1049,9 @@ with gzip.open(os.path.join(processed_path, f"{dataset_name}_pc{pc_label}_nc{lam
 results_df.to_csv(os.path.join(processed_path,f"results_df_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str}.csv"))
 
 
-# In[76]:
+
+
+# In[ ]:
 
 
 #############################################
@@ -1008,7 +1081,9 @@ print(merged)
 merged.to_csv(os.path.join(processed_path, f"{dataset_name}_cell_cluster_id_across_clustering_res_{res_str}.csv"))
 
 
-# In[77]:
+
+
+# In[ ]:
 
 
 #####################################################################
@@ -1146,13 +1221,17 @@ print(f"Wrote clean expression AnnData with BANKSY metadata: {clean_clustered_h5
 print(clean_adata)
 
 
-# In[78]:
+
+
+# In[ ]:
 
 
 #banksy_dict[f"{nbr_weight_decay}"][0.2]['adata'] #lambda = 0.20
 
 
-# In[79]:
+
+
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1212,7 +1291,9 @@ clean_adata.write_h5ad(clean_clustered_h5ad)
 print(f"Updated clean expression AnnData with marker rankings: {clean_clustered_h5ad}")
 
 
-# In[80]:
+
+
+# In[ ]:
 
 
 # ---------------- Inspect marker keys saved on clean_adata ---------------- #
@@ -1235,7 +1316,9 @@ for res, markers_key in ranked_marker_keys.items():
 # Old BANKSY-spatial marker inspection cell retired in this test notebook. Marker ranking now runs on clean_adata.
 # 
 
-# In[81]:
+
+
+# In[ ]:
 
 
 # ---------------------------------------------------------------------------- #
@@ -1267,7 +1350,9 @@ os.makedirs(heatmap_path, exist_ok=True)
 print(f"Heatmaps will be written to: {heatmap_path}")
 
 
-# In[82]:
+
+
+# In[ ]:
 
 
 # ------------------ Plot marker genes for each clean cluster set ------------------ #
@@ -1292,13 +1377,17 @@ for res, markers_key in ranked_marker_keys.items():
     print(f"res {res:.2f}: wrote marker plot {output_png}")
 
 
-# In[83]:
+
+
+# In[ ]:
 
 
 clean_adata.obs
 
 
-# In[84]:
+
+
+# In[ ]:
 
 
 # ------------------ Total counts across clean BANKSY clusters ------------------ #
@@ -1327,6 +1416,8 @@ for res in resolutions:
         groupby=groupby_key,
         save=f"_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str_single}.png",
     )
+
+
 
 
 # In[ ]:
@@ -1369,6 +1460,8 @@ for res in resolutions:
 #     )
 
 
+
+
 # In[ ]:
 
 
@@ -1393,6 +1486,8 @@ for res in resolutions:
 # )
 
 
+
+
 # In[ ]:
 
 
@@ -1415,6 +1510,8 @@ for res in resolutions:
 # )
 
 
+
+
 # In[ ]:
 
 
@@ -1429,6 +1526,8 @@ for res in resolutions:
 #     dataset_name = dataset_name,
 #     file_path = processed_path
 # )
+
+
 
 
 # In[ ]:
@@ -1472,9 +1571,12 @@ for res in resolutions:
 # ### Non-spatial clustering results
 
 
+
+
 # In[ ]:
 
 
 # # banksy_dict['scaled_gaussian'][0.2]['adata'] #lambda = 0.2
 # adata_nonspatial.obs['banksy_cluster_nonspatial']= adata_nonspatial.obs[f"labels_nonspatial_pc{pc_label}_nc0.00_r{res_label}"].astype(str)
+
 

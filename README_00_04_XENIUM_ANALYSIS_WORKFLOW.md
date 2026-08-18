@@ -40,6 +40,12 @@ Archived cell-type labels from older annotated AnnData objects
 4. `04_plot_multi_sample_dotplot_from_config_local.py`
    Render multi-sample dotplots from exported CSVs. The local script is the current plotting/tuning entrypoint.
 
+5. `05_apply_qc_filters_for_reclustering.py`
+   Apply reviewed script 01 QC filters to the clean script 00 expression object. This creates a QC-annotated clean object and a QC-filtered clean object that can be used as input for BANKSY reclustering.
+
+6. Planned: `06_recluster_qc_filtered_with_banksy.py`
+   Rerun the BANKSY clustering portion of script 00 on script 05 QC-filtered clean expression objects. The planned script should preserve key script 00 outputs: BANKSY spatial objects, results tables, cell-by-resolution cluster tables, clean expression AnnData with BANKSY metadata, marker tables, PCA scree QC, and reclustering plots. It should also include the neighbour-analysis block planned for reclustering.
+
 ## Environment
 
 The recent local/HPC workflow uses the conda environment:
@@ -67,6 +73,8 @@ HPC:   01_QC_xenium_spatial_clean_clustered.py
 HPC:   02_create_expression_adata_with_banksy_clusters.py                  archived-label or legacy clean-object creation
 HPC:   03_export_dotplot_data_from_config.py                               script 02 output or archived-label exports
 HPC:   03_export_dotplot_data_from_clean_script00_config.py                current script 00 clean-object exports
+HPC:   05_apply_qc_filters_for_reclustering.py                              reviewed QC filtering before reclustering
+HPC:   06_recluster_qc_filtered_with_banksy.py                              planned QC-filtered BANKSY reclustering
 Local: 04_plot_multi_sample_dotplot_from_config_local.py
 ```
 
@@ -83,6 +91,15 @@ Typical full order:
 6. Ensure archive_spatial_cell_type_labels.csv exists on the HPC when archived labels are needed.
 7. Copy the script 03 summary CSVs locally.
 8. Run script 04 locally with the desired plot config.
+```
+
+Optional reclustering branch after script 01 QC review:
+
+```text
+1. Run script 05 to apply reviewed QC filters to the clean script 00 object.
+2. Run planned script 06 to recluster the QC-filtered clean expression object with BANKSY.
+3. Review script 06 reclustering outputs, including neighbour-analysis summaries once implemented.
+4. Use the script 06 clean clustered object as a downstream input for updated marker summaries or dotplot exports.
 ```
 
 For Slurm arrays, the array range must match the number of JSON config files in the selected leaf config directory. For eight sample configs, use:
@@ -109,7 +126,7 @@ Older clustering notebooks/scripts may still exist for reference, but `00_xenium
 
 ### Purpose
 
-Runs BANKSY spatial clustering for a Xenium sample. It reads a sample-specific JSON config, loads the raw AnnData object, filters zero-count cells, downcasts to float32, normalizes/log-transforms expression for clustering, writes PCA scree QC outputs, builds the BANKSY spatial graph/matrix, runs PCA/UMAP, performs Leiden clustering across configured resolutions, plots clustering results, and saves clustering outputs.
+Runs BANKSY spatial clustering for a Xenium sample. It reads a sample-specific JSON config, loads the raw AnnData object, plots and summarizes zero-count cells before filtering them out, downcasts to float32, normalizes/log-transforms expression for clustering, writes PCA scree QC outputs, builds the BANKSY spatial graph/matrix, runs PCA/UMAP, performs Leiden clustering across configured resolutions, plots clustering results, and saves clustering outputs.
 
 This script also saves a clean expression AnnData before BANKSY feature expansion and copies BANKSY-derived metadata back onto that clean object. The clean object retains biological expression values while carrying BANKSY cluster labels, UMAP/PCA embeddings, and standardized spatial coordinates.
 
@@ -195,7 +212,11 @@ data/xenium/processed/<project>/<dataset_name>/<dataset_name>_pc<pc_label>_nc<la
 data/xenium/processed/<project>/<dataset_name>/<dataset_name>_cell_cluster_id_across_clustering_res_<resolutions>.csv
 data/xenium/output/<project>/<dataset_name>/pca_qc/<dataset_name>_pca_scree_plot.png
 data/xenium/output/<project>/<dataset_name>/pca_qc/<dataset_name>_pca_scree_variance.csv
+data/xenium/output/<project>/QC_testing/<dataset_name>/tissue_spatial_scatter_zero_count_cell_cat_<dataset_name>.png
+data/xenium/output/<project>/QC_testing/<dataset_name>/<dataset_name>_zero_count_cell_summary.csv
 ```
+
+The zero-count plot and summary are written before `nCount_Xenium > 0` filtering, because empty cells are otherwise removed before script 01 can inspect their spatial distribution.
 
 The `adata_spatial_*.h5ad` files contain BANKSY-expanded/scaled matrices for clustering. The `adata_expression_clean_*_with_banksy_clusters_*.h5ad` object is the preferred object for biological marker analysis and downstream QC/inspection.
 
@@ -374,7 +395,7 @@ Related raw-QC helper variants currently use the same `01_QC` numbering:
 
 Runs QC and exploratory spatial inspection from a clean expression AnnData object that already contains BANKSY cluster labels. This is the preferred QC/inspection stage after script 00, because it can evaluate count/QC metrics in the context of BANKSY clusters while preserving clean expression values.
 
-The script reads the clean clustered AnnData object, applies and visualizes QC masks, creates cluster-level QC plots, generates marker and gene-of-interest plots, and can run neighbourhood enrichment or spatial autocorrelation checks.
+The script reads the clean clustered AnnData object, applies and visualizes QC masks, creates cluster-level QC plots, generates marker and gene-of-interest plots, and can run neighbourhood enrichment or spatial autocorrelation checks. Recent QC diagnostics include a zoomed cell-area versus transcript-count plot and a bottom-1%-area/low-transcript overlap summary for deciding whether small-cell area filters add information beyond the minimum transcript threshold.
 
 ### Main Config Inputs
 
@@ -420,6 +441,15 @@ data/xenium/output/<project>/<dataset_name>/
 ```
 
 Common outputs include count/gene QC plots, tissue spatial scatters, cluster-level QC summaries, marker tables, gene-of-interest plots, and optional neighbourhood/spatial autocorrelation outputs.
+
+Current area/transcript filtering diagnostics include:
+
+```text
+data/xenium/output/<project>/QC_testing/<dataset_name>/cell_area_vs_nCount_Xenium_min_transcript_threshold_<threshold>_x_p15_y200_<dataset_name>.png
+data/xenium/output/<project>/QC_testing/<dataset_name>/<dataset_name>_low_transcript_threshold_<threshold>_bottom_area_1pct_overlap_summary.csv
+```
+
+The overlap CSV reports cells below the transcript threshold, cells in the bottom 1% by `cell_area`, cells satisfying both criteria, and bottom-1%-area cells not captured by the low-transcript threshold.
 
 ### How To Run On The HPC
 
@@ -1302,12 +1332,14 @@ data/xenium/raw_data/gene_markers/*.csv
 
 ### Script 00 Outputs Used Later
 
-Script 00 creates the clean expression object with BANKSY labels/embeddings used by script 01 and downstream plotting/export workflows:
+Script 00 creates the clean expression object with BANKSY labels/embeddings used by script 01 and downstream plotting/export workflows. It also writes pre-filter zero-count QC outputs before empty cells are removed:
 
 ```text
 data/xenium/processed/<project>/<sample>/<sample>_float_32.h5ad
 data/xenium/processed/<project>/<sample>/adata_spatial_<sample>_<resolution>.h5ad
 data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_with_banksy_clusters_<resolutions>.h5ad
+data/xenium/output/<project>/QC_testing/<sample>/tissue_spatial_scatter_zero_count_cell_cat_<sample>.png
+data/xenium/output/<project>/QC_testing/<sample>/<sample>_zero_count_cell_summary.csv
 ```
 
 ### Script 01 Outputs Used Later
@@ -1318,6 +1350,8 @@ QC/inspection outputs are primarily reviewed by humans, but downstream workflows
 data/xenium/output/<project>/QC_testing/<sample>/
 data/xenium/output/<project>/<sample>/
 ```
+
+Current filtering-decision aids include the zoomed cell-area/transcript scatter and the bottom-1%-area/low-transcript overlap summary CSV. These are intended for review before a future script 05 applies selected QC masks for reclustering.
 
 ### Script 02 Outputs Used Later
 
@@ -1505,4 +1539,10 @@ Recommended approach:
 - A suggested Python package/API named `py_spanorm` was not verified during this session, so confirm availability and behaviour before building around it.
 
 Pilot comparisons should include PCA scree, UMAP/spatial cluster plots, clustree stability, marker dotplots, and association of clusters with QC/library-size metrics.
+
+### QC Filtering Next Steps
+
+Before building the filtering/reclustering step, add the remaining script 01 QC metric for cells with transcripts from two or more distinct negative-control probes. This should use transcript-level negative-control probe identities rather than aggregate `control_probe_counts`, then store both a numeric count and pass/fail category in `.obs` for plotting.
+
+The planned filtering step should be a new script 05 rather than another script 01 variant. Script 05 should consume QC masks generated by script 01, apply selected filters, save a filtered AnnData object for reclustering, and write an audit table describing how many cells each filter removed. Inspection-only QC signals, such as negative-control burden until a threshold is accepted, should remain distinguishable from actual filtering masks.
 
