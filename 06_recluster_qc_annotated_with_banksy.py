@@ -7,7 +7,7 @@ Date: 2026-08-18
 Summary: Recluster a script 05 QC-annotated clean expression AnnData object
 with BANKSY using either qc_pass_only or all_cells inclusion, copy reclustering
 labels back onto the full object, and write clustering QC plots from clean
-log-normalized expression.
+log-normalized expression, including clean-object UMAP cluster and QC plots.
 """
 
 import argparse
@@ -282,6 +282,219 @@ def resolve_obs_column(adata, candidates, column_label):
         f"No {column_label} column found. Checked candidates: {candidates}. "
         f"Available obs columns: {list(adata.obs.columns)}"
     )
+
+
+def make_safe_filename_token(value):
+    """Return a conservative filename token for plot labels."""
+    return str(value).replace(" ", "_").replace("/", "_").replace(".", "p")
+
+
+def plot_umap_qc_metric(
+    adata,
+    cluster_col,
+    qc_metric,
+    dataset_name,
+    qc_path=None,
+    qc_title=None,
+    cluster_title=None,
+    point_size=3,
+    figsize=(16, 6),
+    dpi=300,
+    vmax="p99",
+    add_outline=True,
+    legend_fontsize=8,
+    filename_tag=None,
+    title_tag=None,
+    show=False,
+    umap_key="X_umap",
+):
+    """Plot UMAPs coloured by recluster labels and a selected QC metric."""
+    required_cols = [cluster_col, qc_metric]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+    if missing_cols:
+        raise KeyError(f"Columns not found in adata.obs: {missing_cols}")
+
+    if umap_key not in adata.obsm:
+        raise KeyError(f"No UMAP coordinates found in adata.obsm[{umap_key!r}].")
+
+    if cluster_title is None:
+        cluster_title = f"{dataset_name} recluster labels"
+    if qc_title is None:
+        qc_title = qc_metric.replace("_", " ").title()
+    if title_tag is not None:
+        cluster_title = f"{cluster_title} ({title_tag})"
+        qc_title = f"{qc_title} ({title_tag})"
+
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+
+    # This follows the script 01 UMAP helper, but aliases the recluster-specific
+    # BANKSY embedding only inside the plotting call so old X_umap values are not
+    # confused with this run's clean-object UMAP.
+    had_x_umap = "X_umap" in adata.obsm
+    existing_x_umap = adata.obsm.get("X_umap")
+    adata.obsm["X_umap"] = adata.obsm[umap_key]
+
+    try:
+        sc.pl.umap(
+            adata,
+            color=cluster_col,
+            s=point_size,
+            frameon=True,
+            add_outline=add_outline,
+            legend_fontsize=legend_fontsize,
+            title=cluster_title,
+            ax=axes[0],
+            show=False,
+        )
+
+        qc_values = adata.obs[qc_metric]
+        if pd.api.types.is_bool_dtype(qc_values):
+            qc_values = qc_values.map({True: "True", False: "False"}).astype("category")
+
+        if pd.api.types.is_categorical_dtype(qc_values) or qc_values.dtype == object:
+            plot_col = f"_{qc_metric}_plot"
+            adata.obs[plot_col] = qc_values.astype("category")
+            sc.pl.umap(
+                adata,
+                color=plot_col,
+                s=point_size,
+                frameon=True,
+                add_outline=add_outline,
+                legend_fontsize=legend_fontsize,
+                title=qc_title,
+                ax=axes[1],
+                show=False,
+            )
+            adata.obs.drop(columns=[plot_col], inplace=True)
+        else:
+            sc.pl.umap(
+                adata,
+                color=qc_metric,
+                s=point_size,
+                frameon=True,
+                vmax=vmax,
+                add_outline=add_outline,
+                legend_fontsize=legend_fontsize,
+                title=qc_title,
+                ax=axes[1],
+                show=False,
+            )
+    finally:
+        if had_x_umap:
+            adata.obsm["X_umap"] = existing_x_umap
+        else:
+            adata.obsm.pop("X_umap", None)
+
+    fig.tight_layout()
+
+    if qc_path is not None:
+        os.makedirs(qc_path, exist_ok=True)
+        filename_parts = ["umap", dataset_name]
+        if filename_tag is not None:
+            filename_parts.append(make_safe_filename_token(filename_tag))
+        filename_parts.append(make_safe_filename_token(qc_metric))
+        output_file = os.path.join(qc_path, "_".join(filename_parts) + ".png")
+        fig.savefig(output_file, dpi=dpi, bbox_inches="tight")
+        print(f"Saved figure to: {output_file}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def plot_clean_recluster_umaps(
+    clean_recluster_adata,
+    output_path,
+    dataset_name,
+    pc_label,
+    lambda_label,
+    resolutions,
+    nbr_weight_decay,
+    run_label,
+    umap_key,
+    qc_umap_metrics,
+    qc_umap_titles,
+    point_size=3,
+):
+    """Save script-01-style clean-object UMAP plots for recluster resolutions."""
+    if umap_key not in clean_recluster_adata.obsm:
+        print(f"Skipping clean-object UMAP plots; missing obsm[{umap_key!r}].")
+        return
+
+    umap_cluster_path = os.path.join(output_path, "umap_cluster_plot")
+    umap_qc_path = os.path.join(output_path, "umap_qc")
+    ensure_directory(umap_cluster_path, "Clean-object UMAP cluster plot")
+    ensure_directory(umap_qc_path, "Clean-object UMAP QC")
+
+    print(
+        "Clean-object UMAP plots use only the cells embedded by BANKSY. "
+        "For qc_pass_only runs, QC-failed cells are absent from these UMAPs."
+    )
+
+    had_x_umap = "X_umap" in clean_recluster_adata.obsm
+    existing_x_umap = clean_recluster_adata.obsm.get("X_umap")
+    clean_recluster_adata.obsm["X_umap"] = clean_recluster_adata.obsm[umap_key]
+
+    try:
+        for res in resolutions:
+            res_str_single = str(res).replace(".", "p")
+            cluster_col = make_recluster_label_col(
+                nbr_weight_decay,
+                pc_label,
+                lambda_label,
+                res,
+                run_label,
+            )
+            if cluster_col not in clean_recluster_adata.obs.columns:
+                print(f"Skipping missing recluster column for UMAP plot: {cluster_col}")
+                continue
+
+            title_tag = f"recluster {run_label} | resolution {res:.2f}"
+            cluster_png = os.path.join(
+                umap_cluster_path,
+                f"umap_clusters_{dataset_name}_recluster_{run_label}"
+                f"_pc{pc_label}_nc{lambda_label}_r{res_str_single}.png",
+            )
+            sc.pl.umap(
+                clean_recluster_adata,
+                color=cluster_col,
+                s=point_size,
+                frameon=True,
+                add_outline=True,
+                legend_fontsize=8,
+                title=f"{dataset_name} recluster labels ({title_tag})",
+                show=False,
+            )
+            fig = plt.gcf()
+            fig.savefig(cluster_png, dpi=300, bbox_inches="tight")
+            plt.close(fig)
+            print(f"res {res:.2f}: wrote clean-object cluster UMAP {cluster_png}")
+
+            for qc_metric in qc_umap_metrics:
+                if qc_metric not in clean_recluster_adata.obs.columns:
+                    print(f"Skipping missing QC metric for UMAP plot: {qc_metric}")
+                    continue
+                qc_title = qc_umap_titles.get(qc_metric, qc_metric.replace("_", " ").title())
+                plot_umap_qc_metric(
+                    adata=clean_recluster_adata,
+                    cluster_col=cluster_col,
+                    qc_metric=qc_metric,
+                    dataset_name=dataset_name,
+                    qc_path=umap_qc_path,
+                    qc_title=qc_title,
+                    cluster_title=f"{dataset_name} recluster labels",
+                    point_size=point_size,
+                    filename_tag=f"recluster_{run_label}_r{res_str_single}",
+                    title_tag=title_tag,
+                    show=False,
+                    umap_key=umap_key,
+                )
+    finally:
+        if had_x_umap:
+            clean_recluster_adata.obsm["X_umap"] = existing_x_umap
+        else:
+            clean_recluster_adata.obsm.pop("X_umap", None)
 
 
 def plot_cluster_count_violin(
@@ -693,6 +906,38 @@ for source_key in pca_source_keys:
         break
 else:
     print("No PCA embedding found to copy")
+
+# -----------------------------------------------------------------------------
+# Clean-object UMAP plots
+# -----------------------------------------------------------------------------
+
+qc_umap_titles = {
+    "qc_filter_status": "Combined QC filter status",
+    "qc_keep_for_reclustering": "Kept for BANKSY reclustering",
+    "qc_fail_min_trans_passed": "Failed minimum transcript threshold",
+    "qc_fail_max_trans_threshold_passed": "Failed maximum transcript threshold",
+    "qc_fail_negative_control_probe_ge2": "Failed negative-control probe threshold",
+    "qc_fail_max_area_threshold_99_by_cluster": "Failed top 1% area within cluster threshold",
+    "qc_fail_reason": "Primary QC fail reason",
+    "qc_fail_reason_set": "QC fail reason set",
+}
+qc_umap_metrics = cfg.get("qc_umap_metrics", list(qc_umap_titles.keys()))
+umap_plot_point_size = float(cfg.get("umap_plot_point_size", 3))
+plot_clean_recluster_umaps(
+    clean_recluster_adata=clean_recluster_adata,
+    output_path=output_path,
+    dataset_name=dataset_name,
+    pc_label=pc_label,
+    lambda_label=lambda_label,
+    resolutions=resolutions,
+    nbr_weight_decay=nbr_weight_decay,
+    run_label=run_label,
+    umap_key=umap_target_key,
+    qc_umap_metrics=qc_umap_metrics,
+    qc_umap_titles=qc_umap_titles,
+    point_size=umap_plot_point_size,
+)
+
 
 # -----------------------------------------------------------------------------
 # Save clean expression AnnData objects with reclustering metadata

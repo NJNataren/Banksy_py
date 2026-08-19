@@ -1,0 +1,81 @@
+{
+    "output_png": "figures/dotplots/vbct/recluster_filtered_qc_pass_only/CK_skin_res_all_304_genes_recluster_qc_pass_only_all_res_zscore_dotplot.png",
+    "title": "CK_skin_res all 304-gene dotplot, QC-pass-only BANKSY reclusters",
+    "gene_file": "data/xenium/raw_data/gene_markers/01_xenium_gene_list_annotation_master_v1_May_2026_Tier1_2026-06-15.csv",
+    "gene_column": "Gene",
+    "gene_group_column": "Tier_1_annotation",
+    "sample_order": [
+        "CK_skin_res"
+    ],
+    "figure": {
+        "min_width": 48,
+        "min_height": 24,
+        "width_per_gene": 0.16,
+        "height_per_cluster": 0.28,
+        "max_dot_size": 160,
+        "dpi": 150,
+        "cmap": "RdBu_r",
+        "x_tick_fontsize": 7,
+        "y_tick_fontsize": 7,
+        "axis_label_fontsize": 16,
+        "title_fontsize": 18,
+        "title_y": 0.98,
+        "colorbar_fontsize": 16,
+        "colorbar_pad": 0.02,
+        "size_legend_bbox_to_anchor": [
+            1.16,
+            1.0
+        ],
+        "size_legend_loc": "upper left",
+        "tight_layout_rect": [
+            0.03,
+            0.08,
+            0.98,
+            0.88
+        ],
+        "gene_group_fontsize": 11,
+        "highlight_label_color": "#d62728",
+        "highlight_label_weight": "bold",
+        "color_vmin": -2.5,
+        "color_vmax": 2.5,
+        "x_tick_labeltop": true,
+        "x_tick_labelbottom": true,
+        "show_gene_group_labels_top": true,
+        "show_gene_group_labels_bottom": true,
+        "gene_group_label_top_y": 1.03,
+        "gene_group_label_bottom_y": -0.03
+    },
+    "dotplot_summary_csvs": [
+        "data/xenium/processed/vbct/cross_sample_dotplot_exports/recluster_filtered_qc_pass_only/CK_skin_res_all_genes_recluster_filtered_qc_pass_only_dotplot_summary.csv"
+    ],
+    "sample_filters": [
+        {
+            "sample": "CK_skin_res",
+            "resolution": "all"
+        }
+    ],
+    "highlight_gene_file": "data/xenium/raw_data/gene_markers/02_xenium_melanoma_canonical_genes_2026-05-22.csv",
+    "highlight_gene_column": "Gene",
+    "z_score_expression": true,
+    "z_score_expression_column": "mean_expression",
+    "z_score_clip": 2.5,
+    "color_value_column": "mean_expression_zscore",
+    "colorbar_label": "Mean expression z-score",
+    "project": "vbct",
+    "resolution_order": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10",
+        "1.20",
+        "1.30",
+        "1.40",
+        "1.50"
+    ],
+    "y_label_template": "r{resolution} | c{cluster_id}",
+    "y_axis_label": "BANKSY recluster resolution / cluster",
+    "show_resolution_separators": true
+}

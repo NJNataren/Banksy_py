@@ -1,6 +1,6 @@
 # Xenium BANKSY Workflow: Concise Agent Guide
 
-Use this file as the quick orientation map for the Xenium BANKSY pipeline. Use `README_00_04_XENIUM_ANALYSIS_WORKFLOW.md` only when implementation details, commands, or path inventories are needed. Use `re-clustering.md` for the planned QC-filtered reclustering branch.
+Use this file as the quick orientation map for the Xenium BANKSY pipeline. Use `README_00_04_XENIUM_ANALYSIS_WORKFLOW.md` when implementation details, commands, or path inventories are needed. Use `re-clustering.md` only as historical notes for the QC-filtered reclustering branch.
 
 ## Core Rule
 
@@ -23,12 +23,14 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 1a. `01a_clustree_cluster_resolution_qc.R`
    - Local clustree resolution-stability QC from script 00 cluster CSVs.
    - `01a_merge_cluster_resolution_csvs.R` merges split per-resolution CSVs first when needed.
+   - Next planned update: support script 06 recluster CSVs whose cluster columns have a trailing `_recluster_<run_label>` suffix.
 
 2. `02_create_expression_adata_with_banksy_clusters.py`
    - Legacy/helper path for rebuilding clean expression objects from existing BANKSY outputs or archived labels.
 
 3. `03_export_dotplot_data_from_clean_script00_config.py`
    - Preferred export path for current BANKSY cluster dotplots from script 00 clean objects.
+   - Also works for script 06 clean recluster objects when configs explicitly list the recluster `.obs` label columns.
 
 3-legacy. `03_export_dotplot_data_from_config.py`
    - Export path for script 02 or archived-label objects.
@@ -37,16 +39,23 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
    - Local plotting from script 03 summary CSVs.
 
 5. `05_apply_qc_filters_for_reclustering.py`
-   - Applies reviewed script 01 QC filters.
-   - Writes QC-annotated and QC-filtered clean objects for reclustering.
+   - Applies reviewed script 01 QC filters as masks only.
+   - Retains all cells and writes a QC-annotated clean object for provenance.
+   - Adds `qc_keep_for_reclustering`, `qc_filter_status`, per-filter fail masks, and fail-reason columns.
 
-6. Planned: `06_recluster_qc_filtered_with_banksy.py`
-   - Rerun the BANKSY portion of script 00 on script 05 filtered objects.
-   - Include planned neighbour analysis. See `re-clustering.md`.
+6. `06_recluster_qc_annotated_with_banksy.py`
+   - Reruns the BANKSY portion of script 00 from a script 05 QC-annotated object.
+   - Default `recluster_inclusion` is `qc_pass_only`; optional `all_cells` sensitivity mode is supported.
+   - Saves BANKSY spatial objects, `banksy_dict`, `results_df`, full-cell cluster tables, clean expression objects with recluster labels/embeddings, marker tables/plots, BANKSY plots, and cluster-count QC plots.
+   - Writes clean-object UMAP cluster plots under `umap_cluster_plot/` and cluster-plus-QC UMAPs under `umap_qc/`.
+
+7. `07_squidpy_recluster_spatial_analysis.py`
+   - Runs downstream Squidpy spatial interpretation on the clean expression object used by script 06.
+   - Includes neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots.
 
 ## Where Things Run
 
-- HPC: scripts 00, 00a, 01, 02, 03, 05, and planned 06.
+- HPC: scripts 00, 00a, 01, 02, 03, 05, 06, and 07.
 - Local: script 01a clustree QC and script 04 plotting after outputs are copied back.
 - Slurm array ranges must match the number of JSON configs in the selected leaf config directory.
 - Some wrappers accept `CONFIG_DIR` overrides, especially `run_00_xenium_clustering.sl` and `run_01_xenium_QC_array_ptmt.sl`.
@@ -58,9 +67,12 @@ config/00_clustering/
 config/01_QC/
 config/02_create_expression/
 config/03_export_summary/
+config/03_export_summary/active/vbct_recluster_qc_pass_only/
 config/04_plot_dotplot/active/
+config/04_plot_dotplot/active/vbct_recluster_qc_pass_only/
 config/05_apply_qc_filters/
-config/06_recluster_qc_filtered/        planned
+config/06_recluster_qc_annotated/
+config/07_squidpy_recluster_analysis/
 ```
 
 Useful project split:
@@ -85,16 +97,34 @@ Preferred clean clustered object from script 00:
 data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_with_banksy_clusters_<resolutions>.h5ad
 ```
 
-QC-filtered reclustering input from script 05:
+QC-annotated reclustering input from script 05:
 
 ```text
-data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_qc_filtered_qc_v1.h5ad
+data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_qc_annotated_<input_label>.h5ad
 ```
 
-Cluster assignment table used by clustree:
+Script 06 full provenance object:
+
+```text
+data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_qc_annotated_<input_label>_with_banksy_reclusters_<run_label>_<resolutions>.h5ad
+```
+
+Script 06 clean object used for BANKSY and script 07:
+
+```text
+data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>.h5ad
+```
+
+Original script 00 cluster assignment table used by clustree:
 
 ```text
 data/xenium/processed/<project>/<sample>/<sample>_cell_cluster_id_across_clustering_res_<resolutions>.csv
+```
+
+Script 06 recluster cluster assignment table:
+
+```text
+data/xenium/processed/<project>/<sample>/<sample>_recluster_<run_label>_cell_cluster_id_across_clustering_res_<resolutions>.csv
 ```
 
 Dotplot summary exports:
@@ -111,12 +141,15 @@ figures/dotplots/
 
 ## Current Preferences
 
-- Prefer clean script 00 objects for marker analysis and dotplot exports.
+- Prefer clean script 00 objects for original marker analysis and dotplot exports.
+- For marker-expression dotplots after QC reclustering, use the script 06 clean recluster object containing only cells used by BANKSY: `adata_expression_clean_<sample>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>.h5ad`.
 - Prefer `03_export_dotplot_data_from_clean_script00_config.py` for current cluster dotplots.
 - Use script 02 only for legacy/archived-label workflows or object reconstruction.
 - Use script 00a when only PCA scree QC is missing.
 - Keep PC55 outputs under `ptmt_pc55`; do not mix with standard `ptmt` outputs.
-- Keep QC-filter labels in reclustering output filenames to avoid overwriting original script 00 outputs.
+- Keep `input_label` and `run_label` in reclustering output filenames to avoid overwriting original script 00 outputs.
+- Default script 06 to `recluster_inclusion = "qc_pass_only"`; use `all_cells` only as a sensitivity analysis.
+- Keep Squidpy analyses in script 07 so BANKSY does not need to be rerun when spatial interpretation settings change.
 
 ## Validation
 
@@ -132,3 +165,26 @@ python -m json.tool <config.json>
 - Avoid hard-coded sample names or paths when configs define them.
 - Treat `data/xenium/`, `figures/`, `logs/`, and `hpc/` as large or machine-specific.
 - Preserve clean expression values for biological summaries; BANKSY-expanded matrices are for clustering, not expression interpretation.
+
+## Current CK Smoke-Test State
+
+- CK smoke testing used project `vbct`, sample `CK_skin_res`, and `run_label = filtered_qc_v1_qc_pass_only_smoke`.
+- Script 05 kept 6,387 / 6,760 cells for reclustering; 373 cells were excluded by QC masks.
+- Script 06 completed qc-pass-only reclustering for resolutions `0.50` through `1.50`.
+- Script 07 completed on the clean recluster object for analysis resolution `1.50`.
+- Script 03/04 marker dotplots were generated using configs under `vbct_recluster_qc_pass_only`.
+- The all-gene script 03 export contains all 304 genes. Script 04 now has configs for canonical markers, reviewed/manual-filtered all-gene plotting, and all-304-gene plotting.
+
+## Next Planned Work
+
+- Adapt `01a_clustree_cluster_resolution_qc.R` so it can read script 06 recluster cluster tables.
+- CK input table for the next smoke test:
+
+```text
+data/xenium/processed/vbct/CK_skin_res/CK_skin_res_recluster_filtered_qc_v1_qc_pass_only_smoke_cell_cluster_id_across_clustering_res_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.csv
+```
+
+- Add a `--cluster_suffix` option, for example `_recluster_filtered_qc_v1_qc_pass_only_smoke`.
+- Detect cluster columns that start with `labels_scaled_gaussian_pc30_nc0.20_r` and end with the suffix, parse the numeric resolution from the middle, then create temporary clustree-friendly columns before calling `clustree()`.
+- Skip `--qc_config` initially for recluster clustree plots because script 01 QC annotations refer to the original script 00 cluster columns.
+

@@ -1,6 +1,6 @@
-# Xenium BANKSY Clustering, QC, and Dotplot Workflow: Scripts 00-04
+# Xenium BANKSY Clustering, QC, Dotplot, and Reclustering Workflow: Scripts 00-07
 
-This README documents the local/HPC workflow built around the `00`-`04` scripts in this repository. The workflow starts with Xenium expression data, performs BANKSY spatial clustering while preserving clean expression values, runs QC/inspection on clean clustered objects, exports dotplot-ready summaries, and finally renders multi-sample dotplots.
+This README documents the local/HPC workflow built around the `00`-`07` scripts in this repository. The workflow starts with Xenium expression data, performs BANKSY spatial clustering while preserving clean expression values, runs QC/inspection on clean clustered objects, exports dotplot-ready summaries, renders multi-sample dotplots, and supports QC-aware BANKSY reclustering plus downstream Squidpy spatial analyses.
 
 The main biological use case is metastatic melanoma Xenium spatial transcriptomics analysis for immune checkpoint inhibitor response/resistance studies.
 
@@ -41,10 +41,13 @@ Archived cell-type labels from older annotated AnnData objects
    Render multi-sample dotplots from exported CSVs. The local script is the current plotting/tuning entrypoint.
 
 5. `05_apply_qc_filters_for_reclustering.py`
-   Apply reviewed script 01 QC filters to the clean script 00 expression object. This creates a QC-annotated clean object and a QC-filtered clean object that can be used as input for BANKSY reclustering.
+   Apply reviewed script 01 QC filters to the clean script 00 expression object as masks only. This writes a full-cell QC-annotated clean object for provenance and does not save a hard-filtered AnnData object.
 
-6. Planned: `06_recluster_qc_filtered_with_banksy.py`
-   Rerun the BANKSY clustering portion of script 00 on script 05 QC-filtered clean expression objects. The planned script should preserve key script 00 outputs: BANKSY spatial objects, results tables, cell-by-resolution cluster tables, clean expression AnnData with BANKSY metadata, marker tables, PCA scree QC, and reclustering plots. It should also include the neighbour-analysis block planned for reclustering.
+6. `06_recluster_qc_annotated_with_banksy.py`
+   Rerun the BANKSY clustering portion of script 00 from the script 05 QC-annotated clean expression object. The default mode clusters only cells with `qc_keep_for_reclustering == True`; optional `all_cells` mode supports sensitivity analysis. Script 06 saves BANKSY spatial objects, result tables, full-cell cluster tables, clean expression objects with recluster labels/embeddings, marker outputs, BANKSY plots, and cluster-count QC plots.
+
+7. `07_squidpy_recluster_spatial_analysis.py`
+   Run downstream Squidpy spatial interpretation from the clean expression object produced by script 06. This step includes spatial neighbours, neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots without rerunning BANKSY.
 
 ## Environment
 
@@ -73,8 +76,9 @@ HPC:   01_QC_xenium_spatial_clean_clustered.py
 HPC:   02_create_expression_adata_with_banksy_clusters.py                  archived-label or legacy clean-object creation
 HPC:   03_export_dotplot_data_from_config.py                               script 02 output or archived-label exports
 HPC:   03_export_dotplot_data_from_clean_script00_config.py                current script 00 clean-object exports
-HPC:   05_apply_qc_filters_for_reclustering.py                              reviewed QC filtering before reclustering
-HPC:   06_recluster_qc_filtered_with_banksy.py                              planned QC-filtered BANKSY reclustering
+HPC:   05_apply_qc_filters_for_reclustering.py                              reviewed QC mask annotation before reclustering
+HPC:   06_recluster_qc_annotated_with_banksy.py                               QC-aware BANKSY reclustering
+HPC:   07_squidpy_recluster_spatial_analysis.py                               downstream Squidpy analysis of reclusters
 Local: 04_plot_multi_sample_dotplot_from_config_local.py
 ```
 
@@ -96,10 +100,12 @@ Typical full order:
 Optional reclustering branch after script 01 QC review:
 
 ```text
-1. Run script 05 to apply reviewed QC filters to the clean script 00 object.
-2. Run planned script 06 to recluster the QC-filtered clean expression object with BANKSY.
-3. Review script 06 reclustering outputs, including neighbour-analysis summaries once implemented.
-4. Use the script 06 clean clustered object as a downstream input for updated marker summaries or dotplot exports.
+1. Run script 05 to add reviewed QC masks to the clean script 00 object while retaining all cells.
+2. Run script 06 to recluster from the QC-annotated clean expression object with BANKSY.
+3. Review script 06 reclustering outputs: BANKSY plots, UMAP/spatial cluster views from plot_results, marker tables/plots, cluster-count plots, cluster tables, and full provenance objects.
+4. Optionally rerun script 06 with recluster_inclusion = "all_cells" as a sensitivity analysis.
+5. Run script 07 on the selected script 06 clean object for Squidpy neighbourhood, centrality, co-occurrence, and Moran's I analyses.
+6. Use the final script 06 full provenance object or script 06 clean reclustered object as downstream inputs for updated marker summaries or dotplot exports.
 ```
 
 For Slurm arrays, the array range must match the number of JSON config files in the selected leaf config directory. For eight sample configs, use:
@@ -473,6 +479,349 @@ The older raw-QC array wrappers now call the numbered raw-QC helper variants:
 ```text
 run_00_xenium_QC_array_vbct.sl -> 01_QC_xenium_spatial.py
 run_00_xenium_QC_array_ptmt.sl -> 01_QC_xenium_spatial_PTMT_v2.py
+```
+
+
+## Script 05: Apply Reviewed QC Masks For Reclustering
+
+### Script
+
+```text
+05_apply_qc_filters_for_reclustering.py
+```
+
+### Purpose
+
+Script 05 consumes the QC columns produced by script 01 and turns the reviewed filtering decisions into explicit provenance metadata. It does not hard-filter cells from the saved AnnData object. Instead, it writes a full-cell clean expression object with a single boolean column that downstream scripts can use for temporary in-memory subsetting.
+
+The key design rule is:
+
+```text
+Script 05 annotates filtering decisions; it does not remove cells from disk outputs.
+```
+
+### Main Config Inputs
+
+Configs live under:
+
+```text
+config/05_apply_qc_filters/
+```
+
+Minimal config shape:
+
+```json
+{
+  "project": "vbct",
+  "dataset_name": "CK_skin_res",
+  "output_label": "filtered_qc_v1"
+}
+```
+
+Optional path overrides include:
+
+```text
+base_dir
+input_h5ad
+output_dir
+annotated_output_h5ad
+```
+
+Do not use `filtered_output_h5ad`. Script 05 now raises an error if that stale key appears in a config, because it no longer writes hard-filtered AnnData files.
+
+### Required Input Columns
+
+The input AnnData must contain these script 01 QC columns in `.obs`:
+
+```text
+min_trans_passed
+max_trans_threshold_passed
+negative_control_probe_ge2
+max_area_threshold_99_by_cluster
+```
+
+Mask semantics are explicit:
+
+```text
+min_trans_passed                         pass mask; True means keep
+max_trans_threshold_passed               fail mask; True means remove from qc_pass_only reclustering
+negative_control_probe_ge2               fail mask; True means remove from qc_pass_only reclustering
+max_area_threshold_99_by_cluster         fail mask; True means remove from qc_pass_only reclustering
+```
+
+### Main Outputs
+
+Full-cell annotated AnnData:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_qc_annotated_<output_label>.h5ad
+```
+
+Audit CSV:
+
+```text
+data/xenium/output/<project>/QC_filtering/<dataset_name>/<dataset_name>_qc_filter_summary_<output_label>.csv
+```
+
+New `.obs` columns include:
+
+```text
+qc_keep_for_reclustering
+qc_filter_status
+qc_fail_min_trans_passed
+qc_fail_max_trans_threshold_passed
+qc_fail_negative_control_probe_ge2
+qc_fail_max_area_threshold_99_by_cluster
+qc_fail_reason
+qc_fail_reason_set
+```
+
+`qc_keep_for_reclustering` is the column script 06 uses when `recluster_inclusion` is set to the default `qc_pass_only` mode.
+
+### Example Run
+
+```bash
+conda run -n banksy python 05_apply_qc_filters_for_reclustering.py \
+  --config config/05_apply_qc_filters/vbct/CK_skin_res.json
+```
+
+## Script 06: QC-Aware BANKSY Reclustering
+
+### Script
+
+```text
+06_recluster_qc_annotated_with_banksy.py
+```
+
+### Purpose
+
+Script 06 reruns the BANKSY clustering portion of script 00 from the script 05 QC-annotated clean expression object. It keeps the clean expression matrix available for marker analysis and copies reclustering labels/embeddings back onto clean AnnData outputs.
+
+The default behavior is to cluster only QC-passing cells:
+
+```json
+"recluster_inclusion": "qc_pass_only"
+```
+
+In this mode, failed cells remain in the full provenance output but do not contribute to BANKSY graph construction, PCA/UMAP, Leiden clustering, marker ranking, or cluster-count plots. Failed cells are assigned the cluster value:
+
+```text
+excluded_by_qc
+```
+
+A sensitivity mode is also supported:
+
+```json
+"recluster_inclusion": "all_cells"
+```
+
+In `all_cells` mode, every cell in the script 05 object is included in BANKSY and receives cluster labels/embeddings. The original QC status columns remain available for overlay plots and review.
+
+### Main Config Inputs
+
+Planned config root:
+
+```text
+config/06_recluster_qc_annotated/
+```
+
+Draft config shape:
+
+```json
+{
+  "project": "ptmt_pc55",
+  "dataset_name": "10331_run_1_1644",
+  "input_label": "filtered_qc_v1",
+  "recluster_inclusion": "qc_pass_only",
+  "pc_label": "55",
+  "lambda_label": "0.20",
+  "res_label": ["0.50", "0.60", "0.70", "0.80", "0.90", "1.00", "1.10", "1.2", "1.3", "1.4", "1.5"],
+  "nbr_weight_decay": "scaled_gaussian",
+  "coord_keys": ["x", "y", "xy"],
+  "max_workers": 8,
+  "scree_n_pcs": 75
+}
+```
+
+`run_label` is optional. If omitted, script 06 uses:
+
+```text
+<input_label>_<recluster_inclusion>
+```
+
+For example:
+
+```text
+filtered_qc_v1_qc_pass_only
+filtered_qc_v1_all_cells
+```
+
+This prevents the main and sensitivity reclustering outputs from overwriting each other.
+
+### Main Inputs
+
+Default input from script 05:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_qc_annotated_<input_label>.h5ad
+```
+
+### Main Outputs
+
+Per-resolution BANKSY spatial objects. These are technical clustering objects with BANKSY-expanded `.X` matrices:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/adata_spatial_<dataset_name>_recluster_<run_label>_<resolution>.h5ad
+```
+
+BANKSY dictionary and results table:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/<dataset_name>_recluster_<run_label>_pc<pc_label>_nc<lambda_label>_r<resolutions>_banksy_dict.pkl.gz
+data/xenium/processed/<project>/<dataset_name>/results_df_<dataset_name>_recluster_<run_label>_pc<pc_label>_nc<lambda_label>_r<resolutions>.csv
+```
+
+Full-cell cluster table. In `qc_pass_only` mode this includes `excluded_by_qc` for failed cells:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/<dataset_name>_recluster_<run_label>_cell_cluster_id_across_clustering_res_<resolutions>.csv
+```
+
+Clean expression object used for BANKSY. In `qc_pass_only` mode this contains only cells with `qc_keep_for_reclustering == True`; in `all_cells` mode this contains all cells:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>.h5ad
+```
+
+Full provenance object with all script 05 cells retained:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_qc_annotated_<input_label>_with_banksy_reclusters_<run_label>_<resolutions>.h5ad
+```
+
+Plot outputs are written under:
+
+```text
+data/xenium/output/<project>/<dataset_name>/reclustering_<run_label>/
+```
+
+Important plot folders include:
+
+```text
+pca_qc/
+top_marker_tables/
+top_marker_plot/
+cluster_count_plot/
+```
+
+`plot_results` also writes BANKSY UMAP/spatial/full-figure clustering plots directly under the reclustering output directory.
+
+### Example Runs
+
+Default QC-pass-only reclustering:
+
+```bash
+conda run -n banksy python 06_recluster_qc_annotated_with_banksy.py \
+  --config config/06_recluster_qc_annotated/ptmt_pc55/10331_run_1_1644.json
+```
+
+All-cell sensitivity reclustering uses the same script with this config key changed:
+
+```json
+"recluster_inclusion": "all_cells"
+```
+
+## Script 07: Squidpy Spatial Analysis Of Reclusters
+
+### Script
+
+```text
+07_squidpy_recluster_spatial_analysis.py
+```
+
+### Purpose
+
+Script 07 runs downstream spatial interpretation on the clean expression object generated by script 06. It is intentionally separate from script 06 so that Squidpy settings can be changed without rerunning BANKSY.
+
+In `qc_pass_only` mode, script 07 reads the clean object containing only cells used for BANKSY; failed cells therefore do not affect spatial neighbour graphs or Moran's I. In `all_cells` mode, script 07 reads the all-cell reclustered object and the QC status columns remain available in `.obs` for review.
+
+### Main Config Inputs
+
+Planned config root:
+
+```text
+config/07_squidpy_recluster_analysis/
+```
+
+Draft config shape:
+
+```json
+{
+  "project": "ptmt_pc55",
+  "dataset_name": "10331_run_1_1644",
+  "input_label": "filtered_qc_v1",
+  "recluster_inclusion": "qc_pass_only",
+  "pc_label": "55",
+  "lambda_label": "0.20",
+  "res_label": ["0.50", "0.60", "0.70", "0.80", "0.90", "1.00", "1.10", "1.2", "1.3", "1.4", "1.5"],
+  "analysis_res_label": "0.70",
+  "nbr_weight_decay": "scaled_gaussian",
+  "coord_keys": ["x", "y", "xy"],
+  "max_cooccurrence_clusters": 20,
+  "moran_subsample_fraction": 0.5,
+  "moran_n_perms": 100,
+  "moran_n_jobs": 1,
+  "top_moran_n": 10
+}
+```
+
+`analysis_res_label` can be one resolution, a list of resolutions, or:
+
+```json
+"analysis_res_label": "all"
+```
+
+Use `all` cautiously because co-occurrence can produce many plots.
+
+### Main Input
+
+Default input from script 06:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>.h5ad
+```
+
+### Main Outputs
+
+Outputs are written under:
+
+```text
+data/xenium/output/<project>/<dataset_name>/reclustering_<run_label>/squidpy/
+```
+
+Important outputs include:
+
+```text
+neighbourhood_enrichment_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.png
+centrality_scores_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.csv
+centrality_scores_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.png
+co_occurrence_cluster_<cluster>_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.png
+moran_scores_all_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.csv
+moran_scores_fdr<threshold>_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.csv
+spatial_scatter_top_moran_I_<gene>_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.png
+```
+
+Script 07 also writes a Squidpy-annotated copy of the clean script 06 object:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>_squidpy.h5ad
+```
+
+### Example Run
+
+```bash
+conda run -n banksy python 07_squidpy_recluster_spatial_analysis.py \
+  --config config/07_squidpy_recluster_analysis/ptmt_pc55/10331_run_1_1644.json
 ```
 
 ## Script 02: Create Clean Expression AnnData With BANKSY Labels
@@ -1351,7 +1700,47 @@ data/xenium/output/<project>/QC_testing/<sample>/
 data/xenium/output/<project>/<sample>/
 ```
 
-Current filtering-decision aids include the zoomed cell-area/transcript scatter and the bottom-1%-area/low-transcript overlap summary CSV. These are intended for review before a future script 05 applies selected QC masks for reclustering.
+Current filtering-decision aids include the zoomed cell-area/transcript scatter and the bottom-1%-area/low-transcript overlap summary CSV. Script 05 consumes the reviewed QC masks from this stage and records the final keep/exclude decisions in the QC-annotated AnnData object.
+
+### Script 05 Outputs Used Later
+
+Script 05 writes the full-cell QC-annotated clean object used by script 06:
+
+```text
+data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_qc_annotated_<output_label>.h5ad
+data/xenium/output/<project>/QC_filtering/<sample>/<sample>_qc_filter_summary_<output_label>.csv
+```
+
+The important downstream column is:
+
+```text
+qc_keep_for_reclustering
+```
+
+### Script 06 Outputs Used Later
+
+Script 06 writes both full provenance and reclustered-cell clean expression objects:
+
+```text
+data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_qc_annotated_<input_label>_with_banksy_reclusters_<run_label>_<resolutions>.h5ad
+data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>.h5ad
+```
+
+Script 07 uses the `cells_used_for_banksy` object. Dotplot/export or final annotation work may use either object depending on whether failed cells should remain visible as `excluded_by_qc`.
+
+### Script 07 Outputs Used Later
+
+Script 07 writes Squidpy spatial-analysis outputs under:
+
+```text
+data/xenium/output/<project>/<sample>/reclustering_<run_label>/squidpy/
+```
+
+and optionally saves a Squidpy-annotated copy of the script 06 clean object:
+
+```text
+data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>_squidpy.h5ad
+```
 
 ### Script 02 Outputs Used Later
 
@@ -1542,7 +1931,12 @@ Pilot comparisons should include PCA scree, UMAP/spatial cluster plots, clustree
 
 ### QC Filtering Next Steps
 
-Before building the filtering/reclustering step, add the remaining script 01 QC metric for cells with transcripts from two or more distinct negative-control probes. This should use transcript-level negative-control probe identities rather than aggregate `control_probe_counts`, then store both a numeric count and pass/fail category in `.obs` for plotting.
+Script 05, script 06, and script 07 now implement the QC/reclustering branch. Current remaining work is:
 
-The planned filtering step should be a new script 05 rather than another script 01 variant. Script 05 should consume QC masks generated by script 01, apply selected filters, save a filtered AnnData object for reclustering, and write an audit table describing how many cells each filter removed. Inspection-only QC signals, such as negative-control burden until a threshold is accepted, should remain distinguishable from actual filtering masks.
+- Add explicit clean-object UMAP cluster/QC plots to script 06, modelled on the script 01 `plot_umap_qc_metric` helper.
+- Add config directories and sample configs for script 06 and script 07, especially `ptmt_pc55`.
+- Add Slurm wrappers for script 06 and script 07 once config layouts are finalized.
+- Build a future script 08 for final selected-resolution cell-type annotation and annotated UMAP/spatial plots.
+
+The key policy is to preserve provenance: script 05 does not hard-filter cells, script 06 defaults to temporary `qc_pass_only` reclustering with failed cells labelled `excluded_by_qc` in the full output, and script 07 runs downstream Squidpy analyses without rerunning BANKSY.
 
