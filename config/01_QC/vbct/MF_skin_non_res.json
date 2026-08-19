@@ -2,17 +2,17 @@
     "project": "vbct",
     "raw_subdir": "vbct",
     "dataset_name": "MF_skin_non_res",
-    "pc_label": "30",
+    "pc_label": "20",
     "lambda_label": "0.20",
     "res_label": [
-        "1.10"
+        "0.5"
     ],
-    "plot_res_label": "1.10",
+    "plot_res_label": "0.50",
     "nbr_weight_decay": "scaled_gaussian",
     "coord_keys": [
         "x",
         "y",
         "xy"
     ],
-    "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.10"
+    "cluster_col": "labels_scaled_gaussian_pc20_nc0.20_r0.50"
 }
