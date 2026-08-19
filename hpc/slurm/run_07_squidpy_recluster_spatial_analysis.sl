@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=07_squidpy_recluster
-#SBATCH --array=0-0%1
+#SBATCH --array=0-7%2
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=180G
@@ -29,7 +29,8 @@ conda activate banksy
 
 CONFIG_DIR="${CONFIG_DIR:-config/07_squidpy_recluster_analysis/vbct}"
 # Example override:
-# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/07_squidpy_recluster_analysis/ptmt_pc55 hpc/slurm/run_07_squidpy_recluster_spatial_analysis.sl
+# sbatch --array=0-0 --export=ALL,CONFIG_DIR=config/07_squidpy_recluster_analysis/vbct/smoke hpc/slurm/run_07_squidpy_recluster_spatial_analysis.sl
+# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/07_squidpy_recluster_analysis/vbct hpc/slurm/run_07_squidpy_recluster_spatial_analysis.sl
 CONFIGS=("${CONFIG_DIR}"/*.json)
 
 if (( ${#CONFIGS[@]} == 0 )); then

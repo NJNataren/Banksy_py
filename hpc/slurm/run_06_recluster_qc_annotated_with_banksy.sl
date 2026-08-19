@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=06_xenium_recluster
-#SBATCH --array=0-0%1
+#SBATCH --array=0-7%2
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=180G
@@ -29,7 +29,8 @@ conda activate banksy
 
 CONFIG_DIR="${CONFIG_DIR:-config/06_recluster_qc_annotated/vbct}"
 # Example override:
-# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/ptmt_pc55 hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+# sbatch --array=0-0 --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/smoke hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
 CONFIGS=("${CONFIG_DIR}"/*.json)
 
 if (( ${#CONFIGS[@]} == 0 )); then

@@ -1,0 +1,36 @@
+{
+  "project": "vbct",
+  "dataset_name": "CK_skin_res",
+  "input_label": "filtered_qc_v1",
+  "recluster_inclusion": "qc_pass_only",
+  "run_label": "filtered_qc_v1_qc_pass_only",
+  "pc_label": "30",
+  "lambda_label": "0.20",
+  "res_label": [
+    "0.50",
+    "0.60",
+    "0.70",
+    "0.80",
+    "0.90",
+    "1.00",
+    "1.10",
+    "1.20",
+    "1.30",
+    "1.40",
+    "1.50"
+  ],
+  "nbr_weight_decay": "scaled_gaussian",
+  "coord_keys": [
+    "x",
+    "y",
+    "xy"
+  ],
+  "max_workers": 2,
+  "scree_n_pcs": 50,
+  "umap_plot_point_size": 3,
+  "qc_umap_metrics": [
+    "qc_filter_status",
+    "qc_keep_for_reclustering",
+    "qc_fail_reason"
+  ]
+}

@@ -27,9 +27,9 @@ mkdir -p logs
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG_DIR="${CONFIG_DIR:-config/05_apply_qc_filters/ptmt_pc55}"
+CONFIG_DIR="${CONFIG_DIR:-config/05_apply_qc_filters/vbct}"
 # Example override:
-# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/05_apply_qc_filters/ptmt_pc55 hpc/slurm/run_05_apply_qc_filters_for_reclustering.sl
+# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/05_apply_qc_filters/vbct hpc/slurm/run_05_apply_qc_filters_for_reclustering.sl
 CONFIGS=("${CONFIG_DIR}"/*.json)
 
 if (( ${#CONFIGS[@]} == 0 )); then
