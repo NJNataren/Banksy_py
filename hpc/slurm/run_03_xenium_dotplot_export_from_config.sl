@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --job-name=02_create_expression_adata
+#SBATCH --job-name=03_xenium_dotplot_export
 #SBATCH --array=0-7%3
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
 #SBATCH --output=logs/%x_%A_%a.out
@@ -11,6 +11,14 @@
 #SBATCH --partition=sacgf
 
 set -euo pipefail
+
+REPO_DIR="${REPO_DIR:-/scratchdata1/users/a1210419/Banksy_py}"
+
+echo "Submitting directory: ${SLURM_SUBMIT_DIR:-unknown}"
+echo "Changing to repository directory: ${REPO_DIR}"
+cd "${REPO_DIR}"
+echo "Running from: $(pwd)"
+mkdir -p logs
 
 ###############################
 #   Conda environment setup   #
@@ -20,8 +28,10 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 # Override at submit time when needed, for example:
-# sbatch --export=CONFIG_DIR=config/02_create_expression/vbct run_create_expression_adata_with_banksy_clusters.sl
-CONFIG_DIR="${CONFIG_DIR:-config/02_create_expression/vbct}"
+# sbatch --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/canonical_markers hpc/slurm/run_03_xenium_dotplot_export_from_config.sl
+#CONFIG_DIR="${CONFIG_DIR:-config/03_export_summary/archive/vbct_small_legacy_script02/canonical_markers}"
+CONFIG_DIR="${CONFIG_DIR:-config/03_export_summary/archive/vbct_archive_labels/canonical_markers_archive_labels}"
+
 shopt -s nullglob
 CONFIGS=("$CONFIG_DIR"/*.json)
 
@@ -47,6 +57,6 @@ echo "Config contents:"
 cat "$CONFIG"
 echo "================================="
 
-python 02_create_expression_adata_with_banksy_clusters.py --config "$CONFIG"
+python 03_export_dotplot_data_from_config.py --config "$CONFIG"
 
-echo "Expression AnnData creation finished: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Dotplot export finished: $(date '+%Y-%m-%d %H:%M:%S')"

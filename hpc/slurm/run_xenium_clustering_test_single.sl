@@ -13,6 +13,14 @@
 #SBATCH --export=None
 
 set -euo pipefail
+
+REPO_DIR="${REPO_DIR:-/scratchdata1/users/a1210419/Banksy_py}"
+
+echo "Submitting directory: ${SLURM_SUBMIT_DIR:-unknown}"
+echo "Changing to repository directory: ${REPO_DIR}"
+cd "${REPO_DIR}"
+echo "Running from: $(pwd)"
+mkdir -p logs
 ## Load conda environment
 
 ###############################

@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+cd "${REPO_DIR}"
+
 CONFIG="config/03_export_summary/archive/testing/legacy/local_test_CK_skin_res_0p5.json"
 OUTPUT="data/xenium/processed/cross_sample_dotplot_exports/local_test_CK_skin_res_0p5_dotplot_summary.csv"
 

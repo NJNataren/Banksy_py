@@ -17,8 +17,8 @@ CONFIG_DIR="${CONFIG_DIR:-config/00_clustering/ptmt}"
 SCREE_N_PCS="${SCREE_N_PCS:-75}"
 
 # Keep the script submit-time configurable. For example:
-# sbatch --array=0-4 --export=ALL,CONFIG_DIR=config/00_clustering/vbct/small run_00a_pca_scree_array.sl
-# sbatch --array=0-23%4 --export=ALL,CONFIG_DIR=config/00_clustering/ptmt run_00a_pca_scree_array.sl
+# sbatch --array=0-4 --export=ALL,CONFIG_DIR=config/00_clustering/vbct/small hpc/slurm/run_00a_pca_scree_array.sl
+# sbatch --array=0-23%4 --export=ALL,CONFIG_DIR=config/00_clustering/ptmt hpc/slurm/run_00a_pca_scree_array.sl
 
 echo "Submitting directory: ${SLURM_SUBMIT_DIR:-unknown}"
 echo "Changing to repository directory: ${REPO_DIR}"

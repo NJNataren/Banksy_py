@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+cd "${REPO_DIR}"
+
 PROJECT="ptmt_pc55"
 CONFIG_DIR="config/00_clustering/${PROJECT}"
 CLUSTER_PREFIX="labels_scaled_gaussian_pc55_nc0.20_r"

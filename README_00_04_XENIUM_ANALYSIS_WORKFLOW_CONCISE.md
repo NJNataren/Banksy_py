@@ -58,7 +58,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 - HPC: scripts 00, 00a, 01, 02, 03, 05, 06, and 07.
 - Local: script 01a clustree QC and script 04 plotting after outputs are copied back.
 - Slurm array ranges must match the number of JSON configs in the selected leaf config directory.
-- Some wrappers accept `CONFIG_DIR` overrides, especially `run_00_xenium_clustering.sl` and `run_01_xenium_QC_array_ptmt.sl`.
+- Some wrappers accept `CONFIG_DIR` overrides, especially `hpc/slurm/run_00_xenium_clustering.sl` and `hpc/slurm/run_01_xenium_QC_array_ptmt.sl`.
 
 ## Config Roots
 

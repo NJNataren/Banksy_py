@@ -1,16 +1,24 @@
 #!/bin/bash
 
-#SBATCH --job-name=04_xenium_multi_dotplot
-#SBATCH --array=0-0%1
+#SBATCH --job-name=03_xenium_dotplot_export_clean00
+#SBATCH --array=0-7%3
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=32G
-#SBATCH --time=01:00:00
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=02:00:00
 #SBATCH --output=logs/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
 #SBATCH --partition=sacgf
 
 set -euo pipefail
+
+REPO_DIR="${REPO_DIR:-/scratchdata1/users/a1210419/Banksy_py}"
+
+echo "Submitting directory: ${SLURM_SUBMIT_DIR:-unknown}"
+echo "Changing to repository directory: ${REPO_DIR}"
+cd "${REPO_DIR}"
+echo "Running from: $(pwd)"
+mkdir -p logs
 
 ###############################
 #   Conda environment setup   #
@@ -20,9 +28,10 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 # Override at submit time when needed, for example:
-# sbatch --export=CONFIG_DIR=config/04_plot_dotplot/archive/vbct_hpc_or_old_layout/vbct_small run_xenium_multi_sample_dotplot_from_config.sl
-#CONFIG_DIR="${CONFIG_DIR:-config/04_plot_dotplot/archive/vbct_hpc_or_old_layout/vbct_small}"
-CONFIG_DIR="${CONFIG_DIR:-config/04_plot_dotplot/archive/vbct_hpc_or_old_layout/vbct_large}"
+# sbatch --export=CONFIG_DIR=config/03_export_summary/active/vbct_clean_script00/all_genes hpc/slurm/run_03_xenium_dotplot_export_from_clean_script00_config.sl
+# sbatch --array=0-23%3 --export=CONFIG_DIR=config/03_export_summary/active/ptmt_pc55_clean_script00/ptmt_panel hpc/slurm/run_03_xenium_dotplot_export_from_clean_script00_config.sl
+CONFIG_DIR="${CONFIG_DIR:-config/03_export_summary/active/vbct_clean_script00/canonical_markers}"
+
 shopt -s nullglob
 CONFIGS=("$CONFIG_DIR"/*.json)
 
@@ -48,6 +57,6 @@ echo "Config contents:"
 cat "$CONFIG"
 echo "================================="
 
-python 04_plot_multi_sample_dotplot_from_config.py --config "$CONFIG"
+python 03_export_dotplot_data_from_clean_script00_config.py --config "$CONFIG"
 
-echo "Multi-sample dotplot finished: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Dotplot export finished: $(date '+%Y-%m-%d %H:%M:%S')"

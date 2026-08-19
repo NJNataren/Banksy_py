@@ -1,18 +1,18 @@
 #!/bin/bash
 
-#SBATCH --job-name=05_xenium_qc_filter
-#SBATCH --array=0-7%2
+#SBATCH --job-name=07_squidpy_recluster
+#SBATCH --array=0-0%1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=64G
-#SBATCH --time=02:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=180G
+#SBATCH --time=08:00:00
 #SBATCH --output=logs/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
 #SBATCH --partition=sacgf
 
 set -euo pipefail
 
-REPO_DIR="/scratchdata1/users/a1210419/Banksy_py"
+REPO_DIR="${REPO_DIR:-/scratchdata1/users/a1210419/Banksy_py}"
 
 echo "Submitting directory: ${SLURM_SUBMIT_DIR:-unknown}"
 echo "Changing to repository directory: ${REPO_DIR}"
@@ -27,9 +27,9 @@ mkdir -p logs
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG_DIR="${CONFIG_DIR:-config/05_apply_qc_filters/ptmt_pc55}"
+CONFIG_DIR="${CONFIG_DIR:-config/07_squidpy_recluster_analysis/vbct}"
 # Example override:
-# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/05_apply_qc_filters/ptmt_pc55 run_05_apply_qc_filters_for_reclustering.sl
+# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/07_squidpy_recluster_analysis/ptmt_pc55 hpc/slurm/run_07_squidpy_recluster_spatial_analysis.sl
 CONFIGS=("${CONFIG_DIR}"/*.json)
 
 if (( ${#CONFIGS[@]} == 0 )); then
@@ -55,6 +55,6 @@ echo "Config contents:"
 cat "${CONFIG}"
 echo "================================="
 
-python 05_apply_qc_filters_for_reclustering.py --config "${CONFIG}"
+python 07_squidpy_recluster_spatial_analysis.py --config "${CONFIG}"
 
-echo "QC filtering finished: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Squidpy recluster spatial analysis finished: $(date '+%Y-%m-%d %H:%M:%S')"

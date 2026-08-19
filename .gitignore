@@ -2,7 +2,9 @@
 /data/xenium/
 /figures/
 /archive
-/hpc
+/hpc/*
+!/hpc/slurm/
+!/hpc/slurm/**
 
 #Pycaches
 __pycache__/

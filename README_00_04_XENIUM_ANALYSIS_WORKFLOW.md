@@ -240,17 +240,17 @@ conda run -n banksy python 00_xenium_clustering_clean_adata.py \
 For array jobs, use or adapt one of the Slurm wrappers:
 
 ```text
-run_00_xenium_clustering.sl
-run_00_xenium_clustering_large.sl
-run_00_xenium_clustering_clean_adata_ck_skin_res_test.sl
+hpc/slurm/run_00_xenium_clustering.sl
+hpc/slurm/run_00_xenium_clustering_large.sl
+hpc/slurm/run_00_xenium_clustering_clean_adata_ck_skin_res_test.sl
 ```
 
-`run_00_xenium_clustering.sl` defaults to `CONFIG_DIR=config/00_clustering/vbct/small`, but this can be overridden at submission time. Before submitting, check the chosen `CONFIG_DIR`, `#SBATCH --array`, and final `python ...` command.
+`hpc/slurm/run_00_xenium_clustering.sl` defaults to `CONFIG_DIR=config/00_clustering/vbct/small`, but this can be overridden at submission time. Before submitting, check the chosen `CONFIG_DIR`, `#SBATCH --array`, and final `python ...` command.
 
 Example default Slurm submission pattern:
 
 ```bash
-sbatch run_00_xenium_clustering.sl
+sbatch hpc/slurm/run_00_xenium_clustering.sl
 ```
 
 Example PTMT PC55 comparison run:
@@ -258,7 +258,7 @@ Example PTMT PC55 comparison run:
 ```bash
 sbatch --array=0-23%3 \
   --export=ALL,CONFIG_DIR=config/00_clustering/ptmt_pc55 \
-  run_00_xenium_clustering.sl
+  hpc/slurm/run_00_xenium_clustering.sl
 ```
 
 If you change the config directory, make sure the array range matches the number of JSON configs in that directory. The wrapper exits cleanly when an array task ID is outside the selected config count.
@@ -275,7 +275,7 @@ If you change the config directory, make sure the array range matches the number
 Slurm wrapper:
 
 ```text
-run_00a_pca_scree_array.sl
+hpc/slurm/run_00a_pca_scree_array.sl
 ```
 
 ### Purpose
@@ -353,7 +353,7 @@ PTMT:
 ```bash
 sbatch --array=0-23%4 \
   --export=ALL,CONFIG_DIR=config/00_clustering/ptmt \
-  run_00a_pca_scree_array.sl
+  hpc/slurm/run_00a_pca_scree_array.sl
 ```
 
 VBCT small:
@@ -361,7 +361,7 @@ VBCT small:
 ```bash
 sbatch --array=0-4 \
   --export=ALL,CONFIG_DIR=config/00_clustering/vbct/small \
-  run_00a_pca_scree_array.sl
+  hpc/slurm/run_00a_pca_scree_array.sl
 ```
 
 VBCT large:
@@ -369,7 +369,7 @@ VBCT large:
 ```bash
 sbatch --array=0-2 \
   --export=ALL,CONFIG_DIR=config/00_clustering/vbct/large \
-  run_00a_pca_scree_array.sl
+  hpc/slurm/run_00a_pca_scree_array.sl
 ```
 
 To change the number of PCs plotted:
@@ -377,7 +377,7 @@ To change the number of PCs plotted:
 ```bash
 sbatch --array=0-23%4 \
   --export=ALL,CONFIG_DIR=config/00_clustering/ptmt,SCREE_N_PCS=100 \
-  run_00a_pca_scree_array.sl
+  hpc/slurm/run_00a_pca_scree_array.sl
 ```
 
 The wrapper exits cleanly when an array task ID is greater than the number of JSON configs found in `CONFIG_DIR`, which makes it safer to reuse broad array ranges across config folders.
@@ -466,19 +466,19 @@ conda run -n banksy python 01_QC_xenium_spatial_clean_clustered.py \
   --config config/01_clustering/vbct/small/CK_skin_res.json
 ```
 
-For PTMT array jobs, `run_01_xenium_QC_array_ptmt.sl` defaults to `CONFIG_DIR=config/01_QC/ptmt` and accepts an override. For the PTMT PC55 QC configs, run:
+For PTMT array jobs, `hpc/slurm/run_01_xenium_QC_array_ptmt.sl` defaults to `CONFIG_DIR=config/01_QC/ptmt` and accepts an override. For the PTMT PC55 QC configs, run:
 
 ```bash
 sbatch --array=0-7%2 \
   --export=ALL,CONFIG_DIR=config/01_QC/ptmt_pc55 \
-  run_01_xenium_QC_array_ptmt.sl
+  hpc/slurm/run_01_xenium_QC_array_ptmt.sl
 ```
 
 The older raw-QC array wrappers now call the numbered raw-QC helper variants:
 
 ```text
-run_00_xenium_QC_array_vbct.sl -> 01_QC_xenium_spatial.py
-run_00_xenium_QC_array_ptmt.sl -> 01_QC_xenium_spatial_PTMT_v2.py
+hpc/slurm/run_01_xenium_QC_array_vbct.sl -> 01_QC_xenium_spatial.py
+hpc/slurm/run_01_xenium_QC_array_ptmt.sl -> 01_QC_xenium_spatial_PTMT_v2.py
 ```
 
 
@@ -1019,7 +1019,7 @@ For the full `vbct` config set, use the Slurm wrapper:
 ```bash
 sbatch --array=0-7 \
   --export=CONFIG_DIR=config/02_create_expression/vbct \
-  run_02_create_expression_adata_with_banksy_clusters.sl
+  hpc/slurm/run_02_create_expression_adata_with_banksy_clusters.sl
 ```
 
 Archived-label variants are kept separately under:
@@ -1217,7 +1217,7 @@ conda run -n banksy python 03_export_dotplot_data_from_config.py \
 Slurm wrapper:
 
 ```text
-run_03_xenium_dotplot_export_from_config.sl
+hpc/slurm/run_03_xenium_dotplot_export_from_config.sl
 ```
 
 Run one of the leaf config directories below. The wrapper expects JSON files directly inside `CONFIG_DIR`, not one level above multiple config subdirectories.
@@ -1227,7 +1227,7 @@ Cluster-grouped all genes:
 ```bash
 sbatch --array=0-7 \
   --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/all_genes \
-  run_03_xenium_dotplot_export_from_config.sl
+  hpc/slurm/run_03_xenium_dotplot_export_from_config.sl
 ```
 
 Cluster-grouped canonical markers:
@@ -1235,7 +1235,7 @@ Cluster-grouped canonical markers:
 ```bash
 sbatch --array=0-7 \
   --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/canonical_markers \
-  run_03_xenium_dotplot_export_from_config.sl
+  hpc/slurm/run_03_xenium_dotplot_export_from_config.sl
 ```
 
 Archived-label canonical markers:
@@ -1243,7 +1243,7 @@ Archived-label canonical markers:
 ```bash
 sbatch --array=0-7 \
   --export=CONFIG_DIR=config/03_export_summary/archive/vbct_archive_labels/canonical_markers_archive_labels \
-  run_03_xenium_dotplot_export_from_config.sl
+  hpc/slurm/run_03_xenium_dotplot_export_from_config.sl
 ```
 
 Archived-label all genes:
@@ -1251,7 +1251,7 @@ Archived-label all genes:
 ```bash
 sbatch --array=0-7 \
   --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/all_genes_archive_labels \
-  run_03_xenium_dotplot_export_from_config.sl
+  hpc/slurm/run_03_xenium_dotplot_export_from_config.sl
 ```
 
 Make sure the Slurm array range matches the number of JSON configs in the chosen directory. If there are eight configs, valid task IDs are `0-7`.
@@ -1267,7 +1267,7 @@ Make sure the Slurm array range matches the number of JSON configs in the chosen
 Slurm wrapper:
 
 ```text
-run_03_xenium_dotplot_export_from_clean_script00_config.sl
+hpc/slurm/run_03_xenium_dotplot_export_from_clean_script00_config.sl
 ```
 
 ### Purpose
@@ -1363,7 +1363,7 @@ For the eight VBC/T canonical-marker clean script 00 configs:
 ```bash
 sbatch --array=0-7 \
   --export=CONFIG_DIR=config/03_export_summary/active/vbct_clean_script00/canonical_markers \
-  run_03_xenium_dotplot_export_from_clean_script00_config.sl
+  hpc/slurm/run_03_xenium_dotplot_export_from_clean_script00_config.sl
 ```
 
 For the eight VBC/T all-gene clean script 00 configs:
@@ -1371,7 +1371,7 @@ For the eight VBC/T all-gene clean script 00 configs:
 ```bash
 sbatch --array=0-7 \
   --export=CONFIG_DIR=config/03_export_summary/active/vbct_clean_script00/all_genes \
-  run_03_xenium_dotplot_export_from_clean_script00_config.sl
+  hpc/slurm/run_03_xenium_dotplot_export_from_clean_script00_config.sl
 ```
 
 For the 24 PTMT panel configs:
@@ -1379,7 +1379,7 @@ For the 24 PTMT panel configs:
 ```bash
 sbatch --array=0-23%3 \
   --export=CONFIG_DIR=config/03_export_summary/active/ptmt_clean_script00/ptmt_panel_pc35 \
-  run_03_xenium_dotplot_export_from_clean_script00_config.sl
+  hpc/slurm/run_03_xenium_dotplot_export_from_clean_script00_config.sl
 ```
 
 The wrapper defaults to `config/03_export_summary/active/vbct_clean_script00/canonical_markers` when `CONFIG_DIR` is not provided. Always check that the `#SBATCH --array` range matches the number of JSON configs in the selected directory.
@@ -1633,7 +1633,7 @@ config/04_plot_dotplot/active/ptmt_pc55_clean_script00/per_sample_panel_all_res/
 A Slurm wrapper exists:
 
 ```text
-run_04_xenium_multi_sample_dotplot_from_config.sl
+hpc/slurm/run_04_xenium_multi_sample_dotplot_from_config.sl
 ```
 
 The current plotting/tuning workflow uses `04_plot_multi_sample_dotplot_from_config_local.py` locally after script 03 CSVs have been copied from the HPC. If using the Slurm wrapper, first confirm that the script it calls is present and aligned with the local plotting script.
@@ -1902,7 +1902,7 @@ rsync -av --include='*/' --include='*_cell_cluster_id_across_clustering_res_*.cs
 Then run:
 
 ```bash
-./run_01a_clustree_ptmt_pc55_local.sh
+./helper_scripts/local_runs/run_01a_clustree_ptmt_pc55_local.sh
 ```
 
 Outputs are written under:

@@ -6,7 +6,7 @@
 - Default filtered output path: `data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_qc_filtered_qc_v1.h5ad`.
 - The duplicated `filtered_filtered` filename issue was fixed by using `adata_expression_clean_<sample>_qc_<output_label>.h5ad`.
 - Existing CK skin config: `config/05_apply_qc_filters/vbct/CK_skin_res.json`.
-- Existing Slurm wrapper: `run_05_apply_qc_filters_for_reclustering.sl`.
+- Existing Slurm wrapper: `hpc/slurm/run_05_apply_qc_filters_for_reclustering.sl`.
 
 ## Proposed Next Script
 
