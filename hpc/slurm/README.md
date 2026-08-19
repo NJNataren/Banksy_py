@@ -20,7 +20,7 @@ Most wrappers change to `REPO_DIR` before running the Python workflow scripts, s
 - `run_03_xenium_dotplot_export_from_config.sl`: legacy script 03 export path.
 - `run_04_xenium_multi_sample_dotplot_from_config.sl`: script 04 multi-sample dotplot plotting.
 - `run_05_apply_qc_filters_for_reclustering.sl`: script 05 QC filter annotation.
-- `run_06_recluster_qc_annotated_with_banksy.sl`: script 06 BANKSY reclustering from QC-annotated objects; defaults to `config/06_recluster_qc_annotated/vbct`.
+- `run_06_recluster_qc_annotated_with_banksy.sl`: script 06 BANKSY reclustering from QC-annotated objects; defaults to `config/06_recluster_qc_annotated/vbct/small`.
 - `run_07_squidpy_recluster_spatial_analysis.sl`: script 07 Squidpy spatial analysis on reclustered objects; defaults to `config/07_squidpy_recluster_analysis/vbct`.
 
 ## Smoke-Test Wrappers

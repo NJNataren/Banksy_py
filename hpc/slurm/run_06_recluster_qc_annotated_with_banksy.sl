@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=06_xenium_recluster
-#SBATCH --array=0-7%2
+#SBATCH --array=0-4%2
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=180G
@@ -27,10 +27,11 @@ mkdir -p logs
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG_DIR="${CONFIG_DIR:-config/06_recluster_qc_annotated/vbct}"
-# Example override:
+CONFIG_DIR="${CONFIG_DIR:-config/06_recluster_qc_annotated/vbct/small}"
+# Example overrides:
 # sbatch --array=0-0 --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/smoke hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
-# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+# sbatch --array=0-4%2 --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/small hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+# sbatch --array=0-2%1 --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/large hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
 CONFIGS=("${CONFIG_DIR}"/*.json)
 
 if (( ${#CONFIGS[@]} == 0 )); then
