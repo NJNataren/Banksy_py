@@ -668,17 +668,24 @@ data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_n
 
 ### Main Outputs
 
-Per-resolution BANKSY spatial objects. These are technical clustering objects with BANKSY-expanded `.X` matrices:
+Required BANKSY results table:
+
+```text
+data/xenium/processed/<project>/<dataset_name>/results_df_<dataset_name>_recluster_<run_label>_pc<pc_label>_nc<lambda_label>_r<resolutions>.csv
+```
+
+Heavy technical BANKSY objects are not written by default. Set these config keys only for debugging or archival recovery runs:
+
+```json
+"save_spatial_recluster_h5ad": true,
+"save_banksy_dict": true
+```
+
+Optional heavy outputs when enabled:
 
 ```text
 data/xenium/processed/<project>/<dataset_name>/adata_spatial_<dataset_name>_recluster_<run_label>_<resolution>.h5ad
-```
-
-BANKSY dictionary and results table:
-
-```text
 data/xenium/processed/<project>/<dataset_name>/<dataset_name>_recluster_<run_label>_pc<pc_label>_nc<lambda_label>_r<resolutions>_banksy_dict.pkl.gz
-data/xenium/processed/<project>/<dataset_name>/results_df_<dataset_name>_recluster_<run_label>_pc<pc_label>_nc<lambda_label>_r<resolutions>.csv
 ```
 
 Full-cell cluster table. In `qc_pass_only` mode this includes `excluded_by_qc` for failed cells:
@@ -1912,6 +1919,31 @@ data/xenium/output/ptmt_pc55/<sample>/clustree_qc/
 ```
 
 The runner uses prefix `labels_scaled_gaussian_pc55_nc0.20_r`. Annotated clustrees require `cluster_col` and `new_labels` in the matching script 01 QC config; otherwise only standard topology and SC3-stability plots are produced.
+
+### VBCT Post-Recluster Clustree
+
+Post-07 recluster clustree plots use the script 06 recluster cluster-assignment CSVs. Script 07 does not create a new clustree input, but this is the intended review point after Squidpy has completed.
+
+The config-driven runner reuses the existing script 06 sample configs to resolve sample names, PC labels, lambda labels, run labels, and resolution lists:
+
+```bash
+python3 01a_run_clustree_from_config.py \
+  --config config/01a_clustree/vbct/small_recluster_qc_pass_only.json
+```
+
+Or use the local helper:
+
+```bash
+./helper_scripts/local_runs/run_01a_clustree_from_config_local.sh
+```
+
+Outputs are written under:
+
+```text
+data/xenium/output/vbct/<sample>/clustree_qc_recluster_filtered_qc_v1_qc_pass_only/
+```
+
+The post-recluster config intentionally sets `include_qc_config` to `false`, because the current script 01 QC configs generally annotate original script 00 cluster columns rather than recluster columns.
 
 ### Future Work: SpaNorm Normalisation Pilot
 

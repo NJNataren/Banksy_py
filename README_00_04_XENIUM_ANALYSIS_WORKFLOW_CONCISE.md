@@ -21,9 +21,9 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
    - Produces filtering-decision masks/diagnostics for later reclustering.
 
 1a. `01a_clustree_cluster_resolution_qc.R`
-   - Local clustree resolution-stability QC from script 00 cluster CSVs.
+   - Local clustree resolution-stability QC from script 00 cluster CSVs or script 06 recluster cluster CSVs.
    - `01a_merge_cluster_resolution_csvs.R` merges split per-resolution CSVs first when needed.
-   - Next planned update: support script 06 recluster CSVs whose cluster columns have a trailing `_recluster_<run_label>` suffix.
+   - `01a_run_clustree_from_config.py` runs clustree batches from JSON configs, including post-07 VBCT small recluster plots.
 
 2. `02_create_expression_adata_with_banksy_clusters.py`
    - Legacy/helper path for rebuilding clean expression objects from existing BANKSY outputs or archived labels.
@@ -46,7 +46,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 6. `06_recluster_qc_annotated_with_banksy.py`
    - Reruns the BANKSY portion of script 00 from a script 05 QC-annotated object.
    - Default `recluster_inclusion` is `qc_pass_only`; optional `all_cells` sensitivity mode is supported.
-   - Saves BANKSY spatial objects, `banksy_dict`, `results_df`, full-cell cluster tables, clean expression objects with recluster labels/embeddings, marker tables/plots, BANKSY plots, and cluster-count QC plots.
+   - Saves `results_df`, full-cell cluster tables, clean expression objects with recluster labels/embeddings, marker tables/plots, BANKSY plots, and cluster-count QC plots. Heavy per-resolution BANKSY spatial objects and `banksy_dict` are opt-in only.
    - Writes clean-object UMAP cluster plots under `umap_cluster_plot/` and cluster-plus-QC UMAPs under `umap_qc/`.
 
 7. `07_squidpy_recluster_spatial_analysis.py`
@@ -65,6 +65,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 ```text
 config/00_clustering/
 config/01_QC/
+config/01a_clustree/
 config/02_create_expression/
 config/03_export_summary/
 config/03_export_summary/active/vbct_recluster_qc_pass_only/
@@ -150,6 +151,7 @@ figures/dotplots/
 - Keep `input_label` and `run_label` in reclustering output filenames to avoid overwriting original script 00 outputs.
 - Default script 06 to `recluster_inclusion = "qc_pass_only"`; use `all_cells` only as a sensitivity analysis.
 - Keep Squidpy analyses in script 07 so BANKSY does not need to be rerun when spatial interpretation settings change.
+- For post-07 recluster clustree plots, use `./helper_scripts/local_runs/run_01a_clustree_from_config_local.sh` or `python3 01a_run_clustree_from_config.py --config config/01a_clustree/vbct/small_recluster_qc_pass_only.json`.
 
 ## Validation
 
@@ -175,16 +177,27 @@ python -m json.tool <config.json>
 - Script 03/04 marker dotplots were generated using configs under `vbct_recluster_qc_pass_only`.
 - The all-gene script 03 export contains all 304 genes. Script 04 now has configs for canonical markers, reviewed/manual-filtered all-gene plotting, and all-304-gene plotting.
 
-## Next Planned Work
+## Current Clustree State
 
-- Adapt `01a_clustree_cluster_resolution_qc.R` so it can read script 06 recluster cluster tables.
-- CK input table for the next smoke test:
+- `01a_clustree_cluster_resolution_qc.R` supports script 06 recluster CSVs via `--cluster_suffix`, for example `_recluster_filtered_qc_v1_qc_pass_only` or `_recluster_filtered_qc_v1_qc_pass_only_smoke`.
+- Config-driven VBCT small post-07 clustree config:
 
 ```text
-data/xenium/processed/vbct/CK_skin_res/CK_skin_res_recluster_filtered_qc_v1_qc_pass_only_smoke_cell_cluster_id_across_clustering_res_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.csv
+config/01a_clustree/vbct/small_recluster_qc_pass_only.json
 ```
 
-- Add a `--cluster_suffix` option, for example `_recluster_filtered_qc_v1_qc_pass_only_smoke`.
-- Detect cluster columns that start with `labels_scaled_gaussian_pc30_nc0.20_r` and end with the suffix, parse the numeric resolution from the middle, then create temporary clustree-friendly columns before calling `clustree()`.
-- Skip `--qc_config` initially for recluster clustree plots because script 01 QC annotations refer to the original script 00 cluster columns.
+- Local helper command:
+
+```bash
+./helper_scripts/local_runs/run_01a_clustree_from_config_local.sh
+```
+
+- Dry-run preview command:
+
+```bash
+./helper_scripts/local_runs/run_01a_clustree_from_config_local.sh --dry-run
+```
+
+- The runner reuses script 06 configs from `config/06_recluster_qc_annotated/vbct/small` and resolves `<sample>_recluster_<run_label>_cell_cluster_id_across_clustering_res_<resolutions>.csv` automatically.
+- Skip `--qc_config` for post-recluster clustree unless annotation configs explicitly refer to recluster cluster columns.
 

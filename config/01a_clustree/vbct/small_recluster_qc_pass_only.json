@@ -1,0 +1,15 @@
+{
+  "description": "Post-07 clustree plots for VBCT small script 06 qc-pass-only recluster outputs.",
+  "source_config_dir": "config/06_recluster_qc_annotated/vbct/small",
+  "r_script": "01a_clustree_cluster_resolution_qc.R",
+  "rscript_executable": "Rscript",
+  "cluster_csv_template": "data/xenium/processed/{project}/{dataset_name}/{dataset_name}_recluster_{run_label}_cell_cluster_id_across_clustering_res_{resolutions}.csv",
+  "cluster_prefix_template": "labels_{nbr_weight_decay}_pc{pc_label}_nc{lambda_label}_r",
+  "cluster_suffix_template": "_recluster_{run_label}",
+  "output_dir_template": "data/xenium/output/{project}/{dataset_name}/clustree_qc_recluster_{run_label}",
+  "include_qc_config": false,
+  "qc_config_template": "config/01_QC/{project}/{dataset_name}.json",
+  "width": 12,
+  "height": 8,
+  "dpi": 300
+}

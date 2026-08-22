@@ -1,0 +1,26 @@
+{
+  "project": "vbct",
+  "dataset_name": "EL_skin_res",
+  "input_label": "filtered_qc_v1_smoke",
+  "recluster_inclusion": "qc_pass_only",
+  "run_label": "filtered_qc_v1_qc_pass_only_smoke",
+  "pc_label": "30",
+  "lambda_label": "0.20",
+  "res_label": [
+    "0.50",
+    "1.00",
+    "1.50"
+  ],
+  "nbr_weight_decay": "scaled_gaussian",
+  "coord_keys": [
+    "x",
+    "y",
+    "xy"
+  ],
+  "analysis_res_label": "1.50",
+  "max_cooccurrence_clusters": 5,
+  "moran_subsample_fraction": 0.1,
+  "moran_n_perms": 2,
+  "moran_n_jobs": 1,
+  "top_moran_n": 5
+}

@@ -1,0 +1,5 @@
+{
+  "project": "vbct",
+  "dataset_name": "EL_skin_res",
+  "output_label": "filtered_qc_v1_smoke"
+}

@@ -775,7 +775,11 @@ pad_clusters(cluster2annotation_spatial, list(range(max_num_labels)))
 pad_clusters(cluster2annotation_nonspatial, list(range(max_num_labels)))
 
 # `create_spatial_nonspatial_adata` pulls each resolution's clustered BANKSY
-# object out of `results_df`, matching the script 00 workflow.
+# object out of `results_df`, matching the script 00 workflow. Keep these
+# objects in memory for label transfer, but do not write them by default because
+# the BANKSY-expanded matrices are large and are not downstream expression inputs.
+save_spatial_recluster_h5ad = bool(cfg.get("save_spatial_recluster_h5ad", False))
+save_banksy_dict = bool(cfg.get("save_banksy_dict", False))
 spatial_adatas = {}
 for res in resolutions:
     print(f"Creating spatial/nonspatial AnnData objects for resolution {res:.2f}")
@@ -799,23 +803,23 @@ for res in resolutions:
     adata_spatial.obs[recluster_col] = make_numeric_cluster_category(adata_spatial.obs[source_col])
     spatial_adatas[res] = adata_spatial
 
-    res_str_single = str(res).replace(".", "p")
-    spatial_output_path = os.path.join(
-        processed_path,
-        f"adata_spatial_{dataset_name}_recluster_{run_label}_{res_str_single}.h5ad",
-    )
-    adata_spatial.write_h5ad(spatial_output_path)
-    print(f"Wrote spatial AnnData to: {spatial_output_path}")
+    if save_spatial_recluster_h5ad:
+        res_str_single = str(res).replace(".", "p")
+        spatial_output_path = os.path.join(
+            processed_path,
+            f"adata_spatial_{dataset_name}_recluster_{run_label}_{res_str_single}.h5ad",
+        )
+        adata_spatial.write_h5ad(spatial_output_path)
+        print(f"Wrote spatial AnnData to: {spatial_output_path}")
 
-# Save the heavy BANKSY objects/results so reclustering can be inspected later
-# without rerunning the graph/matrix/Leiden steps.
-banksy_dict_path = os.path.join(
-    processed_path,
-    f"{dataset_name}_recluster_{run_label}_pc{pc_label}_nc{lambda_label}_r{res_str}_banksy_dict.pkl.gz",
-)
-with gzip.open(banksy_dict_path, "wb") as f:
-    pickle.dump(banksy_dict, f)
-print(f"Wrote BANKSY dictionary to: {banksy_dict_path}")
+if save_banksy_dict:
+    banksy_dict_path = os.path.join(
+        processed_path,
+        f"{dataset_name}_recluster_{run_label}_pc{pc_label}_nc{lambda_label}_r{res_str}_banksy_dict.pkl.gz",
+    )
+    with gzip.open(banksy_dict_path, "wb") as f:
+        pickle.dump(banksy_dict, f)
+    print(f"Wrote BANKSY dictionary to: {banksy_dict_path}")
 
 results_csv = os.path.join(
     processed_path,
