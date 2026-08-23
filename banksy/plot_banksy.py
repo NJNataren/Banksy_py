@@ -40,6 +40,8 @@ def plot_results(
         dataset_name: str = "slideseq_mousecerebellum",
         main_figsize: Tuple[float, float] = (15, 9),
         scatter_dot_size: float = 3.0, # sets the dotsize on the cluster-cell position scatter plot
+        umap_alpha: float = 0.5,
+        pca_alpha: float = 0.5,
         **kwargs
 ) -> None:
     '''
@@ -54,7 +56,9 @@ def plot_results(
 
         match_labels (bool): If the match labels options was previously indicated
 
-        file_path: str, file_path to save plot 
+        file_path: str, file_path to save plot
+        umap_alpha: point transparency for BANKSY UMAP panels
+        pca_alpha: point transparency for BANKSY PCA panels
 
     Optional args (kwargs):
 
@@ -154,6 +158,7 @@ def plot_results(
                            plot_cmap=False,
                            color_list=color_list,
                            max_num_labels=max_num_labels,
+                           alpha=umap_alpha,
                            )
 
         # Plot 1st 2 dimensions of PCA
@@ -174,7 +179,8 @@ def plot_results(
                                plot_cmap=False,
                                title_fontsize=9,
                                color_list=color_list,
-                               max_num_labels=max_num_labels)
+                               max_num_labels=max_num_labels,
+                               alpha=pca_alpha)
 
         # Plot connectivity between labels
         # --------------------------------

@@ -152,6 +152,7 @@ figures/dotplots/
 - Default script 06 to `recluster_inclusion = "qc_pass_only"`; use `all_cells` only as a sensitivity analysis.
 - Keep Squidpy analyses in script 07 so BANKSY does not need to be rerun when spatial interpretation settings change.
 - For post-07 recluster clustree plots, use `./helper_scripts/local_runs/run_01a_clustree_from_config_local.sh` or `python3 01a_run_clustree_from_config.py --config config/01a_clustree/vbct/small_recluster_qc_pass_only.json`.
+- Script 06 UMAP transparency is config-driven: `banksy_umap_alpha`/`banksy_pca_alpha` for BANKSY full-figure embedding panels and `clean_umap_alpha` for clean-object UMAPs. Current VBCT script 06 configs use `0.35`, `0.35`, and `0.6`.
 
 ## Validation
 

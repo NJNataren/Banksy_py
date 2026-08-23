@@ -712,6 +712,16 @@ Plot outputs are written under:
 data/xenium/output/<project>/<dataset_name>/reclustering_<run_label>/
 ```
 
+UMAP transparency can be tuned in script 06 configs:
+
+```json
+"banksy_umap_alpha": 0.35,
+"banksy_pca_alpha": 0.35,
+"clean_umap_alpha": 0.6
+```
+
+`banksy_umap_alpha` and `banksy_pca_alpha` control the BANKSY full-figure embedding panels produced by `plot_results()`. `clean_umap_alpha` controls the clean-object cluster and QC UMAPs under `umap_cluster_plot/` and `umap_qc/`.
+
 Important plot folders include:
 
 ```text

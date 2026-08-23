@@ -307,6 +307,7 @@ def plot_umap_qc_metric(
     title_tag=None,
     show=False,
     umap_key="X_umap",
+    alpha=1.0,
 ):
     """Plot UMAPs coloured by recluster labels and a selected QC metric."""
     required_cols = [cluster_col, qc_metric]
@@ -343,6 +344,7 @@ def plot_umap_qc_metric(
             add_outline=add_outline,
             legend_fontsize=legend_fontsize,
             title=cluster_title,
+            alpha=alpha,
             ax=axes[0],
             show=False,
         )
@@ -362,6 +364,7 @@ def plot_umap_qc_metric(
                 add_outline=add_outline,
                 legend_fontsize=legend_fontsize,
                 title=qc_title,
+                alpha=alpha,
                 ax=axes[1],
                 show=False,
             )
@@ -376,6 +379,7 @@ def plot_umap_qc_metric(
                 add_outline=add_outline,
                 legend_fontsize=legend_fontsize,
                 title=qc_title,
+                alpha=alpha,
                 ax=axes[1],
                 show=False,
             )
@@ -416,6 +420,7 @@ def plot_clean_recluster_umaps(
     qc_umap_metrics,
     qc_umap_titles,
     point_size=3,
+    alpha=1.0,
 ):
     """Save script-01-style clean-object UMAP plots for recluster resolutions."""
     if umap_key not in clean_recluster_adata.obsm:
@@ -464,6 +469,7 @@ def plot_clean_recluster_umaps(
                 add_outline=True,
                 legend_fontsize=8,
                 title=f"{dataset_name} recluster labels ({title_tag})",
+                alpha=alpha,
                 show=False,
             )
             fig = plt.gcf()
@@ -489,6 +495,7 @@ def plot_clean_recluster_umaps(
                     title_tag=title_tag,
                     show=False,
                     umap_key=umap_key,
+                    alpha=alpha,
                 )
     finally:
         if had_x_umap:
@@ -734,6 +741,8 @@ log_time(f"Finished Leiden clustering for {dataset_name}.")
 c_map = "nipy_spectral"
 cluster_palette = make_cluster_palette(max_num_labels)
 weights_graph = banksy_dict[f"{nbr_weight_decay}"]["weights"][0]
+banksy_umap_alpha = float(cfg.get("banksy_umap_alpha", 0.5))
+banksy_pca_alpha = float(cfg.get("banksy_pca_alpha", banksy_umap_alpha))
 plot_results(
     results_df,
     weights_graph,
@@ -747,6 +756,8 @@ plot_results(
     save_fullfig=True,
     save_path=output_path,
     color_list=cluster_palette,
+    umap_alpha=banksy_umap_alpha,
+    pca_alpha=banksy_pca_alpha,
 )
 print(results_df)
 
@@ -927,6 +938,7 @@ qc_umap_titles = {
 }
 qc_umap_metrics = cfg.get("qc_umap_metrics", list(qc_umap_titles.keys()))
 umap_plot_point_size = float(cfg.get("umap_plot_point_size", 3))
+clean_umap_alpha = float(cfg.get("clean_umap_alpha", 1.0))
 plot_clean_recluster_umaps(
     clean_recluster_adata=clean_recluster_adata,
     output_path=output_path,
@@ -940,6 +952,7 @@ plot_clean_recluster_umaps(
     qc_umap_metrics=qc_umap_metrics,
     qc_umap_titles=qc_umap_titles,
     point_size=umap_plot_point_size,
+    alpha=clean_umap_alpha,
 )
 
 

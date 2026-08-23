@@ -844,6 +844,8 @@ from banksy.plot_banksy import plot_results
 c_map = "nipy_spectral"
 cluster_palette = make_cluster_palette(max_num_labels)
 weights_graph = banksy_dict[f"{nbr_weight_decay}"]["weights"][0]
+banksy_umap_alpha = float(cfg.get("banksy_umap_alpha", 0.5))
+banksy_pca_alpha = float(cfg.get("banksy_pca_alpha", banksy_umap_alpha))
 
 plot_results(
     results_df,
@@ -859,6 +861,8 @@ plot_results(
     save_fullfig=True,
     save_path=output_path,
     color_list=cluster_palette,
+    umap_alpha=banksy_umap_alpha,
+    pca_alpha=banksy_pca_alpha,
 )
 
 print(results_df)

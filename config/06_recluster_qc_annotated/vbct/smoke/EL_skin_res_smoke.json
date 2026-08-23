@@ -24,5 +24,8 @@
     "qc_filter_status",
     "qc_keep_for_reclustering",
     "qc_fail_reason"
-  ]
+  ],
+  "banksy_umap_alpha": 0.35,
+  "banksy_pca_alpha": 0.35,
+  "clean_umap_alpha": 0.6
 }

@@ -60,6 +60,7 @@ def plot_2d_embeddings(embedding: np.ndarray,
                        cmap_name: str = "Spectral",
                        figsize: tuple = (8, 8),
                        title_fontsize: int = 12,
+                       alpha: float = 0.5,
                        color_list: list = None,
                        max_num_labels: int = None,
                        **kwargs,
@@ -69,6 +70,7 @@ def plot_2d_embeddings(embedding: np.ndarray,
 
     :param embedding: the embedding matrix (only 1st 2 columns are used)
     :param labels: integer labels for each point
+    :param alpha: point transparency for dense embeddings
     :param color_list: optional categorical palette aligned to integer labels
     :param max_num_labels: optional maximum number of labels for shared colour scaling
     """
@@ -95,7 +97,7 @@ def plot_2d_embeddings(embedding: np.ndarray,
         c=labels,
         cmap=cmap_name,
         norm=norm,
-        s=0.2, alpha=0.5,
+        s=0.2, alpha=alpha,
         **kwargs,
     )
 
