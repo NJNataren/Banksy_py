@@ -16,6 +16,10 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 0a. `00a_plot_pca_scree_from_existing_adata.py`
    - Backfills PCA scree QC from existing AnnData without rerunning BANKSY.
 
+001b. `001b_plot_zero_count_from_raw_adata.py`
+   - Backfills pre-filter zero-count spatial QC from raw AnnData without rerunning BANKSY.
+   - Writes the same zero-count plot and summary CSV as script 00.
+
 1. `01_QC_xenium_spatial_clean_clustered.py`
    - QC/spatial review on script 00 clean clustered objects.
    - Produces filtering-decision masks/diagnostics for later reclustering.
@@ -55,7 +59,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 
 ## Where Things Run
 
-- HPC: scripts 00, 00a, 01, 02, 03, 05, 06, and 07.
+- HPC: scripts 00, 00a, 001b, 01, 02, 03, 05, 06, and 07.
 - Local: script 01a clustree QC and script 04 plotting after outputs are copied back.
 - Slurm array ranges must match the number of JSON configs in the selected leaf config directory.
 - Some wrappers accept `CONFIG_DIR` overrides, especially `hpc/slurm/run_00_xenium_clustering.sl` and `hpc/slurm/run_01_xenium_QC_array_ptmt.sl`.

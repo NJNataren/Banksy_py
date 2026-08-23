@@ -224,6 +224,20 @@ data/xenium/output/<project>/QC_testing/<dataset_name>/<dataset_name>_zero_count
 
 The zero-count plot and summary are written before `nCount_Xenium > 0` filtering, because empty cells are otherwise removed before script 01 can inspect their spatial distribution.
 
+If only zero-count QC is needed, use the lightweight raw-data helper instead of rerunning BANKSY:
+
+```bash
+python 001b_plot_zero_count_from_raw_adata.py --config config/00_clustering/ptmt/10329_run_1_DMSO.json
+```
+
+For PTMT arrays on the HPC:
+
+```bash
+sbatch --array=0-23%4 --export=ALL,CONFIG_DIR=config/00_clustering/ptmt hpc/slurm/run_001b_zero_count_qc_array.sl
+
+sbatch --array=0-23%4 --export=ALL,CONFIG_DIR=config/00_clustering/ptmt_pc55 hpc/slurm/run_001b_zero_count_qc_array.sl
+```
+
 The `adata_spatial_*.h5ad` files contain BANKSY-expanded/scaled matrices for clustering. The `adata_expression_clean_*_with_banksy_clusters_*.h5ad` object is the preferred object for biological marker analysis and downstream QC/inspection.
 
 The PCA scree outputs are QC aids for reviewing the selected PC depth. The blue bars show variance explained per PC, the black line shows cumulative variance explained, and the red dashed line marks the selected `pc_label`.
