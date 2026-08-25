@@ -31,6 +31,116 @@ def parse_args():
     return parser.parse_args()
 
 
+def recompute_max_area_threshold(adata, cfg):
+    """Optionally recompute the 99th-percentile max-area fail mask.
+
+    Args:
+        adata: QC-annotated AnnData object with `.obs` metadata.
+        cfg: Script 05 JSON config dictionary.
+
+    Returns:
+        Dictionary describing the area-threshold mode used for audit output.
+    """
+    mode = cfg.get("max_area_threshold_mode", "existing")
+    audit = {
+        "max_area_threshold_mode": mode,
+        "max_area_threshold_groupby": cfg.get(
+            "max_area_threshold_groupby",
+            "existing_script01_column",
+        ),
+        "max_area_threshold_percentile": cfg.get(
+            "max_area_threshold_percentile",
+            "existing_script01_column",
+        ),
+    }
+
+    if mode == "existing":
+        print("Using existing max_area_threshold_99_by_cluster from script 01.")
+        return audit
+
+    valid_modes = {"cluster_col", "cell_type_group"}
+    if mode not in valid_modes:
+        raise ValueError(
+            "max_area_threshold_mode must be one of: "
+            "'existing', 'cluster_col', 'cell_type_group'"
+        )
+
+    groupby = cfg["max_area_threshold_groupby"]
+    percentile = float(cfg.get("max_area_threshold_percentile", 0.99))
+    if not 0 < percentile < 1:
+        raise ValueError("max_area_threshold_percentile must be between 0 and 1.")
+
+    required_cols = [groupby, "cell_area"]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+    if missing_cols:
+        raise KeyError(f"Missing columns for max-area recompute: {missing_cols}")
+
+    area_values = pd.to_numeric(adata.obs["cell_area"], errors="coerce")
+    if area_values.isna().any():
+        n_bad = int(area_values.isna().sum())
+        raise ValueError(f"cell_area contains {n_bad} missing or non-numeric values.")
+
+    raw_group_values = adata.obs[groupby]
+    if raw_group_values.isna().any():
+        n_bad = int(raw_group_values.isna().sum())
+        raise ValueError(f"{groupby} contains {n_bad} missing group labels.")
+    raw_group = raw_group_values.astype(str)
+
+    if mode == "cluster_col":
+        area_group = raw_group
+        group_map = {}
+    else:
+        group_map = {
+            str(key): str(value)
+            for key, value in cfg.get("max_area_threshold_group_map", {}).items()
+        }
+        if not group_map:
+            raise ValueError(
+                "max_area_threshold_group_map is required when "
+                "max_area_threshold_mode is 'cell_type_group'."
+            )
+        # Only mapped clusters are collapsed. Unmapped clusters remain separate
+        # so they do not get pooled into a single accidental fallback group.
+        area_group = raw_group.map(group_map).fillna(raw_group)
+
+    group_thresholds = area_values.groupby(area_group, observed=True).transform(
+        lambda values: values.quantile(percentile)
+    )
+
+    percentile_label = int(round(percentile * 100))
+    mask_col = "max_area_threshold_99_by_cluster"
+    category_col = "max_area_threshold_99_by_cluster_cat"
+    threshold_col = f"max_area_threshold_{percentile_label}_area_group_threshold"
+
+    adata.obs[mask_col] = area_values >= group_thresholds
+    adata.obs[category_col] = (
+        adata.obs[mask_col]
+        .map({True: "Fail", False: "Pass"})
+        .astype("category")
+    )
+    adata.obs["max_area_threshold_99_area_group"] = area_group.astype("category")
+    adata.obs["max_area_threshold_99_area_group_source"] = groupby
+    adata.obs["max_area_threshold_99_area_group_mode"] = mode
+    adata.obs[threshold_col] = group_thresholds
+
+    audit = {
+        "max_area_threshold_mode": mode,
+        "max_area_threshold_groupby": groupby,
+        "max_area_threshold_percentile": percentile,
+        "max_area_threshold_n_groups": int(area_group.nunique(dropna=False)),
+        "max_area_threshold_n_mapped_clusters": len(group_map),
+    }
+    print(
+        "Recomputed max_area_threshold_99_by_cluster using "
+        f"mode={mode}, groupby={groupby}, percentile={percentile}."
+    )
+    print(
+        f"Area-threshold groups: {audit['max_area_threshold_n_groups']} "
+        f"({audit['max_area_threshold_n_mapped_clusters']} mapped cluster labels)."
+    )
+    return audit
+
+
 args = parse_args()
 
 # Each sample has a small JSON config. Keeping paths and labels in config files
@@ -92,6 +202,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 print(f"Reading QC-annotated AnnData from: {input_h5ad}")
 adata = ad.read_h5ad(input_h5ad)
+area_threshold_audit = recompute_max_area_threshold(adata, cfg)
 
 # These are the reviewed QC masks produced upstream. The script refuses to
 # continue if any are missing or contain NA values, because ambiguous QC state
@@ -216,6 +327,8 @@ summary["percent_marked_excluded_by_qc"] = (
     summary["n_cells_marked_excluded_by_qc"] / summary["n_cells_before"] * 100
 )
 summary["percent_failed"] = summary["n_failed"] / summary["n_cells_before"] * 100
+for audit_key, audit_value in area_threshold_audit.items():
+    summary[audit_key] = audit_value
 
 summary.to_csv(summary_csv, index=False)
 

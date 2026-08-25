@@ -1,0 +1,32 @@
+{
+  "project": "vbct",
+  "dataset_name": "CK_bowel_res",
+  "input_label": "filtered_qc_v1",
+  "recluster_inclusion": "qc_pass_only",
+  "run_label": "filtered_qc_v1_qc_pass_only_r0p70",
+  "pc_label": "30",
+  "lambda_label": "0.20",
+  "res_label": [
+    "0.70"
+  ],
+  "nbr_weight_decay": "scaled_gaussian",
+  "coord_keys": [
+    "x",
+    "y",
+    "xy"
+  ],
+  "max_workers": 2,
+  "scree_n_pcs": 50,
+  "umap_plot_point_size": 3,
+  "qc_umap_metrics": [
+    "qc_filter_status",
+    "qc_keep_for_reclustering",
+    "qc_fail_reason"
+  ],
+  "banksy_umap_alpha": 0.35,
+  "banksy_pca_alpha": 0.35,
+  "clean_umap_alpha": 0.6,
+  "save_spatial_recluster_h5ad": false,
+  "save_banksy_dict": false,
+  "preserve_raw_copy": false
+}

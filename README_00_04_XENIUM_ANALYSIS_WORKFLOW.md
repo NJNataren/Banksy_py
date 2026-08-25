@@ -543,9 +543,40 @@ annotated_output_h5ad
 
 Do not use `filtered_output_h5ad`. Script 05 now raises an error if that stale key appears in a config, because it no longer writes hard-filtered AnnData files.
 
+Optional max-area recompute settings let script 05 replace the script 01 `max_area_threshold_99_by_cluster` mask without rerunning script 01. Current behavior remains the default:
+
+```json
+"max_area_threshold_mode": "existing"
+```
+
+To recompute the 99th percentile of `cell_area` within raw clusters from a chosen resolution:
+
+```json
+"max_area_threshold_mode": "cluster_col",
+"max_area_threshold_groupby": "labels_scaled_gaussian_pc55_nc0.20_r0.70",
+"max_area_threshold_percentile": 0.99
+```
+
+To collapse selected clusters into temporary area-filter groups only:
+
+```json
+"max_area_threshold_mode": "cell_type_group",
+"max_area_threshold_groupby": "labels_scaled_gaussian_pc55_nc0.20_r0.70",
+"max_area_threshold_percentile": 0.99,
+"max_area_threshold_group_map": {
+  "0": "Melanoma",
+  "3": "Melanoma",
+  "8": "Melanoma",
+  "1": "Macrophage",
+  "5": "Macrophage"
+}
+```
+
+Unmapped cluster labels stay as separate area-filter groups. Script 05 still writes the compatibility fail mask `max_area_threshold_99_by_cluster`, plus audit columns describing the grouping source, mode, group label, and threshold.
+
 ### Required Input Columns
 
-The input AnnData must contain these script 01 QC columns in `.obs`:
+The input AnnData must contain these QC columns in `.obs`. `max_area_threshold_99_by_cluster` can either come from script 01 or be recomputed by script 05 when `max_area_threshold_mode` is set to `cluster_col` or `cell_type_group`:
 
 ```text
 min_trans_passed
@@ -720,6 +751,12 @@ Full provenance object with all script 05 cells retained:
 data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_qc_annotated_<input_label>_with_banksy_reclusters_<run_label>_<resolutions>.h5ad
 ```
 
+By default, script 06 does not create new `.raw = adata.copy()` snapshots on the reclustering objects, because this can duplicate large expression matrices while BANKSY matrices are also in memory. Marker ranking in script 06 uses `use_raw=False`, so the default path reads clean log-normalized expression from `.X`. To restore the older memory-heavy behavior for a specific run:
+
+```json
+"preserve_raw_copy": true
+```
+
 Plot outputs are written under:
 
 ```text
@@ -748,6 +785,28 @@ cluster_count_plot/
 `plot_results` also writes BANKSY UMAP/spatial/full-figure clustering plots directly under the reclustering output directory.
 
 ### Example Runs
+
+Large VBCT samples use single-resolution script 06 configs to keep HPC memory peaks lower. Configs are grouped by resolution so one Slurm array can run all large samples for a chosen resolution:
+
+```text
+config/06_recluster_qc_annotated/vbct/large_single_res/r0p40/
+config/06_recluster_qc_annotated/vbct/large_single_res/r0p50/
+config/06_recluster_qc_annotated/vbct/large_single_res/r0p60/
+config/06_recluster_qc_annotated/vbct/large_single_res/r0p70/
+config/06_recluster_qc_annotated/vbct/large_single_res/r0p80/
+config/06_recluster_qc_annotated/vbct/large_single_res/r0p90/
+config/06_recluster_qc_annotated/vbct/large_single_res/r1p00/
+```
+
+Each config uses one `res_label` and a resolution-specific `run_label`, for example `filtered_qc_v1_qc_pass_only_r0p70`, to avoid output collisions between single-resolution runs.
+
+Example HPC submission for all three large samples at resolution 0.70:
+
+```bash
+sbatch --array=0-2%1 \
+  --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/large_single_res/r0p70 \
+  hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+```
 
 Default QC-pass-only reclustering:
 

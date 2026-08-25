@@ -661,13 +661,19 @@ recluster_coords = clean_recluster_adata.obs[[coord_keys[0], coord_keys[1]]].to_
 clean_recluster_adata.obsm["xy"] = recluster_coords
 clean_recluster_adata.obsm["spatial"] = recluster_coords
 
-# Preserve the clean expression state for marker ranking and downstream
-# expression-based analyses. These objects should already be normalized/log1p
-# from script 00/01/05.
-if clean_recluster_adata.raw is None:
-    clean_recluster_adata.raw = clean_recluster_adata.copy()
-if full_adata.raw is None:
-    full_adata.raw = full_adata.copy()
+# These objects should already be normalized/log1p from script 00/01/05.
+# Avoid creating `.raw` copies by default because that duplicates expression
+# matrices in memory during BANKSY reclustering. Marker ranking below uses
+# `use_raw=False`, so the default path works directly from `.X`.
+preserve_raw_copy = bool(cfg.get("preserve_raw_copy", False))
+if preserve_raw_copy:
+    if clean_recluster_adata.raw is None:
+        clean_recluster_adata.raw = clean_recluster_adata.copy()
+    if full_adata.raw is None:
+        full_adata.raw = full_adata.copy()
+    print("Preserved .raw copies on script 06 output objects.")
+else:
+    print("Skipping new .raw copies in script 06 to reduce memory use.")
 
 # -----------------------------------------------------------------------------
 # PCA scree QC before BANKSY feature expansion
