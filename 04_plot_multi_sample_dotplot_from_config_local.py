@@ -277,13 +277,14 @@ def apply_sample_filters(df, sample_filters):
     return pd.concat(filtered_parts, ignore_index=True)
 
 
-def load_gene_file(gene_file, gene_column, gene_group_column):
-    """Load an optional gene filter and grouping table.
+def load_gene_file(gene_file, gene_column, gene_group_column, gene_order_column=None):
+    """Load an optional gene filter, grouping table, and configured gene order.
 
     Args:
         gene_file: Optional CSV containing genes to plot.
         gene_column: Column containing gene symbols.
         gene_group_column: Optional column containing gene group labels.
+        gene_order_column: Optional column used to order genes before plotting.
 
     Returns:
         Tuple of `(requested_genes, gene_groups)`.
@@ -302,16 +303,32 @@ def load_gene_file(gene_file, gene_column, gene_group_column):
             f"Gene group column {gene_group_column!r} not found in {gene_file}. "
             f"Available columns: {list(gene_df.columns)}"
         )
+    if gene_order_column and gene_order_column not in gene_df.columns:
+        raise ValueError(
+            f"Gene order column {gene_order_column!r} not found in {gene_file}. "
+            f"Available columns: {list(gene_df.columns)}"
+        )
 
     gene_df = gene_df.dropna(subset=[gene_column]).copy()
     gene_df[gene_column] = gene_df[gene_column].astype(str)
+
+    if gene_order_column:
+        gene_df["_gene_order_sort"] = pd.to_numeric(
+            gene_df[gene_order_column], errors="coerce"
+        )
+        gene_df = gene_df.sort_values(
+            ["_gene_order_sort", gene_order_column, gene_column],
+            na_position="last",
+            kind="mergesort",
+        )
 
     gene_groups = None
     if gene_group_column:
         gene_df[gene_group_column] = (
             gene_df[gene_group_column].fillna("unannotated").astype(str)
         )
-        gene_df = gene_df.sort_values([gene_group_column, gene_column])
+        if not gene_order_column:
+            gene_df = gene_df.sort_values([gene_group_column, gene_column])
         gene_groups = (
             gene_df.drop_duplicates(gene_column)
             .set_index(gene_column)[gene_group_column]
@@ -622,6 +639,7 @@ def resolve_gene_order(df, cfg):
         cfg.get("gene_file"),
         cfg.get("gene_column", "Gene"),
         cfg.get("gene_group_column"),
+        cfg.get("gene_order_column"),
     )
 
     if requested_genes:

@@ -1,6 +1,6 @@
 {
-    "output_png": "figures/dotplots/local_ptmt_pc55_kat_major_class_multi_sample_r0p70_zscore_dotplot.png",
-    "title": "PTMT PC55 Kat markers, major class, r0.70 clusters, z-scored by gene",
+    "output_png": "figures/dotplots/local_ptmt_pc55_scRNA-seq_markers_major_class_multi_sample_r0p70_zscore_dotplot.png",
+    "title": "PTMT PC55 scRNA-seq markers, major class, r0.70 clusters, z-scored by gene",
     "gene_file": "data/xenium/raw_data/gene_markers/ptmt/2026-08-14_dotplot_marker_genes_harmonised_scRNAseq_analysis_Kat.csv",
     "gene_column": "gene",
     "gene_group_column": "major_class",
@@ -187,11 +187,12 @@
     "colorbar_label": "Mean expression z-score",
     "y_axis_label": "PTMT PC55 sample / r0.70 cluster",
     "project": "ptmt_pc55",
-    "cluster_genes": true,
-    "show_gene_dendrogram": true,
+    "cluster_genes": false,
+    "show_gene_dendrogram": false,
     "gene_clustering_value_column": "mean_expression_zscore",
     "gene_clustering_metric": "correlation",
     "gene_clustering_method": "average",
     "gene_clustering_fallback_metric": "euclidean",
-    "constant_gene_position": "end"
+    "constant_gene_position": "end",
+    "gene_order_column": "plot_order"
 }
