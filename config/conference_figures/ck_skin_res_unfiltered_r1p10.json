@@ -1,0 +1,33 @@
+{
+    "output_dir": "figures/conference",
+    "dpi": 300,
+    "point_size": 3.0,
+    "marker_sets": [
+        {
+            "name": "endothelial",
+            "genes": [
+                "AQP1",
+                "CALCRL",
+                "CDH5",
+                "ECSCR",
+                "PLVAP",
+                "SELP",
+                "VWF",
+                "TFPI"
+            ],
+            "cmap": "viridis",
+            "dotplot_cmap": "RdBu_r",
+            "ncols": 4
+        }
+    ],
+    "samples": [
+        {
+            "sample": "CK_skin_res",
+            "resolution": "r1p10",
+            "adata_path": "data/xenium/processed/vbct/CK_skin_res/adata_expression_clean_CK_skin_res_with_banksy_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10.h5ad",
+            "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+            "output_subdir": "CK_skin_res_unfiltered_r1p10",
+            "label_map": {}
+        }
+    ]
+}
