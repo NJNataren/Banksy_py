@@ -177,9 +177,9 @@ def add_cell_type_labels(adata, sample_cfg):
     if label_obs_col:
         if label_obs_col not in adata.obs.columns:
             raise KeyError(f"Configured label_obs_col {label_obs_col!r} not in adata.obs.")
-        adata.obs["conference_cell_type"] = (
-            adata.obs[label_obs_col].astype(str).astype("category")
-        )
+        labels = adata.obs[label_obs_col].astype(str)
+        adata.obs["conference_cell_type_detail"] = labels.astype("category")
+        adata.obs["conference_cell_type"] = labels.astype("category")
         return True
 
     label_map = resolve_label_map(sample_cfg)
@@ -188,8 +188,31 @@ def add_cell_type_labels(adata, sample_cfg):
 
     labels = adata.obs["conference_cluster"].astype(str).map(label_map)
     labels = labels.fillna("cluster_" + adata.obs["conference_cluster"].astype(str))
+    adata.obs["conference_cell_type_detail"] = labels.astype("category")
     adata.obs["conference_cell_type"] = labels.astype("category")
     return True
+
+
+def collapse_cell_type_labels(adata, collapse_rules):
+    """Collapse detailed cell-type labels into simpler presentation categories."""
+    if not collapse_rules or "conference_cell_type" not in adata.obs.columns:
+        return
+
+    labels = adata.obs["conference_cell_type"].astype(str).copy()
+    for rule in collapse_rules:
+        collapsed_label = rule["label"]
+        contains = rule.get("contains", [])
+        exact = {str(value).lower() for value in rule.get("exact", [])}
+
+        mask = pd.Series(False, index=labels.index)
+        if exact:
+            mask = labels.str.lower().isin(exact)
+        for pattern in contains:
+            mask = mask | labels.str.contains(str(pattern), case=False, regex=False)
+
+        labels.loc[mask] = collapsed_label
+
+    adata.obs["conference_cell_type"] = labels.astype("category")
 
 
 def available_genes(adata, requested_genes):
@@ -205,14 +228,16 @@ def available_genes(adata, requested_genes):
     return present
 
 
-def plot_spatial_category(adata, color_col, title, output_dir, stem, point_size, dpi):
+def plot_spatial_category(
+    adata, color_col, title, output_dir, stem, point_size, dpi, frameon=False
+):
     """Plot spatial coordinates colored by a categorical obs column."""
     sc.pl.embedding(
         adata,
         basis="spatial",
         color=color_col,
         size=point_size,
-        frameon=False,
+        frameon=frameon,
         legend_loc="right margin",
         title=title,
         show=False,
@@ -220,14 +245,16 @@ def plot_spatial_category(adata, color_col, title, output_dir, stem, point_size,
     save_current_figure(output_dir, stem, dpi)
 
 
-def plot_spatial_on_data(adata, color_col, title, output_dir, stem, point_size, dpi):
+def plot_spatial_on_data(
+    adata, color_col, title, output_dir, stem, point_size, dpi, frameon=False
+):
     """Plot spatial coordinates with category labels placed on the tissue."""
     sc.pl.embedding(
         adata,
         basis="spatial",
         color=color_col,
         size=point_size,
-        frameon=False,
+        frameon=frameon,
         legend_loc="on data",
         title=title,
         show=False,
@@ -259,7 +286,9 @@ def plot_umap_category(adata, color_col, title, output_dir, stem, point_size, dp
     save_current_figure(output_dir, stem, dpi)
 
 
-def plot_marker_spatial_panels(adata, marker_set, output_dir, sample_name, point_size, dpi):
+def plot_marker_spatial_panels(
+    adata, marker_set, output_dir, sample_name, point_size, dpi, stem_suffix=""
+):
     """Plot spatial expression panels for one marker set."""
     markers = available_genes(adata, marker_set["genes"])
     marker_name = marker_set["name"]
@@ -278,9 +307,115 @@ def plot_marker_spatial_panels(adata, marker_set, output_dir, sample_name, point
     )
     save_current_figure(
         output_dir,
-        f"{sample_name}_spatial_{safe_name}_markers",
+        f"{sample_name}_spatial_{safe_name}_markers{stem_suffix}",
         dpi,
     )
+
+
+def spatial_coordinate_frame(adata):
+    """Return spatial x/y coordinates as a DataFrame aligned to observations."""
+    coords = adata.obsm["X_spatial"]
+    return pd.DataFrame(coords[:, :2], index=adata.obs_names, columns=["x", "y"])
+
+
+def write_spatial_coordinate_summary(adata, output_dir, sample_name):
+    """Write min/max spatial coordinates to help choose manual crop windows."""
+    coords = spatial_coordinate_frame(adata)
+    summary = pd.DataFrame(
+        {
+            "axis": ["x", "y"],
+            "min": [coords["x"].min(), coords["y"].min()],
+            "max": [coords["x"].max(), coords["y"].max()],
+            "p01": [coords["x"].quantile(0.01), coords["y"].quantile(0.01)],
+            "p50": [coords["x"].quantile(0.50), coords["y"].quantile(0.50)],
+            "p99": [coords["x"].quantile(0.99), coords["y"].quantile(0.99)],
+        }
+    )
+    output_path = output_dir / f"{sample_name}_spatial_coordinate_summary.csv"
+    summary.to_csv(output_path, index=False)
+    print(f"Wrote {output_path}")
+
+
+def resolve_crop_limits(window):
+    """Resolve crop x/y limits from xlim/ylim or center plus width/height."""
+    if "xlim" in window and "ylim" in window:
+        return tuple(window["xlim"]), tuple(window["ylim"])
+
+    if "center" in window and "width" in window and "height" in window:
+        center_x, center_y = window["center"]
+        half_width = float(window["width"]) / 2
+        half_height = float(window["height"]) / 2
+        return (center_x - half_width, center_x + half_width), (center_y - half_height, center_y + half_height)
+
+    raise ValueError(
+        "Each crop window must define either xlim/ylim or center/width/height."
+    )
+
+
+def crop_adata_to_window(adata, window):
+    """Return an AnnData view copied to cells inside a manual spatial crop window."""
+    xlim, ylim = resolve_crop_limits(window)
+    coords = spatial_coordinate_frame(adata)
+    mask = (
+        coords["x"].between(min(xlim), max(xlim))
+        & coords["y"].between(min(ylim), max(ylim))
+    )
+    n_cells = int(mask.sum())
+    if n_cells == 0:
+        raise ValueError(f"Crop window {window.get('name', 'unnamed')!r} contains 0 cells.")
+
+    print(f"Crop {window.get('name', 'unnamed')}: {n_cells:,} cells")
+    return adata[mask].copy()
+
+
+def plot_crop_windows(adata, sample_cfg, cfg, output_dir, sample_name, resolution, marker_sets):
+    """Generate manual close-up plots for configured spatial crop windows."""
+    crop_windows = get_sample_value(sample_cfg, cfg, "crop_windows", [])
+    if not crop_windows:
+        return
+
+    default_point_size = float(get_sample_value(sample_cfg, cfg, "crop_point_size", 8.0))
+    dpi = int(get_sample_value(sample_cfg, cfg, "dpi", 300))
+    frameon = bool(get_sample_value(sample_cfg, cfg, "crop_show_axes", True))
+
+    for window in crop_windows:
+        name = window["name"].replace(" ", "_")
+        cropped = crop_adata_to_window(adata, window)
+        point_size = float(window.get("point_size", default_point_size))
+        stem_suffix = f"_{name}"
+
+        plot_spatial_category(
+            cropped,
+            "conference_cluster",
+            f"{sample_name} BANKSY clusters, {resolution}, {window['name']}",
+            output_dir,
+            f"{sample_name}_spatial_clusters_{resolution}{stem_suffix}",
+            point_size,
+            dpi,
+            frameon=frameon,
+        )
+        if "conference_cell_type" in cropped.obs.columns:
+            plot_spatial_category(
+                cropped,
+                "conference_cell_type",
+                f"{sample_name} cell-type labels, {resolution}, {window['name']}",
+                output_dir,
+                f"{sample_name}_spatial_cell_type_labels_{resolution}{stem_suffix}",
+                point_size,
+                dpi,
+                frameon=frameon,
+            )
+
+        for marker_set in window.get("marker_sets", marker_sets):
+            plot_marker_spatial_panels(
+                cropped,
+                marker_set,
+                output_dir,
+                sample_name,
+                point_size,
+                dpi,
+                stem_suffix=stem_suffix,
+            )
 
 
 def plot_marker_dotplot(adata, marker_set, groupby, output_dir, sample_name, resolution, dpi):
@@ -339,8 +474,12 @@ def run_sample(sample_cfg, cfg):
 
     adata = prepare_adata(sample_cfg["adata_path"], sample_cfg["cluster_col"])
     has_cell_type_labels = add_cell_type_labels(adata, sample_cfg)
+    collapse_rules = get_sample_value(sample_cfg, cfg, "label_collapse_rules", [])
+    collapse_cell_type_labels(adata, collapse_rules)
 
     print(f"Running {sample_name}: {adata.n_obs:,} cells, {adata.n_vars:,} genes.")
+    if bool(get_sample_value(sample_cfg, cfg, "write_coordinate_summary", True)):
+        write_spatial_coordinate_summary(adata, output_dir, sample_name)
 
     plot_spatial_category(
         adata,
@@ -360,6 +499,17 @@ def run_sample(sample_cfg, cfg):
         point_size,
         dpi,
     )
+    if bool(get_sample_value(sample_cfg, cfg, "write_axis_scout_plots", True)):
+        plot_spatial_category(
+            adata,
+            "conference_cluster",
+            f"{sample_name} BANKSY clusters, {resolution}, axis scout",
+            output_dir,
+            f"{sample_name}_spatial_clusters_{resolution}_axis_scout",
+            point_size,
+            dpi,
+            frameon=True,
+        )
     plot_umap_category(
         adata,
         "conference_cluster",
@@ -390,12 +540,24 @@ def run_sample(sample_cfg, cfg):
             point_size,
             dpi,
         )
+        if bool(get_sample_value(sample_cfg, cfg, "write_axis_scout_plots", True)):
+            plot_spatial_category(
+                adata,
+                "conference_cell_type",
+                f"{sample_name} cell-type labels, {resolution}, axis scout",
+                output_dir,
+                f"{sample_name}_spatial_cell_type_labels_{resolution}_axis_scout",
+                point_size,
+                dpi,
+                frameon=True,
+            )
 
     dotplot_groupby = "conference_cell_type" if has_cell_type_labels else "conference_cluster"
     for marker_set in marker_sets:
         plot_marker_spatial_panels(adata, marker_set, output_dir, sample_name, point_size, dpi)
         plot_marker_dotplot(adata, marker_set, dotplot_groupby, output_dir, sample_name, resolution, dpi)
 
+    plot_crop_windows(adata, sample_cfg, cfg, output_dir, sample_name, resolution, marker_sets)
     plot_cluster_abundance(adata, output_dir, sample_name, resolution, dpi)
 
 

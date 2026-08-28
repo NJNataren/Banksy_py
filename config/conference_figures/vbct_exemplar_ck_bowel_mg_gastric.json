@@ -27,7 +27,36 @@
             "adata_path": "data/xenium/processed/vbct/CK_bowel_res/adata_expression_clean_CK_bowel_res_with_banksy_clusters_1.10.h5ad",
             "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
             "output_subdir": "CK_bowel_res_unfiltered_r1p10",
-            "label_config": "config/01_QC/vbct/CK_bowel_res.json"
+            "label_map": {
+                "0": "T_Cell_0",
+                "1": "Melanoma_Cell_or_Melanocyte_1",
+                "2": "Macrophage_2",
+                "3": "Endothelial_Cell_3",
+                "4": "Fibroblast_(weak)_4",
+                "5": "B_cell_5",
+                "6": "Melanoma_Cell_or_Melanocyte_6",
+                "7": "Melanoma_Cell_or_Melanocyte_T_Cell_7",
+                "8": "Melanoma_Cell_or_Melanocyte_8",
+                "9": "Melanoma_Cell_or_Melanocyte_9",
+                "10": "Epithelial_Cell_10",
+                "11": "Macrophage_(weak)_11",
+                "12": "Melanoma_Cell_or_Melanocyte_12",
+                "13": "Fibroblast_Pericyte_13",
+                "14": "Melanoma_Cell_or_Melanocyte_14",
+                "15": "Macrophage_(weak)_15",
+                "16": "Fibroblast_Pericyte_Endothelial_Cell_16",
+                "17": "Melanoma_Cell_or_Melanocyte_17",
+                "18": "Melanoma_Cell_or_Melanocyte_18",
+                "19": "T_Cell_19",
+                "20": "Melanoma_Cell_or_Melanocyte_20",
+                "21": "Melanoma_Cell_or_Melanocyte_21",
+                "22": "Melanoma_Cell_or_Melanocyte_22",
+                "23": "Endothelial_Cell_(weak)_23",
+                "24": "T_Cell_(weak)_24",
+                "25": "T_Cell_(weak)_25",
+                "26": "Melanoma_Cell_or_Melanocyte (weak)_26",
+                "27": "Unassigned_27"
+            }
         },
         {
             "sample": "MG_gastric_non_res",
@@ -35,7 +64,36 @@
             "adata_path": "data/xenium/processed/vbct/MG_gastric_non_res/adata_expression_clean_MG_gastric_non_res_with_banksy_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10.h5ad",
             "cluster_col": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
             "output_subdir": "MG_gastric_non_res_unfiltered_r0p70",
-            "label_config": "config/01_QC/vbct/MG_gastric_non_res.json"
+            "label_map": {
+                "0": "Melanoma_Cell_or_Melanocyte_(weak)_0",
+                "1": "Melanoma_Cell_or_Melanocyte_(weak)_1",
+                "2": "Melanoma_Cell_or_Melanocyte_(weak)_2",
+                "3": "Epithelial_Cell_3",
+                "4": "Epithelial_Cell_4",
+                "5": "Fibroblast_(weak)_5",
+                "6": "Fibroblast_6",
+                "7": "T_Cell_7",
+                "8": "Endothelial_Cell_Pericyte_8",
+                "9": "Epithelial_Cell_9",
+                "10": "Melanoma_Cell_or_Melanocyte_Fibroblast_10",
+                "11": "Fibroblast_11",
+                "12": "Melanoma_Cell_or_Melanocyte_(weak)_12",
+                "13": "Fibroblast_13",
+                "14": "B_Cell_14",
+                "15": "Melanoma_Cell_or_Melanocyte_15",
+                "16": "Macrophage_16",
+                "17": "Fibroblast_(weak)_17",
+                "18": "Fibroblast_Melanoma_(weak)_18"
+            }
+        }
+    ],
+    "label_collapse_rules": [
+        {
+            "label": "Melanoma",
+            "contains": [
+                "Melanoma",
+                "melanocyte"
+            ]
         }
     ]
 }
