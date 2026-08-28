@@ -12,8 +12,7 @@
                 "ECSCR",
                 "PLVAP",
                 "SELP",
-                "VWF",
-                "TFPI"
+                "VWF"
             ],
             "cmap": "viridis",
             "dotplot_cmap": "RdBu_r",
@@ -68,23 +67,67 @@
                 "0": "Melanoma_Cell_or_Melanocyte_(weak)_0",
                 "1": "Melanoma_Cell_or_Melanocyte_(weak)_1",
                 "2": "Melanoma_Cell_or_Melanocyte_(weak)_2",
-                "3": "Epithelial_Cell_3",
-                "4": "Epithelial_Cell_4",
-                "5": "Fibroblast_(weak)_5",
-                "6": "Fibroblast_6",
-                "7": "T_Cell_7",
-                "8": "Endothelial_Cell_Pericyte_8",
-                "9": "Epithelial_Cell_9",
+                "3": "Epithelial cell 1",
+                "4": "Epithelial cell 1",
+                "5": "Fibroblast 1",
+                "6": "Fibroblast 2",
+                "7": "T Cell",
+                "8": "Endothelial cell",
+                "9": "Epithelial cell 2",
                 "10": "Melanoma_Cell_or_Melanocyte_Fibroblast_10",
-                "11": "Fibroblast_11",
+                "11": "Fibroblast 3",
                 "12": "Melanoma_Cell_or_Melanocyte_(weak)_12",
-                "13": "Fibroblast_13",
-                "14": "B_Cell_14",
+                "13": "Fibroblast 4",
+                "14": "B cell",
                 "15": "Melanoma_Cell_or_Melanocyte_15",
-                "16": "Macrophage_16",
-                "17": "Fibroblast_(weak)_17",
-                "18": "Fibroblast_Melanoma_(weak)_18"
-            }
+                "16": "Macrophage",
+                "17": "Fibroblast 5",
+                "18": "Fibroblast 6"
+            },
+            "crop_windows": [
+                {
+                    "name": "view 1",
+                    "xlim": [
+                        3000,
+                        4200
+                    ],
+                    "ylim": [
+                        1500,
+                        2500
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 15,
+                    "cluster_highlight": {
+                        "obs_col": "conference_cell_type",
+                        "contains": [
+                            "Endothelial"
+                        ],
+                        "point_size": 15,
+                        "alpha": 1.0
+                    }
+                },
+                {
+                    "name": "view 2",
+                    "xlim": [
+                        4550,
+                        5500
+                    ],
+                    "ylim": [
+                        1000,
+                        1450
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 10,
+                    "cluster_highlight": {
+                        "obs_col": "conference_cell_type",
+                        "contains": [
+                            "Endothelial"
+                        ],
+                        "point_size": 15,
+                        "alpha": 1.0
+                    }
+                }
+            ]
         }
     ],
     "label_collapse_rules": [
@@ -95,5 +138,29 @@
                 "melanocyte"
             ]
         }
-    ]
+    ],
+    "organize_output_subdirs": true,
+    "cell_type_palette": {
+        "Melanoma": "#bdbdbd",
+        "Endothelial cell": "#17becf",
+        "Endothelial": "#17becf",
+        "T Cell": "#6a51a3",
+        "T_Cell": "#6a51a3",
+        "B cell": "#fdae6b",
+        "B_Cell": "#fdae6b",
+        "B_cell": "#fdae6b",
+        "Macrophage": "#31a354",
+        "Fibroblast 1": "#756bb1",
+        "Fibroblast 2": "#9e9ac8",
+        "Fibroblast 3": "#bcbddc",
+        "Fibroblast 4": "#dadaeb",
+        "Fibroblast 5": "#efedf5",
+        "Fibroblast 6": "#cbc9e2",
+        "Fibroblast": "#9e9ac8",
+        "Epithelial cell 1": "#e6550d",
+        "Epithelial cell 2": "#fd8d3c",
+        "Epithelial_Cell": "#e6550d",
+        "Pericyte": "#8c6d31",
+        "Unassigned": "#969696"
+    }
 }

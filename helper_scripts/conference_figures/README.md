@@ -83,7 +83,7 @@ The exemplar config currently includes:
 - `CK_bowel_res`, `labels_scaled_gaussian_pc30_nc0.20_r1.10`
 - `MG_gastric_non_res`, `labels_scaled_gaussian_pc35_nc0.20_r0.70`
 - endothelial marker genes: `AQP1`, `CALCRL`, `CDH5`, `ECSCR`, `PLVAP`,
-  `SELP`, `VWF`, `TFPI`
+  `SELP`, `VWF`
 
 ## Running Locally
 
@@ -99,6 +99,10 @@ Outputs are written under the configured `output_dir`, usually:
 ```text
 figures/conference/<sample_output_subdir>/
 ```
+
+When `organize_output_subdirs` is `true`, plots are written into subfolders such
+as `spatial_clusters/`, `cell_type_labels/`, `marker_spatial/`, `dotplots/`,
+`crops/`, `summary/`, and `cluster_abundance/`.
 
 For example:
 
@@ -138,6 +142,8 @@ Top-level fields:
 - `dpi`: raster output resolution.
 - `point_size`: default point size for spatial and UMAP plots.
 - `marker_sets`: named marker panels to plot.
+- `cell_type_palette`: optional explicit colors for biological display labels.
+- `organize_output_subdirs`: write plot families into subfolders; defaults to `true`.
 - `label_collapse_rules`: optional presentation-only relabeling rules.
 - `write_coordinate_summary`: write min/max and percentile x/y ranges; defaults to `true`.
 - `write_axis_scout_plots`: write full-tissue spatial plots with axes; defaults to `true`.
@@ -264,6 +270,17 @@ For each crop, the helper writes closeup versions of the cluster plot, cell-type
 label plot when labels are available, and marker spatial panels. Crop windows are
 applied to `obsm["X_spatial"]`, which is copied from `obsm["spatial"]` or
 `obsm["xy"]` when needed.
+
+Crop cluster plots can also redraw selected cells on top with `cluster_highlight`.
+For the MG conference views, cells with `conference_cell_type` containing
+`Endothelial` are highlighted at a larger point size while retaining their
+cluster color.
+
+## DAPI Overlays
+
+DAPI/OME-TIFF overlay generation is currently disabled for these conference
+figures. The active crop workflow now writes only the coordinate-based cluster,
+cell-type, and marker closeups.
 
 ## Validation
 
