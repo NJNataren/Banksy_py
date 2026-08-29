@@ -14,9 +14,20 @@
                 "SELP",
                 "VWF"
             ],
-            "cmap": "viridis",
+            "cmap": "Reds",
             "dotplot_cmap": "RdBu_r",
-            "ncols": 4
+            "ncols": 4,
+            "vmin": 0,
+            "vmax": "p99",
+            "figsize": [
+                20,
+                10
+            ],
+            "individual_figsize": [
+                7,
+                7
+            ],
+            "write_individual": true
         }
     ],
     "samples": [
@@ -27,35 +38,66 @@
             "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
             "output_subdir": "CK_bowel_res_unfiltered_r1p10",
             "label_map": {
-                "0": "T_Cell_0",
+                "0": "T cell 1",
                 "1": "Melanoma_Cell_or_Melanocyte_1",
-                "2": "Macrophage_2",
-                "3": "Endothelial_Cell_3",
-                "4": "Fibroblast_(weak)_4",
-                "5": "B_cell_5",
+                "2": "Macrophage 1",
+                "3": "Endothelial cell 1",
+                "4": "Fibroblast 1",
+                "5": "B cell",
                 "6": "Melanoma_Cell_or_Melanocyte_6",
                 "7": "Melanoma_Cell_or_Melanocyte_T_Cell_7",
                 "8": "Melanoma_Cell_or_Melanocyte_8",
                 "9": "Melanoma_Cell_or_Melanocyte_9",
-                "10": "Epithelial_Cell_10",
-                "11": "Macrophage_(weak)_11",
+                "10": "Epithelial cell 1",
+                "11": "Macrophage 2",
                 "12": "Melanoma_Cell_or_Melanocyte_12",
-                "13": "Fibroblast_Pericyte_13",
+                "13": "Fibroblast 2",
                 "14": "Melanoma_Cell_or_Melanocyte_14",
-                "15": "Macrophage_(weak)_15",
-                "16": "Fibroblast_Pericyte_Endothelial_Cell_16",
+                "15": "Macrophage 3",
+                "16": "Fibroblast and or Pericyte",
                 "17": "Melanoma_Cell_or_Melanocyte_17",
                 "18": "Melanoma_Cell_or_Melanocyte_18",
-                "19": "T_Cell_19",
+                "19": "T cell 2",
                 "20": "Melanoma_Cell_or_Melanocyte_20",
                 "21": "Melanoma_Cell_or_Melanocyte_21",
                 "22": "Melanoma_Cell_or_Melanocyte_22",
-                "23": "Endothelial_Cell_(weak)_23",
-                "24": "T_Cell_(weak)_24",
-                "25": "T_Cell_(weak)_25",
+                "23": "Endothelial cell 2",
+                "24": "Fibroblast 3",
+                "25": "T cell 3",
                 "26": "Melanoma_Cell_or_Melanocyte (weak)_26",
                 "27": "Unassigned_27"
-            }
+            },
+            "crop_windows": [
+                {
+                    "name": "view 1",
+                    "xlim": [
+                        6700,
+                        7900
+                    ],
+                    "ylim": [
+                        7100,
+                        8100
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 10
+                },
+                {
+                    "name": "view 2",
+                    "xlim": [
+                        1950,
+                        3150
+                    ],
+                    "ylim": [
+                        850,
+                        1850
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 10
+                }
+            ],
+            "exclude_clusters": [
+                "27"
+            ]
         },
         {
             "sample": "MG_gastric_non_res",
@@ -126,6 +168,27 @@
                         "point_size": 15,
                         "alpha": 1.0
                     }
+                },
+                {
+                    "name": "view 3",
+                    "xlim": [
+                        3000,
+                        4000
+                    ],
+                    "ylim": [
+                        2250,
+                        2750
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 10,
+                    "cluster_highlight": {
+                        "obs_col": "conference_cell_type",
+                        "contains": [
+                            "Endothelial"
+                        ],
+                        "point_size": 15,
+                        "alpha": 1.0
+                    }
                 }
             ]
         }
@@ -162,5 +225,25 @@
         "Epithelial_Cell": "#e6550d",
         "Pericyte": "#8c6d31",
         "Unassigned": "#969696"
-    }
+    },
+    "full_cell_type_figsize": [
+        12,
+        14
+    ],
+    "full_spatial_figsize": [
+        12,
+        14
+    ],
+    "crop_figsize": [
+        9,
+        7
+    ],
+    "dotplot_figsize": [
+        10,
+        6
+    ],
+    "cluster_abundance_figsize": [
+        12,
+        5
+    ]
 }

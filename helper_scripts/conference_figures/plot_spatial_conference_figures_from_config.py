@@ -42,6 +42,7 @@ def load_plotting_stack():
     import matplotlib
 
     matplotlib.use("Agg")
+    matplotlib.rcParams["svg.fonttype"] = "none"
     import matplotlib.pyplot as pyplot
     import numpy as numpy
     import pandas as pandas
@@ -90,8 +91,8 @@ def figure_type_dir(output_dir, cfg, dirname):
     return ensure_output_dir(Path(output_dir) / dirname)
 
 
-def save_current_figure(output_dir, stem, dpi, save_pdf=True):
-    """Save the current Matplotlib figure as PNG and optionally PDF."""
+def save_current_figure(output_dir, stem, dpi, save_pdf=True, save_svg=True):
+    """Save the current Matplotlib figure as PNG plus editable vector formats."""
     output_dir = ensure_output_dir(output_dir)
     png_path = output_dir / f"{stem}.png"
     plt.savefig(png_path, dpi=dpi, bbox_inches="tight")
@@ -102,7 +103,26 @@ def save_current_figure(output_dir, stem, dpi, save_pdf=True):
         plt.savefig(pdf_path, bbox_inches="tight")
         print(f"Wrote {pdf_path}")
 
+    if save_svg:
+        svg_path = output_dir / f"{stem}.svg"
+        rasterize_dense_svg_layers(plt.gcf())
+        plt.savefig(svg_path, bbox_inches="tight")
+        print(f"Wrote {svg_path}")
+
     plt.close()
+
+
+def rasterize_dense_svg_layers(fig, min_points=5000):
+    """Rasterize dense scatter artists before SVG export."""
+    for ax in fig.axes:
+        for collection in ax.collections:
+            offsets = getattr(collection, "get_offsets", lambda: [])()
+            try:
+                n_points = len(offsets)
+            except TypeError:
+                n_points = 0
+            if n_points >= min_points:
+                collection.set_rasterized(True)
 
 
 def get_sample_value(sample_cfg, cfg, key, default=None):
@@ -153,6 +173,25 @@ def prepare_adata(adata_path, cluster_col):
     adata.obs["conference_cluster"] = adata.obs[cluster_col].astype(str).astype("category")
     reorder_obs_category(adata, "conference_cluster")
     return adata
+
+
+def exclude_configured_clusters(adata, sample_cfg, cfg):
+    """Return AnnData without any configured presentation-excluded clusters."""
+    excluded = [str(value) for value in get_sample_value(sample_cfg, cfg, "exclude_clusters", [])]
+    if not excluded:
+        return adata
+
+    clusters = adata.obs["conference_cluster"].astype(str)
+    keep_mask = ~clusters.isin(excluded)
+    n_removed = int((~keep_mask).sum())
+    if n_removed == 0:
+        print(f"No cells matched excluded clusters: {', '.join(excluded)}")
+        return adata
+
+    filtered = adata[keep_mask].copy()
+    reorder_obs_category(filtered, "conference_cluster")
+    print(f"Excluded {n_removed:,} cells from clusters: {', '.join(excluded)}")
+    return filtered
 
 
 def read_label_map_from_csv(label_file, cluster_column, label_column):
@@ -267,13 +306,29 @@ def resolve_cell_type_palette(sample_cfg, cfg):
     return palette
 
 
+def normalize_palette_label(label):
+    """Normalize label text for palette matching across samples."""
+    normalized = re.sub(r"[^a-z0-9]+", " ", str(label).lower()).strip()
+    return re.sub(r"\s+", " ", normalized)
+
+
 def color_for_cell_type(label, palette, fallback):
     """Return a configured color for a cell-type label when available."""
     label = str(label)
     if label in palette:
         return palette[label]
-    for key, color in palette.items():
-        if key and key.lower() in label.lower():
+
+    normalized_label = normalize_palette_label(label)
+    normalized_palette = [
+        (normalize_palette_label(key), color)
+        for key, color in palette.items()
+        if key
+    ]
+    for normalized_key, color in normalized_palette:
+        if normalized_key == normalized_label:
+            return color
+    for normalized_key, color in normalized_palette:
+        if normalized_key and normalized_key in normalized_label:
             return color
     return fallback
 
@@ -365,7 +420,7 @@ def plot_spatial_axis_scout(adata, color_col, title, output_dir, stem, point_siz
         fontsize=9,
         ncol=2 if len(colors) > 12 else 1,
     )
-    save_current_figure(output_dir, stem, dpi)
+    save_current_figure(output_dir, stem, dpi, save_svg=False)
 
 
 def highlight_obs_mask(adata, highlight_cfg):
@@ -494,6 +549,7 @@ def plot_spatial_category(
     highlight_cfg=None,
     force_legend=False,
     legend_label_col=None,
+    figsize=None,
 ):
     """Plot spatial coordinates colored by a categorical obs column."""
     sc.pl.embedding(
@@ -506,6 +562,8 @@ def plot_spatial_category(
         title=title,
         show=False,
     )
+    if figsize:
+        plt.gcf().set_size_inches(float(figsize[0]), float(figsize[1]), forward=True)
     if highlight_cfg:
         add_spatial_highlight_overlay(adata, color_col, highlight_cfg, point_size)
     if force_legend:
@@ -516,7 +574,7 @@ def plot_spatial_category(
 
 
 def plot_spatial_on_data(
-    adata, color_col, title, output_dir, stem, point_size, dpi, frameon=False
+    adata, color_col, title, output_dir, stem, point_size, dpi, frameon=False, figsize=None
 ):
     """Plot spatial coordinates with category labels placed on the tissue."""
     sc.pl.embedding(
@@ -529,6 +587,8 @@ def plot_spatial_on_data(
         title=title,
         show=False,
     )
+    if figsize:
+        plt.gcf().set_size_inches(float(figsize[0]), float(figsize[1]), forward=True)
     save_current_figure(output_dir, stem, dpi)
 
 
@@ -559,10 +619,11 @@ def plot_umap_category(adata, color_col, title, output_dir, stem, point_size, dp
 def plot_marker_spatial_panels(
     adata, marker_set, output_dir, sample_name, point_size, dpi, stem_suffix=""
 ):
-    """Plot spatial expression panels for one marker set."""
+    """Plot combined and individual spatial expression panels for one marker set."""
     markers = available_genes(adata, marker_set["genes"])
     marker_name = marker_set["name"]
     safe_name = marker_name.replace(" ", "_")
+    figsize = marker_set.get("figsize")
 
     sc.pl.embedding(
         adata,
@@ -571,15 +632,48 @@ def plot_marker_spatial_panels(
         size=point_size,
         frameon=False,
         cmap=marker_set.get("cmap", "viridis"),
+        vmin=marker_set.get("vmin"),
+        vmax=marker_set.get("vmax"),
         ncols=marker_set.get("ncols", 4),
         title=markers,
         show=False,
     )
+    if figsize:
+        plt.gcf().set_size_inches(float(figsize[0]), float(figsize[1]), forward=True)
     save_current_figure(
         output_dir,
         f"{sample_name}_spatial_{safe_name}_markers{stem_suffix}",
         dpi,
     )
+
+    if bool(marker_set.get("write_individual", False)):
+        individual_dir = figure_type_dir(output_dir, marker_set, "individual_markers")
+        for marker in markers:
+            sc.pl.embedding(
+                adata,
+                basis="spatial",
+                color=marker,
+                size=point_size,
+                frameon=False,
+                cmap=marker_set.get("cmap", "viridis"),
+                vmin=marker_set.get("vmin"),
+                vmax=marker_set.get("vmax"),
+                title=marker,
+                show=False,
+            )
+            individual_figsize = marker_set.get("individual_figsize")
+            if individual_figsize:
+                plt.gcf().set_size_inches(
+                    float(individual_figsize[0]),
+                    float(individual_figsize[1]),
+                    forward=True,
+                )
+            safe_marker = re.sub(r"[^A-Za-z0-9_.-]+", "_", marker)
+            save_current_figure(
+                individual_dir,
+                f"{sample_name}_spatial_{safe_name}_{safe_marker}{stem_suffix}",
+                dpi,
+            )
 
 
 def spatial_coordinate_frame(adata):
@@ -866,6 +960,7 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
     default_point_size = float(get_sample_value(sample_cfg, cfg, "crop_point_size", 8.0))
     dpi = int(get_sample_value(sample_cfg, cfg, "dpi", 300))
     frameon = bool(get_sample_value(sample_cfg, cfg, "crop_show_axes", True))
+    crop_figsize = get_sample_value(sample_cfg, cfg, "crop_figsize")
     # image_cfg = resolve_image_overlay(sample_cfg, cfg)
 
     for window in crop_windows:
@@ -887,6 +982,7 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
             highlight_cfg=window.get("cluster_highlight"),
             force_legend=True,
             legend_label_col="conference_cell_type",
+            figsize=window.get("figsize", crop_figsize),
         )
         if "conference_cell_type" in cropped.obs.columns:
             plot_spatial_category(
@@ -899,6 +995,7 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
                 dpi,
                 frameon=frameon,
                 force_legend=True,
+                figsize=window.get("figsize", crop_figsize),
             )
 
         for marker_set in window.get("marker_sets", marker_sets):
@@ -915,7 +1012,7 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
         # DAPI/OME-TIFF overlay plotting is disabled for now.
 
 
-def plot_marker_dotplot(adata, marker_set, groupby, output_dir, sample_name, resolution, dpi):
+def plot_marker_dotplot(adata, marker_set, groupby, output_dir, sample_name, resolution, dpi, figsize=None):
     """Plot marker expression summarized across clusters or cell-type labels."""
     markers = available_genes(adata, marker_set["genes"])
     marker_name = marker_set["name"]
@@ -930,14 +1027,20 @@ def plot_marker_dotplot(adata, marker_set, groupby, output_dir, sample_name, res
         dendrogram=False,
         show=False,
         return_fig=True,
+        figsize=figsize,
     )
-    output_path = output_dir / f"{sample_name}_{safe_name}_dotplot_{resolution}.png"
-    dotplot.savefig(output_path, dpi=dpi, bbox_inches="tight")
-    print(f"Wrote {output_path}")
+    output_dir = ensure_output_dir(output_dir)
+    for suffix, kwargs in [
+        ("png", {"dpi": dpi}),
+        ("svg", {}),
+    ]:
+        output_path = output_dir / f"{sample_name}_{safe_name}_dotplot_{resolution}.{suffix}"
+        dotplot.savefig(output_path, bbox_inches="tight", **kwargs)
+        print(f"Wrote {output_path}")
 
 
-def plot_cluster_abundance(adata, abundance_dir, sample_name, resolution, dpi):
-    """Plot the number of cells assigned to each configured cluster."""
+def plot_cluster_abundance(adata, abundance_dir, sample_name, resolution, dpi, figsize=None):
+    """Plot cell counts by cluster using cell-type names as x-axis labels."""
     counts = (
         adata.obs["conference_cluster"]
         .value_counts()
@@ -947,10 +1050,26 @@ def plot_cluster_abundance(adata, abundance_dir, sample_name, resolution, dpi):
     counts["cluster_sort"] = pd.to_numeric(counts["cluster"], errors="coerce")
     counts = counts.sort_values(["cluster_sort", "cluster"], na_position="last")
 
-    fig_width = max(8, 0.35 * len(counts))
-    plt.figure(figsize=(fig_width, 4.5))
-    plt.bar(counts["cluster"], counts["n_cells"], color="#4c78a8")
-    plt.xlabel(f"BANKSY cluster, {resolution}")
+    if "conference_cell_type" in adata.obs.columns:
+        labels = adata.obs["conference_cell_type"].astype(str)
+        clusters = adata.obs["conference_cluster"].astype(str)
+        label_by_cluster = {}
+        for cluster in counts["cluster"].astype(str):
+            cluster_labels = labels.loc[clusters == cluster]
+            label_by_cluster[cluster] = (
+                cluster_labels.mode().iat[0] if not cluster_labels.empty else cluster
+            )
+        counts["plot_label"] = counts["cluster"].astype(str).map(label_by_cluster)
+    else:
+        counts["plot_label"] = counts["cluster"].astype(str)
+
+    if figsize:
+        plot_figsize = (float(figsize[0]), float(figsize[1]))
+    else:
+        plot_figsize = (max(8, 0.45 * len(counts)), 4.8)
+    plt.figure(figsize=plot_figsize)
+    plt.bar(counts["plot_label"], counts["n_cells"], color="#4c78a8")
+    plt.xlabel(f"Cell-type label, {resolution}")
     plt.ylabel("Cells")
     plt.title(f"{sample_name} {resolution} cluster abundance")
     plt.xticks(rotation=90)
@@ -976,8 +1095,13 @@ def run_sample(sample_cfg, cfg):
     dpi = int(get_sample_value(sample_cfg, cfg, "dpi", 300))
     umap_keys = get_sample_value(sample_cfg, cfg, "umap_keys", DEFAULT_UMAP_KEYS)
     marker_sets = get_sample_value(sample_cfg, cfg, "marker_sets", [])
+    full_spatial_figsize = get_sample_value(sample_cfg, cfg, "full_spatial_figsize")
+    full_cell_type_figsize = get_sample_value(sample_cfg, cfg, "full_cell_type_figsize")
+    dotplot_figsize = get_sample_value(sample_cfg, cfg, "dotplot_figsize")
+    cluster_abundance_figsize = get_sample_value(sample_cfg, cfg, "cluster_abundance_figsize")
 
     adata = prepare_adata(sample_cfg["adata_path"], sample_cfg["cluster_col"])
+    adata = exclude_configured_clusters(adata, sample_cfg, cfg)
     has_cell_type_labels = add_cell_type_labels(adata, sample_cfg)
     collapse_rules = get_sample_value(sample_cfg, cfg, "label_collapse_rules", [])
     collapse_cell_type_labels(adata, collapse_rules)
@@ -995,6 +1119,7 @@ def run_sample(sample_cfg, cfg):
         f"{sample_name}_spatial_clusters_{resolution}",
         point_size,
         dpi,
+        figsize=full_spatial_figsize,
     )
     plot_spatial_on_data(
         adata,
@@ -1004,6 +1129,7 @@ def run_sample(sample_cfg, cfg):
         f"{sample_name}_spatial_clusters_{resolution}_on_data",
         point_size,
         dpi,
+        figsize=full_spatial_figsize,
     )
     if bool(get_sample_value(sample_cfg, cfg, "write_axis_scout_plots", True)):
         plot_spatial_axis_scout(
@@ -1036,6 +1162,7 @@ def run_sample(sample_cfg, cfg):
             point_size,
             dpi,
             force_legend=True,
+            figsize=full_cell_type_figsize,
         )
         plot_spatial_on_data(
             adata,
@@ -1045,6 +1172,7 @@ def run_sample(sample_cfg, cfg):
             f"{sample_name}_spatial_cell_type_labels_{resolution}_on_data",
             point_size,
             dpi,
+            figsize=full_cell_type_figsize,
         )
         if bool(get_sample_value(sample_cfg, cfg, "write_axis_scout_plots", True)):
             plot_spatial_axis_scout(
@@ -1060,10 +1188,26 @@ def run_sample(sample_cfg, cfg):
     dotplot_groupby = "conference_cell_type" if has_cell_type_labels else "conference_cluster"
     for marker_set in marker_sets:
         plot_marker_spatial_panels(adata, marker_set, marker_dir, sample_name, point_size, dpi)
-        plot_marker_dotplot(adata, marker_set, dotplot_groupby, dotplot_dir, sample_name, resolution, dpi)
+        plot_marker_dotplot(
+            adata,
+            marker_set,
+            dotplot_groupby,
+            dotplot_dir,
+            sample_name,
+            resolution,
+            dpi,
+            figsize=marker_set.get("dotplot_figsize", dotplot_figsize),
+        )
 
     plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution, marker_sets)
-    plot_cluster_abundance(adata, abundance_dir, sample_name, resolution, dpi)
+    plot_cluster_abundance(
+        adata,
+        abundance_dir,
+        sample_name,
+        resolution,
+        dpi,
+        figsize=cluster_abundance_figsize,
+    )
 
 
 def main():
