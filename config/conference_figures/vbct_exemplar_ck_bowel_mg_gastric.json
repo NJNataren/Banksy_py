@@ -97,6 +97,18 @@
             ],
             "exclude_clusters": [
                 "27"
+            ],
+            "full_cell_type_figsize": [
+                12,
+                16.1
+            ],
+            "full_spatial_figsize": [
+                12,
+                16.1
+            ],
+            "marker_spatial_figsize_scale": [
+                1.0,
+                1.15
             ]
         },
         {
@@ -190,6 +202,18 @@
                         "alpha": 1.0
                     }
                 }
+            ],
+            "full_cell_type_figsize": [
+                13.8,
+                10.5
+            ],
+            "full_spatial_figsize": [
+                13.8,
+                10.5
+            ],
+            "marker_spatial_figsize_scale": [
+                1.15,
+                0.75
             ]
         }
     ],
@@ -239,11 +263,12 @@
         7
     ],
     "dotplot_figsize": [
-        10,
-        6
+        8,
+        4.5
     ],
     "cluster_abundance_figsize": [
         12,
         5
-    ]
+    ],
+    "umap_point_size": 3.0
 }

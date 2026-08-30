@@ -63,6 +63,44 @@ plot_ck_skin_res_unfiltered_r1p10.py
 Prefer the config-driven script for anything involving more than one sample or
 manual label edits.
 
+The UMAP-only helper is for fast iteration when the full spatial figure pack does
+not need to be regenerated:
+
+```text
+plot_umap_conference_figures_from_config.py
+```
+
+It reuses the same config, label maps, cluster masking, and shared palette logic,
+then writes lighter UMAP variants with either right-margin legends or labels
+placed on the data. To adjust solid-looking clusters, rerun with smaller
+`--point-size` values or lower `--alpha` values.
+
+Example:
+
+```bash
+conda run -n banksy python helper_scripts/conference_figures/plot_umap_conference_figures_from_config.py \
+  --config config/conference_figures/vbct_exemplar_ck_bowel_mg_gastric.json \
+  --point-size 3 \
+  --alpha 0.35
+```
+
+Outputs are written to `umap_rework/` under each sample output directory.
+
+For cartoon-style cluster UMAPs with black point underlays and cluster IDs on
+the data, run the outlined mode into a separate folder:
+
+```bash
+conda run -n banksy python helper_scripts/conference_figures/plot_umap_conference_figures_from_config.py \
+  --config config/conference_figures/vbct_exemplar_ck_bowel_mg_gastric.json \
+  --output-dirname umap_outlined \
+  --outlined \
+  --skip-standard \
+  --figsize 7 7 \
+  --outline-point-size 3 \
+  --outline-alpha 0.45
+```
+
+
 ## Example Configs
 
 Configs live under:
@@ -85,6 +123,46 @@ The exemplar config currently includes:
 - endothelial marker genes: `AQP1`, `CALCRL`, `CDH5`, `ECSCR`, `PLVAP`,
   `SELP`, `VWF`
 
+## Current Filtered VBCT State
+
+Post-QC reclustered CK/MG conference figures use:
+
+```text
+config/conference_figures/vbct_exemplar_ck_bowel_mg_gastric_filtered_reclustered_qc_v1.json
+figures/conference_filtered_reclustered_qc_v1/
+```
+
+Selected filtered reclusters are CK `r1.10`
+`labels_scaled_gaussian_pc30_nc0.20_r1.10_recluster_filtered_qc_v1_qc_pass_only`
+and MG `r0.70`
+`labels_scaled_gaussian_pc35_nc0.20_r0.70_recluster_filtered_qc_v1_qc_pass_only`.
+The config excludes `excluded_by_qc`, stores reviewed annotations in `label_map`
+and `annotation_review.cluster_annotations`, and currently collapses melanoma
+and fibroblast labels for presentation.
+
+Filtered crop `cell_type_labels` plots use base dots of size `7` and redraw
+endothelial cells on top at size `11`. MG full-tissue cell-type plots use
+`full_cell_type_figsize: [13.8, 8.925]`. Dense dot layers in PDF/SVG outputs are
+rasterized at save time so Inkscape can edit text, axes, legends, and colour bars
+without loading every cell as an individual vector object.
+
+Post-QC all-resolution dotplot configs live under:
+
+```text
+config/03_export_summary/active/vbct_recluster_qc_pass_only/
+config/04_plot_dotplot/active/vbct_recluster_qc_pass_only/
+```
+
+The focused CK `r1.10` / MG `r0.70` annotated all-gene dotplot is:
+
+```text
+figures/dotplots/vbct/recluster_filtered_qc_pass_only/CK_bowel_res_MG_gastric_non_res_selected_res_all_genes_conference_annotated_zscore_dotplot.png
+```
+
+Pending helper: create `plot_individual_cluster_spatial_from_config.py` to write
+one grey-background, highlighted-cluster spatial plot per recluster under each
+sample output directory's `individual_clusters/` folder.
+
 ## Running Locally
 
 From the repository root:
@@ -103,6 +181,10 @@ figures/conference/<sample_output_subdir>/
 When `organize_output_subdirs` is `true`, plots are written into subfolders such
 as `spatial_clusters/`, `cell_type_labels/`, `marker_spatial/`, `dotplots/`,
 `crops/`, `summary/`, and `cluster_abundance/`.
+
+Dense scatter layers are rasterized inside PDF/SVG outputs so very large cell
+clouds remain practical to open in Inkscape. Text, labels, axes, legends, and
+colour bars remain vector/editable.
 
 For example:
 
@@ -293,3 +375,5 @@ python3 -m json.tool config/conference_figures/vbct_exemplar_ck_bowel_mg_gastric
 
 The full plotting run requires the `banksy` environment because it depends on
 Scanpy and Matplotlib.
+
+Convex hull lines can be tested with `--hull-outlines`, but leave them off for dispersed clusters because they can draw long crossing boundaries.

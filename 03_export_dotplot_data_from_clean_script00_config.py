@@ -238,6 +238,10 @@ def expand_sample_groupings(cfg):
         adata_path = sample_cfg["adata_path"]
         default_groupby_label = sample_cfg.get("groupby_label")
         default_missing_group_label = sample_cfg.get("missing_group_label")
+        default_exclude_group_ids = sample_cfg.get(
+            "exclude_group_ids",
+            cfg.get("exclude_group_ids", []),
+        )
         qc_annotation = load_qc_annotation(resolve_qc_config_path(cfg, sample_cfg))
 
         for grouping in sample_cfg["groupbys"]:
@@ -262,6 +266,10 @@ def expand_sample_groupings(cfg):
                 "label_csv_cell_id_col": grouping.get(
                     "label_csv_cell_id_col",
                     sample_cfg.get("label_csv_cell_id_col", "index"),
+                ),
+                "exclude_group_ids": grouping.get(
+                    "exclude_group_ids",
+                    default_exclude_group_ids,
                 ),
             }
             if (
@@ -483,6 +491,7 @@ def summarize_grouping(
         "missing_group_label",
         default_missing_group_label,
     )
+    exclude_group_ids = {str(value) for value in obj.get("exclude_group_ids", [])}
 
     expr_adata, var_names, source_used = select_expression_source(
         adata,
@@ -510,6 +519,9 @@ def summarize_grouping(
 
     rows = []
     for group_id in sorted(groups.unique()):
+        if group_id in exclude_group_ids:
+            print(f"{sample} r{resolution}: excluded group {group_id!r} from export")
+            continue
         mask = (groups == group_id).to_numpy()
         group_expr = expr[mask, :]
         mean_expression = np.asarray(group_expr.mean(axis=0)).ravel()

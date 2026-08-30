@@ -1,0 +1,338 @@
+{
+    "output_dir": "figures/conference_filtered_reclustered_qc_v1",
+    "dpi": 300,
+    "point_size": 2.0,
+    "marker_sets": [
+        {
+            "name": "endothelial",
+            "genes": [
+                "AQP1",
+                "CALCRL",
+                "CDH5",
+                "ECSCR",
+                "PLVAP",
+                "SELP",
+                "VWF"
+            ],
+            "cmap": "Reds",
+            "dotplot_cmap": "RdBu_r",
+            "ncols": 4,
+            "vmin": 0,
+            "vmax": "p99",
+            "figsize": [
+                20,
+                10
+            ],
+            "individual_figsize": [
+                7,
+                7
+            ],
+            "write_individual": true
+        }
+    ],
+    "samples": [
+        {
+            "sample": "CK_bowel_res",
+            "resolution": "r1p10_filtered_reclustered",
+            "adata_path": "data/xenium/processed/vbct/CK_bowel_res/adata_expression_clean_CK_bowel_res_qc_annotated_filtered_qc_v1_with_banksy_reclusters_filtered_qc_v1_qc_pass_only_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
+            "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.10_recluster_filtered_qc_v1_qc_pass_only",
+            "output_subdir": "CK_bowel_res_filtered_reclustered_qc_v1_r1p10",
+            "crop_windows": [
+                {
+                    "name": "view 1",
+                    "xlim": [
+                        6700,
+                        7900
+                    ],
+                    "ylim": [
+                        7100,
+                        8100
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 10
+                },
+                {
+                    "name": "view 2",
+                    "xlim": [
+                        1950,
+                        3150
+                    ],
+                    "ylim": [
+                        850,
+                        1850
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 10
+                }
+            ],
+            "exclude_clusters": [
+                "excluded_by_qc"
+            ],
+            "full_cell_type_figsize": [
+                12,
+                16.1
+            ],
+            "full_spatial_figsize": [
+                12,
+                16.1
+            ],
+            "marker_spatial_figsize_scale": [
+                1.0,
+                1.15
+            ],
+            "umap_keys": [
+                "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_qc_pass_only"
+            ],
+            "label_map": {
+                "0": "T cell 1",
+                "1": "Macrophage 1",
+                "2": "Endothelial",
+                "3": "Melanoma cell",
+                "4": "T cell 2",
+                "5": "B cell",
+                "6": "Melanoma cell 1",
+                "7": "Melanoma cell 1",
+                "8": "Melanoma cell 3",
+                "9": "Fibroblast 1",
+                "10": "Melanoma cell 4",
+                "11": "Epithelial cell 1",
+                "12": "Melanoma cell 4",
+                "13": "Melanoma cell 5",
+                "14": "Melanoma cell 6",
+                "15": "Fibroblast 2",
+                "16": "Macrophage 2",
+                "17": "Fibroblast 3",
+                "18": "Fibroblast 4",
+                "19": "T cell 3",
+                "20": "Melanoma cell 7",
+                "21": "Melanoma cell 8",
+                "22": "Endothelial",
+                "23": "Fibroblast 5",
+                "24": "Melanoma cell 9",
+                "25": "Epithelial cell 2"
+            },
+            "annotation_review": {
+                "note": "After reviewing the post-QC dotplot, fill cluster_annotations below, then copy the completed mapping into label_map above before rerunning conference plots.",
+                "dotplot": "figures/dotplots/vbct/recluster_filtered_qc_pass_only/CK_bowel_res_all_genes_recluster_qc_pass_only_all_res_zscore_dotplot.png",
+                "annotation_resolution": "1.10",
+                "cluster_annotations": {
+                    "0": "T cell 1",
+                    "1": "Macrophage 1",
+                    "2": "Endothelial",
+                    "3": "Melanoma cell",
+                    "4": "T cell 2",
+                    "5": "B cell",
+                    "6": "Melanoma cell 1",
+                    "7": "Melanoma cell 1",
+                    "8": "Melanoma cell 3",
+                    "9": "Fibroblast 1",
+                    "10": "Melanoma cell 4",
+                    "11": "Epithelial cell 1",
+                    "12": "Melanoma cell 4",
+                    "13": "Melanoma cell 5",
+                    "14": "Melanoma cell 6",
+                    "15": "Fibroblast 2",
+                    "16": "Macrophage 2",
+                    "17": "Fibroblast 3",
+                    "18": "Fibroblast 4",
+                    "19": "T cell 3",
+                    "20": "Melanoma cell 7",
+                    "21": "Melanoma cell 8",
+                    "22": "Endothelial",
+                    "23": "Fibroblast 5",
+                    "24": "Melanoma cell 9",
+                    "25": "Epithelial cell 2"
+                }
+            },
+            "crop_cell_type_highlight": {
+                "obs_col": "conference_cell_type",
+                "contains": [
+                    "Endothelial"
+                ],
+                "point_size": 11,
+                "alpha": 1.0
+            },
+            "crop_cell_type_point_size": 7
+        },
+        {
+            "sample": "MG_gastric_non_res",
+            "resolution": "r0p70_filtered_reclustered",
+            "adata_path": "data/xenium/processed/vbct/MG_gastric_non_res/adata_expression_clean_MG_gastric_non_res_qc_annotated_filtered_qc_v1_with_banksy_reclusters_filtered_qc_v1_qc_pass_only_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
+            "cluster_col": "labels_scaled_gaussian_pc35_nc0.20_r0.70_recluster_filtered_qc_v1_qc_pass_only",
+            "output_subdir": "MG_gastric_non_res_filtered_reclustered_qc_v1_r0p70",
+            "crop_windows": [
+                {
+                    "name": "view 1",
+                    "xlim": [
+                        3000,
+                        4200
+                    ],
+                    "ylim": [
+                        1500,
+                        2500
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 15
+                },
+                {
+                    "name": "view 2",
+                    "xlim": [
+                        4550,
+                        5500
+                    ],
+                    "ylim": [
+                        1000,
+                        1450
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 10
+                },
+                {
+                    "name": "view 3",
+                    "xlim": [
+                        3000,
+                        4000
+                    ],
+                    "ylim": [
+                        2250,
+                        2750
+                    ],
+                    "point_size": 10,
+                    "cluster_point_size": 10
+                }
+            ],
+            "full_cell_type_figsize": [
+                13.8,
+                8.925
+            ],
+            "full_spatial_figsize": [
+                13.8,
+                10.5
+            ],
+            "marker_spatial_figsize_scale": [
+                1.15,
+                0.75
+            ],
+            "exclude_clusters": [
+                "excluded_by_qc"
+            ],
+            "umap_keys": [
+                "X_umap_scaled_gaussian_pc35_nc0.20_recluster_filtered_qc_v1_qc_pass_only"
+            ],
+            "label_map": {
+                "0": "Melanoma cell 1",
+                "1": "Melanoma cell 2",
+                "2": "Melanoma cell 3",
+                "3": "Melanoma cell 4",
+                "4": "T cell 1",
+                "5": "Fibroblast or Macrophage",
+                "6": "Epithelial cell 1",
+                "7": "Endothelial",
+                "8": "Fibroblast 1",
+                "9": "Epithelial cell 2",
+                "10": "Epithelial cell 3",
+                "11": "Fibroblast 2",
+                "12": "Macrophage",
+                "13": "Melanoma cell 5",
+                "14": "B cell",
+                "15": "T cell 2",
+                "16": "Melanoma cell 6",
+                "17": "Melanoma cell 7"
+            },
+            "annotation_review": {
+                "note": "After reviewing the post-QC dotplot, fill cluster_annotations below, then copy the completed mapping into label_map above before rerunning conference plots.",
+                "dotplot": "figures/dotplots/vbct/recluster_filtered_qc_pass_only/MG_gastric_non_res_all_genes_recluster_qc_pass_only_all_res_zscore_dotplot.png",
+                "annotation_resolution": "0.70",
+                "cluster_annotations": {
+                    "0": "Melanoma cell 1",
+                    "1": "Melanoma cell 2",
+                    "2": "Melanoma cell 3",
+                    "3": "Melanoma cell 4",
+                    "4": "T cell 1",
+                    "5": "Fibroblast or Macrophage",
+                    "6": "Epithelial cell 1",
+                    "7": "Endothelial",
+                    "8": "Fibroblast 1",
+                    "9": "Epithelial cell 2",
+                    "10": "Epithelial cell 3",
+                    "11": "Fibroblast 2",
+                    "12": "Macrophage",
+                    "13": "Melanoma cell 5",
+                    "14": "B cell",
+                    "15": "T cell 2",
+                    "16": "Melanoma cell 6",
+                    "17": "Melanoma cell 7"
+                }
+            },
+            "crop_cell_type_highlight": {
+                "obs_col": "conference_cell_type",
+                "contains": [
+                    "Endothelial"
+                ],
+                "point_size": 11,
+                "alpha": 1.0
+            },
+            "crop_cell_type_point_size": 7
+        }
+    ],
+    "label_collapse_rules": [
+        {
+            "label": "Melanoma",
+            "contains": [
+                "Melanoma",
+                "melanocyte"
+            ]
+        },
+        {
+            "label": "Fibroblast",
+            "contains": [
+                "Fibroblast"
+            ]
+        }
+    ],
+    "organize_output_subdirs": true,
+    "cell_type_palette": {
+        "Melanoma": "#bdbdbd",
+        "Endothelial cell": "#17becf",
+        "Endothelial": "#17becf",
+        "T Cell": "#6a51a3",
+        "T_Cell": "#6a51a3",
+        "B cell": "#fdae6b",
+        "B_Cell": "#fdae6b",
+        "B_cell": "#fdae6b",
+        "Macrophage": "#31a354",
+        "Fibroblast 1": "#756bb1",
+        "Fibroblast 2": "#9e9ac8",
+        "Fibroblast 3": "#bcbddc",
+        "Fibroblast 4": "#dadaeb",
+        "Fibroblast 5": "#efedf5",
+        "Fibroblast 6": "#cbc9e2",
+        "Fibroblast": "#9e9ac8",
+        "Epithelial cell 1": "#e6550d",
+        "Epithelial cell 2": "#fd8d3c",
+        "Epithelial_Cell": "#e6550d",
+        "Pericyte": "#8c6d31",
+        "Unassigned": "#969696"
+    },
+    "full_cell_type_figsize": [
+        12,
+        14
+    ],
+    "full_spatial_figsize": [
+        12,
+        14
+    ],
+    "crop_figsize": [
+        9,
+        7
+    ],
+    "dotplot_figsize": [
+        8,
+        4.5
+    ],
+    "cluster_abundance_figsize": [
+        12,
+        5
+    ],
+    "umap_point_size": 3.0
+}

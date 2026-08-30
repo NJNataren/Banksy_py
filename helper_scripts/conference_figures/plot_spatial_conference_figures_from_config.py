@@ -11,6 +11,7 @@ provided in a JSON config so the same helper can run locally or on the HPC.
 """
 
 import argparse
+import copy
 import json
 import re
 from pathlib import Path
@@ -92,28 +93,32 @@ def figure_type_dir(output_dir, cfg, dirname):
 
 
 def save_current_figure(output_dir, stem, dpi, save_pdf=True, save_svg=True):
-    """Save the current Matplotlib figure as PNG plus editable vector formats."""
+    """Save the current figure with dense point layers rasterized in vector files."""
     output_dir = ensure_output_dir(output_dir)
     png_path = output_dir / f"{stem}.png"
     plt.savefig(png_path, dpi=dpi, bbox_inches="tight")
     print(f"Wrote {png_path}")
 
+    if save_pdf or save_svg:
+        # Rasterize only dense scatter collections before vector export. Text,
+        # labels, legends, axes, and colour bars remain editable in Inkscape.
+        rasterize_dense_vector_layers(plt.gcf())
+
     if save_pdf:
         pdf_path = output_dir / f"{stem}.pdf"
-        plt.savefig(pdf_path, bbox_inches="tight")
+        plt.savefig(pdf_path, dpi=dpi, bbox_inches="tight")
         print(f"Wrote {pdf_path}")
 
     if save_svg:
         svg_path = output_dir / f"{stem}.svg"
-        rasterize_dense_svg_layers(plt.gcf())
-        plt.savefig(svg_path, bbox_inches="tight")
+        plt.savefig(svg_path, dpi=dpi, bbox_inches="tight")
         print(f"Wrote {svg_path}")
 
     plt.close()
 
 
-def rasterize_dense_svg_layers(fig, min_points=5000):
-    """Rasterize dense scatter artists before SVG export."""
+def rasterize_dense_vector_layers(fig, min_points=5000):
+    """Rasterize dense scatter artists before PDF/SVG export."""
     for ax in fig.axes:
         for collection in ax.collections:
             offsets = getattr(collection, "get_offsets", lambda: [])()
@@ -128,6 +133,30 @@ def rasterize_dense_svg_layers(fig, min_points=5000):
 def get_sample_value(sample_cfg, cfg, key, default=None):
     """Resolve a sample-level config value with a project-level fallback."""
     return sample_cfg.get(key, cfg.get(key, default))
+
+
+def scaled_figsize(figsize, scale):
+    """Return a width/height pair scaled by configured factors."""
+    if not figsize or not scale:
+        return figsize
+    if len(scale) != 2:
+        raise ValueError("Figure-size scale values must be [width_scale, height_scale].")
+    return [float(figsize[0]) * float(scale[0]), float(figsize[1]) * float(scale[1])]
+
+
+def scale_marker_sets_for_sample(marker_sets, sample_cfg, cfg):
+    """Copy marker sets and apply sample-specific full-panel figure scaling."""
+    scale = get_sample_value(sample_cfg, cfg, "marker_spatial_figsize_scale")
+    if not scale:
+        return marker_sets
+
+    scaled_marker_sets = copy.deepcopy(marker_sets)
+    for marker_set in scaled_marker_sets:
+        marker_set["figsize"] = scaled_figsize(marker_set.get("figsize"), scale)
+        marker_set["individual_figsize"] = scaled_figsize(
+            marker_set.get("individual_figsize"), scale
+        )
+    return scaled_marker_sets
 
 
 def natural_sort_key(value):
@@ -968,6 +997,16 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
         cropped = crop_adata_to_window(adata, window)
         point_size = float(window.get("point_size", default_point_size))
         cluster_point_size = float(window.get("cluster_point_size", point_size))
+        cell_type_point_size = float(
+            window.get(
+                "cell_type_point_size",
+                get_sample_value(sample_cfg, cfg, "crop_cell_type_point_size", point_size),
+            )
+        )
+        cell_type_highlight_cfg = window.get(
+            "cell_type_highlight",
+            get_sample_value(sample_cfg, cfg, "crop_cell_type_highlight", None),
+        )
         stem_suffix = f"_{name}"
 
         plot_spatial_category(
@@ -991,9 +1030,10 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
                 f"{sample_name} cell-type labels, {resolution}, {window['name']}",
                 crop_dir,
                 f"{sample_name}_spatial_cell_type_labels_{resolution}{stem_suffix}",
-                point_size,
+                cell_type_point_size,
                 dpi,
                 frameon=frameon,
+                highlight_cfg=cell_type_highlight_cfg,
                 force_legend=True,
                 figsize=window.get("figsize", crop_figsize),
             )
@@ -1032,6 +1072,7 @@ def plot_marker_dotplot(adata, marker_set, groupby, output_dir, sample_name, res
     output_dir = ensure_output_dir(output_dir)
     for suffix, kwargs in [
         ("png", {"dpi": dpi}),
+        ("pdf", {}),
         ("svg", {}),
     ]:
         output_path = output_dir / f"{sample_name}_{safe_name}_dotplot_{resolution}.{suffix}"
@@ -1095,6 +1136,7 @@ def run_sample(sample_cfg, cfg):
     dpi = int(get_sample_value(sample_cfg, cfg, "dpi", 300))
     umap_keys = get_sample_value(sample_cfg, cfg, "umap_keys", DEFAULT_UMAP_KEYS)
     marker_sets = get_sample_value(sample_cfg, cfg, "marker_sets", [])
+    full_marker_sets = scale_marker_sets_for_sample(marker_sets, sample_cfg, cfg)
     full_spatial_figsize = get_sample_value(sample_cfg, cfg, "full_spatial_figsize")
     full_cell_type_figsize = get_sample_value(sample_cfg, cfg, "full_cell_type_figsize")
     dotplot_figsize = get_sample_value(sample_cfg, cfg, "dotplot_figsize")
@@ -1186,7 +1228,7 @@ def run_sample(sample_cfg, cfg):
             )
 
     dotplot_groupby = "conference_cell_type" if has_cell_type_labels else "conference_cluster"
-    for marker_set in marker_sets:
+    for marker_set in full_marker_sets:
         plot_marker_spatial_panels(adata, marker_set, marker_dir, sample_name, point_size, dpi)
         plot_marker_dotplot(
             adata,
