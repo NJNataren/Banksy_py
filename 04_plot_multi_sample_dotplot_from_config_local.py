@@ -3,7 +3,7 @@
 
 """
 Title: Plot Multi-Sample Dotplot From Config Local
-Date: 2026-08-07
+Date: 2026-09-15
 Summary: Local-working copy of the multi-sample dotplot renderer. Read one or
 more long-format dotplot summary CSVs produced by
 03_export_dotplot_data_from_config.py and render a combined multi-sample
@@ -14,6 +14,7 @@ available resolutions for cross-resolution marker review.
 """
 
 import argparse
+from dataclasses import dataclass, field
 from datetime import datetime
 import json
 import os
@@ -34,6 +35,30 @@ REQUIRED_COLUMNS = {
     "mean_expression",
     "percent_expressing",
 }
+
+
+@dataclass
+class GeneMetadata:
+    """Keep gene plotting state together through filtering and rendering."""
+
+    order: list = field(default_factory=list)
+    groups: dict = field(default_factory=dict)
+    labels: dict = field(default_factory=dict)
+    highlights: set = field(default_factory=set)
+    dropped: set = field(default_factory=set)
+    linkage: object = None
+    clustered_genes: list = field(default_factory=list)
+
+    def filter_to_order(self):
+        """Drop metadata for genes no longer present in `order`."""
+        kept_genes = set(self.order)
+        self.groups = {
+            gene: group for gene, group in self.groups.items() if gene in kept_genes
+        }
+        self.labels = {
+            gene: label for gene, label in self.labels.items() if gene in kept_genes
+        }
+        self.highlights = {gene for gene in self.highlights if gene in kept_genes}
 
 
 DEFAULT_FIGURE = {
@@ -277,20 +302,30 @@ def apply_sample_filters(df, sample_filters):
     return pd.concat(filtered_parts, ignore_index=True)
 
 
-def load_gene_file(gene_file, gene_column, gene_group_column, gene_order_column=None):
-    """Load an optional gene filter, grouping table, and configured gene order.
+def load_gene_file(
+    gene_file,
+    gene_column,
+    gene_group_column,
+    gene_order_column=None,
+    gene_label_columns=None,
+    gene_label_separator=" - ",
+):
+    """Load an optional gene filter, grouping table, display labels, and order.
 
     Args:
         gene_file: Optional CSV containing genes to plot.
         gene_column: Column containing gene symbols.
         gene_group_column: Optional column containing gene group labels.
         gene_order_column: Optional column used to order genes before plotting.
+        gene_label_columns: Optional columns joined to make x-axis gene labels.
+        gene_label_separator: Separator used when joining label column values.
 
     Returns:
-        Tuple of `(requested_genes, gene_groups)`.
+        GeneMetadata containing requested gene order, groups, and labels.
     """
+    gene_metadata = GeneMetadata()
     if not gene_file:
-        return None, None
+        return gene_metadata
 
     gene_df = pd.read_csv(gene_file)
     if gene_column not in gene_df.columns:
@@ -309,6 +344,20 @@ def load_gene_file(gene_file, gene_column, gene_group_column, gene_order_column=
             f"Available columns: {list(gene_df.columns)}"
         )
 
+    if isinstance(gene_label_columns, str):
+        gene_label_columns = [gene_label_columns]
+    gene_label_columns = [
+        column for column in gene_label_columns or [] if str(column).strip()
+    ]
+    missing_label_columns = [
+        column for column in gene_label_columns if column not in gene_df.columns
+    ]
+    if missing_label_columns:
+        raise ValueError(
+            f"Gene label columns {missing_label_columns!r} not found in {gene_file}. "
+            f"Available columns: {list(gene_df.columns)}"
+        )
+
     gene_df = gene_df.dropna(subset=[gene_column]).copy()
     gene_df[gene_column] = gene_df[gene_column].astype(str)
 
@@ -322,21 +371,31 @@ def load_gene_file(gene_file, gene_column, gene_group_column, gene_order_column=
             kind="mergesort",
         )
 
-    gene_groups = None
+    if gene_label_columns:
+        label_df = gene_df.drop_duplicates(gene_column).set_index(gene_column)
+        for gene, row in label_df.iterrows():
+            label_parts = []
+            for column in gene_label_columns:
+                value = gene if column == gene_column else row[column]
+                if not pd.isna(value) and str(value).strip():
+                    label_parts.append(str(value).strip())
+            if label_parts:
+                gene_metadata.labels[gene] = gene_label_separator.join(label_parts)
+
     if gene_group_column:
         gene_df[gene_group_column] = (
             gene_df[gene_group_column].fillna("unannotated").astype(str)
         )
         if not gene_order_column:
             gene_df = gene_df.sort_values([gene_group_column, gene_column])
-        gene_groups = (
+        gene_metadata.groups = (
             gene_df.drop_duplicates(gene_column)
             .set_index(gene_column)[gene_group_column]
             .to_dict()
         )
 
-    requested_genes = gene_df[gene_column].drop_duplicates().tolist()
-    return requested_genes, gene_groups
+    gene_metadata.order = gene_df[gene_column].drop_duplicates().tolist()
+    return gene_metadata
 
 
 def is_true_flag_value(value):
@@ -413,21 +472,20 @@ def is_keep_gene_value(value):
     return normalized not in {"false", "f", "no", "n", "0", "drop", "exclude"}
 
 
-def apply_gene_review_filter(df, gene_order, gene_groups, cfg):
+def apply_gene_review_filter(df, gene_metadata, cfg):
     """Remove genes marked for exclusion in an optional review CSV.
 
     Args:
         df: Filtered long-format dotplot summary table.
-        gene_order: Ordered genes currently planned for the x-axis.
-        gene_groups: Optional mapping from gene name to group label.
+        gene_metadata: GeneMetadata object for the current plot.
         cfg: Plot config dictionary.
 
     Returns:
-        Tuple of filtered DataFrame, filtered gene order, and filtered gene groups.
+        Tuple of filtered DataFrame and updated GeneMetadata.
     """
     review_file = cfg.get("gene_review_file")
     if not review_file:
-        return df, gene_order, gene_groups
+        return df, gene_metadata
 
     gene_column = cfg.get("gene_review_gene_column", cfg.get("gene_column", "Gene"))
     keep_column = cfg.get("gene_review_keep_column", "keep_for_dotplot")
@@ -452,20 +510,20 @@ def apply_gene_review_filter(df, gene_order, gene_groups, cfg):
         .tolist()
     )
     if not dropped_genes:
-        return df, gene_order, gene_groups
+        return df, gene_metadata
 
     df = df[~df["gene"].astype(str).isin(dropped_genes)].copy()
-    gene_order = [gene for gene in gene_order if gene not in dropped_genes]
-    if gene_groups:
-        gene_groups = {
-            gene: group for gene, group in gene_groups.items() if gene not in dropped_genes
-        }
+    gene_metadata.order = [
+        gene for gene in gene_metadata.order if gene not in dropped_genes
+    ]
+    gene_metadata.dropped.update(dropped_genes)
+    gene_metadata.filter_to_order()
 
-    if df.empty or not gene_order:
+    if df.empty or not gene_metadata.order:
         raise ValueError("gene_review_file removed all genes from the plot")
 
     print(f"Dropped {len(dropped_genes)} genes using {review_file}")
-    return df, gene_order, gene_groups
+    return df, gene_metadata
 
 
 def apply_expression_zscore(df, cfg):
@@ -511,20 +569,21 @@ def apply_expression_zscore(df, cfg):
     return df
 
 
-def cluster_gene_order(df, gene_order, cfg):
+def cluster_gene_order(df, gene_metadata, cfg):
     """Optionally reorder genes by hierarchical clustering of expression summaries.
 
     Args:
         df: Filtered long-format dotplot summary table.
-        gene_order: Current ordered gene list from the marker/review files.
+        gene_metadata: GeneMetadata object for the current plot.
         cfg: Plot config dictionary.
 
     Returns:
-        Tuple of `(gene_order, linkage_matrix, clustered_genes)`. The linkage
-        output is `None` when clustering is disabled or cannot be computed.
+        Updated GeneMetadata with optional clustering state.
     """
     if not cfg.get("cluster_genes", False):
-        return gene_order, None, []
+        gene_metadata.linkage = None
+        gene_metadata.clustered_genes = []
+        return gene_metadata
 
     import numpy as np
     from scipy.cluster.hierarchy import leaves_list, linkage
@@ -546,14 +605,14 @@ def cluster_gene_order(df, gene_order, cfg):
         values=value_column,
         aggfunc="mean",
     )
-    matrix = matrix.reindex(columns=gene_order)
+    matrix = matrix.reindex(columns=gene_metadata.order)
     matrix = matrix.apply(pd.to_numeric, errors="coerce")
 
     fill_value = cfg.get("gene_clustering_fill_value", 0.0)
     matrix = matrix.fillna(float(fill_value))
 
     gene_matrix = matrix.T
-    missing_genes = [gene for gene in gene_order if gene not in gene_matrix.index]
+    missing_genes = [gene for gene in gene_metadata.order if gene not in gene_matrix.index]
     if missing_genes:
         print(f"Gene clustering skipped {len(missing_genes)} genes missing from matrix")
 
@@ -561,7 +620,7 @@ def cluster_gene_order(df, gene_order, cfg):
     gene_variance = gene_matrix.var(axis=1)
     variable_genes = gene_variance[gene_variance > variance_threshold].index.tolist()
     constant_genes = [
-        gene for gene in gene_order
+        gene for gene in gene_metadata.order
         if gene in gene_matrix.index and gene not in variable_genes
     ]
 
@@ -570,7 +629,9 @@ def cluster_gene_order(df, gene_order, cfg):
             "Gene clustering skipped: fewer than two variable genes after "
             "removing constant expression profiles"
         )
-        return gene_order, None, []
+        gene_metadata.linkage = None
+        gene_metadata.clustered_genes = []
+        return gene_metadata
 
     variable_matrix = gene_matrix.loc[variable_genes]
     metric = cfg.get("gene_clustering_metric", "correlation")
@@ -610,8 +671,9 @@ def cluster_gene_order(df, gene_order, cfg):
     else:
         ordered_genes = ordered_variable_genes + constant_genes
 
-    remaining_genes = [gene for gene in gene_order if gene not in ordered_genes]
+    remaining_genes = [gene for gene in gene_metadata.order if gene not in ordered_genes]
     ordered_genes.extend(remaining_genes)
+    gene_metadata.order = ordered_genes
 
     print(
         f"Clustered {len(ordered_variable_genes)} variable genes using "
@@ -622,56 +684,67 @@ def cluster_gene_order(df, gene_order, cfg):
             f"Kept {len(constant_genes)} constant genes at "
             f"{constant_gene_position!r} of gene order"
         )
-    return ordered_genes, linkage_matrix, ordered_variable_genes
+    gene_metadata.linkage = linkage_matrix
+    gene_metadata.clustered_genes = ordered_variable_genes
+    return gene_metadata
 
 
 def resolve_gene_order(df, cfg):
-    """Filter genes and determine x-axis order.
+    """Filter genes and determine x-axis metadata.
 
     Args:
         df: Combined dotplot summary table.
         cfg: Plot config dictionary.
 
     Returns:
-        Tuple of filtered DataFrame, ordered gene list, and gene-group mapping.
+        Tuple of filtered DataFrame and GeneMetadata.
     """
-    requested_genes, gene_groups = load_gene_file(
+    gene_metadata = load_gene_file(
         cfg.get("gene_file"),
         cfg.get("gene_column", "Gene"),
         cfg.get("gene_group_column"),
         cfg.get("gene_order_column"),
+        cfg.get("gene_label_columns"),
+        cfg.get("gene_label_separator", " - "),
     )
 
-    if requested_genes:
+    if gene_metadata.order:
         exported_genes = set(df["gene"].astype(str))
-        missing_genes = [gene for gene in requested_genes if gene not in exported_genes]
+        missing_genes = [gene for gene in gene_metadata.order if gene not in exported_genes]
         if missing_genes:
             print(f"Warning: {len(missing_genes)} requested genes were not found")
 
-        df = df[df["gene"].astype(str).isin(requested_genes)].copy()
+        df = df[df["gene"].astype(str).isin(gene_metadata.order)].copy()
         if df.empty:
             raise ValueError("No requested genes were found in the export CSVs")
 
-        gene_order = [gene for gene in requested_genes if gene in exported_genes]
-        return df, gene_order, gene_groups
+        gene_metadata.order = [
+            gene for gene in gene_metadata.order if gene in exported_genes
+        ]
+        gene_metadata.filter_to_order()
+        return df, gene_metadata
 
     gene_order = cfg.get("gene_order")
     if gene_order:
-        gene_order = [str(gene) for gene in gene_order]
-        df = df[df["gene"].astype(str).isin(gene_order)].copy()
+        gene_metadata.order = [str(gene) for gene in gene_order]
+        df = df[df["gene"].astype(str).isin(gene_metadata.order)].copy()
         if df.empty:
             raise ValueError("Configured gene_order removed all rows")
-        return df, [gene for gene in gene_order if gene in set(df["gene"])], gene_groups
+        gene_metadata.order = [
+            gene for gene in gene_metadata.order if gene in set(df["gene"])
+        ]
+        gene_metadata.filter_to_order()
+        return df, gene_metadata
 
     # Without an external gene list, keep marker groups together using labels
     # already present in the exported summary table.
-    gene_order = (
+    gene_metadata.order = (
         df[["marker_group", "gene"]]
         .drop_duplicates()
         .sort_values(["marker_group", "gene"])["gene"]
         .tolist()
     )
-    return df, gene_order, gene_groups
+    return df, gene_metadata
 
 
 def numeric_aware_sort(values):
@@ -857,19 +930,19 @@ def add_gene_group_labels(ax, gene_order, gene_groups, figure_cfg):
     return label_artists
 
 
-def style_highlighted_gene_labels(ax, highlight_genes, figure_cfg):
+def style_highlighted_gene_labels(ax, gene_metadata, figure_cfg):
     """Highlight selected gene tick labels on the x-axis.
 
     Args:
         ax: Matplotlib axes containing the dotplot.
-        highlight_genes: Set of gene symbols to highlight.
+        gene_metadata: GeneMetadata object for the current plot.
         figure_cfg: Plot style options from the config.
     """
-    if not highlight_genes:
+    if not gene_metadata.highlights:
         return
 
-    for tick_label in ax.xaxis.get_ticklabels():
-        if tick_label.get_text() in highlight_genes:
+    for gene, tick_label in zip(gene_metadata.order, ax.xaxis.get_ticklabels()):
+        if gene in gene_metadata.highlights:
             tick_label.set_color(figure_cfg["highlight_label_color"])
             tick_label.set_fontweight(figure_cfg["highlight_label_weight"])
 
@@ -901,29 +974,22 @@ def add_group_separators(ax, df, cluster_order, cfg):
 
 def plot_dotplot(
     df,
-    gene_order,
+    gene_metadata,
     cluster_order,
-    gene_groups,
-    highlight_genes,
     cfg,
-    gene_linkage=None,
-    clustered_genes=None,
 ):
     """Render and save the multi-sample dotplot.
 
     Args:
         df: Filtered long-format dotplot summary table.
-        gene_order: Ordered genes for the x-axis.
+        gene_metadata: GeneMetadata object for the current plot.
         cluster_order: Ordered cluster identifiers for the y-axis.
-        gene_groups: Optional mapping from gene to group label.
-        highlight_genes: Set of genes whose x-axis labels should be highlighted.
         cfg: Plot config dictionary.
-        gene_linkage: Optional hierarchical clustering linkage matrix for genes.
-        clustered_genes: Genes represented in `gene_linkage`, in dendrogram leaf order.
     """
     figure_cfg = {**DEFAULT_FIGURE, **cfg.get("figure", {})}
     output_png = cfg["output_png"]
 
+    gene_order = gene_metadata.order
     gene_to_x = {gene: i for i, gene in enumerate(gene_order)}
     cluster_to_y = {cluster: i for i, cluster in enumerate(cluster_order)}
 
@@ -956,7 +1022,9 @@ def plot_dotplot(
     )
     show_gene_dendrogram = bool(cfg.get("show_gene_dendrogram", False))
     dendrogram_enabled = (
-        show_gene_dendrogram and gene_linkage is not None and bool(clustered_genes)
+        show_gene_dendrogram
+        and gene_metadata.linkage is not None
+        and bool(gene_metadata.clustered_genes)
     )
     if dendrogram_enabled:
         from scipy.cluster.hierarchy import dendrogram
@@ -974,11 +1042,11 @@ def plot_dotplot(
             sharex=True,
         )
         dendrogram_data = dendrogram(
-            gene_linkage,
+            gene_metadata.linkage,
             orientation="top",
             no_plot=True,
         )
-        clustered_x_offset = gene_to_x[clustered_genes[0]]
+        clustered_x_offset = gene_to_x[gene_metadata.clustered_genes[0]]
         for xs, ys in zip(dendrogram_data["icoord"], dendrogram_data["dcoord"]):
             # SciPy places leaves at 5, 15, 25, ...; transform those coordinates
             # onto the dotplot's integer gene positions so branches align with ticks.
@@ -1001,9 +1069,10 @@ def plot_dotplot(
         linewidths=0.25,
     )
 
+    x_tick_labels = [gene_metadata.labels.get(gene, gene) for gene in gene_order]
     ax.set_xticks(range(len(gene_order)))
     ax.set_xticklabels(
-        gene_order, rotation=90, fontsize=figure_cfg["x_tick_fontsize"]
+        x_tick_labels, rotation=90, fontsize=figure_cfg["x_tick_fontsize"]
     )
     ax.tick_params(
         axis="x",
@@ -1028,7 +1097,7 @@ def plot_dotplot(
     )
     ax.tick_params(axis="x", labelsize=figure_cfg["x_tick_fontsize"])
     ax.tick_params(axis="y", labelsize=figure_cfg["y_tick_fontsize"])
-    style_highlighted_gene_labels(ax, highlight_genes, figure_cfg)
+    style_highlighted_gene_labels(ax, gene_metadata, figure_cfg)
     title_artist = fig.suptitle(
         cfg.get("title", "Multi-sample dotplot summary"),
         fontsize=figure_cfg["title_fontsize"],
@@ -1037,8 +1106,8 @@ def plot_dotplot(
 
     gene_group_label_artists = add_gene_group_labels(
         ax,
-        gene_order,
-        gene_groups,
+        gene_metadata.order,
+        gene_metadata.groups,
         figure_cfg,
     )
     add_group_separators(ax, df, cluster_order, cfg)
@@ -1160,16 +1229,15 @@ def main():
     df = filter_values(df, "sample", cfg.get("samples"))
     df = filter_values(df, "resolution", cfg.get("resolutions"))
 
-    df, gene_order, gene_groups = resolve_gene_order(df, cfg)
-    df, gene_order, gene_groups = apply_gene_review_filter(
+    df, gene_metadata = resolve_gene_order(df, cfg)
+    df, gene_metadata = apply_gene_review_filter(
         df=df,
-        gene_order=gene_order,
-        gene_groups=gene_groups,
+        gene_metadata=gene_metadata,
         cfg=cfg,
     )
     df = apply_expression_zscore(df, cfg)
-    gene_order, gene_linkage, clustered_genes = cluster_gene_order(df, gene_order, cfg)
-    highlight_genes = load_highlight_genes(
+    gene_metadata = cluster_gene_order(df, gene_metadata, cfg)
+    gene_metadata.highlights = load_highlight_genes(
         cfg.get("highlight_gene_file"),
         cfg.get("highlight_gene_column", cfg.get("gene_column", "Gene")),
         cfg.get("gene_column", "Gene"),
@@ -1180,13 +1248,9 @@ def main():
 
     plot_dotplot(
         df=df,
-        gene_order=gene_order,
+        gene_metadata=gene_metadata,
         cluster_order=cluster_order,
-        gene_groups=gene_groups,
-        highlight_genes=highlight_genes,
         cfg=cfg,
-        gene_linkage=gene_linkage,
-        clustered_genes=clustered_genes,
     )
 
 
