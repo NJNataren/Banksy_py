@@ -3,11 +3,11 @@
 
 """
 Title: Plot Selected Crop Cluster Figures From Config
-Date: 2026-08-31
+Date: 2026-09-02
 Summary: Regenerate only selected spatial crop cluster plots from the filtered
 VBCT conference config. The helper is intended for quick presentation-figure
-iteration and currently redraws CK_bowel_res view 2 and MG_gastric_non_res
-view 3 with configurable base and endothelial-cell dot sizes.
+iteration and redraws named crop windows with configurable base and
+endothelial-cell dot sizes.
 """
 
 import argparse
@@ -36,6 +36,18 @@ def parse_args():
         help="Path to JSON figure config.",
     )
     parser.add_argument(
+        "--only-sample",
+        action="append",
+        default=[],
+        help="Sample name to run. Repeat to run several samples from one config.",
+    )
+    parser.add_argument(
+        "--crop-name",
+        action="append",
+        default=[],
+        help="Crop window name to run. Repeat to run several windows.",
+    )
+    parser.add_argument(
         "--cluster-point-size",
         type=float,
         default=17.0,
@@ -61,9 +73,11 @@ def prepare_sample_adata(sample_cfg, cfg):
     return adata
 
 
-def selected_windows(sample_cfg, cfg):
+def selected_windows(sample_cfg, cfg, args):
     """Yield configured crop windows selected for quick regeneration."""
-    selected_names = DEFAULT_SELECTED_CROPS.get(sample_cfg["sample"], set())
+    selected_names = set(args.crop_name) or DEFAULT_SELECTED_CROPS.get(
+        sample_cfg["sample"], set()
+    )
     for window in conference.get_sample_value(sample_cfg, cfg, "crop_windows", []):
         if window.get("name") in selected_names:
             yield window
@@ -82,7 +96,9 @@ def endothelial_highlight_config(point_size):
 def run_sample(sample_cfg, cfg, args):
     """Regenerate selected crop cluster plots for one sample."""
     sample_name = sample_cfg["sample"]
-    if sample_name not in DEFAULT_SELECTED_CROPS:
+    if args.only_sample and sample_name not in set(args.only_sample):
+        return
+    if not args.crop_name and sample_name not in DEFAULT_SELECTED_CROPS:
         return
 
     resolution = sample_cfg.get("resolution", "selected_resolution")
@@ -97,7 +113,7 @@ def run_sample(sample_cfg, cfg, args):
     frameon = bool(conference.get_sample_value(sample_cfg, cfg, "crop_show_axes", True))
 
     adata = prepare_sample_adata(sample_cfg, cfg)
-    for window in selected_windows(sample_cfg, cfg):
+    for window in selected_windows(sample_cfg, cfg, args):
         name = window["name"].replace(" ", "_")
         cropped = conference.crop_adata_to_window(adata, window)
         print(
