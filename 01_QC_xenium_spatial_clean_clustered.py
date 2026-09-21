@@ -1617,14 +1617,14 @@ fig, ax = plt.subplots(figsize=(7, 5))
 
 sns.scatterplot(
     data=adata.obs,
-    y="gene_transcripts_per_um2",
-    x="neg_probe_pct_of_gene_plus_neg_probe",
+    x="gene_transcripts_per_um2",
+    y="neg_probe_pct_of_gene_plus_neg_probe",
     ax=ax
 )
 
 ax.set_title("Negative control probe % vs raw gene transcripts per µm²")
-ax.set_xlabel("Percentage negative control counts per cell (%)")
-ax.set_ylabel("Transcripts per µm²")
+ax.set_xlabel("Transcripts per µm²")
+ax.set_ylabel("Percentage negative control counts per cell (%)")
 
 fig.tight_layout()
 fig.savefig(
@@ -2334,6 +2334,30 @@ plt.savefig(
 plt.show() 
 
 
+# -------------- Plot of total transripts per cell across sample ------------- #
+# vmax set to a hard threshold of 200 to make better use of the lower end of the scale
+with rc_context({"figure.figsize": (12, 8)}):
+    sq.pl.spatial_scatter(
+        adata,
+        library_id="dataset_name",
+        spatial_key="xy",
+        color="nCount_Xenium",
+        shape=None,
+        size=2,
+        img=False,
+        vmax = 200,
+        #cmap="gist_stern"
+        #cmap="gist_rainbow"
+        #cmap="rainbow"
+        cmap="Spectral"
+    )
+
+plt.savefig(
+    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_hard_threshold_200_{dataset_name}.png"),
+    dpi=300,
+    bbox_inches='tight'
+    )
+plt.show() 
 
 
 # In[56]:
