@@ -3,14 +3,16 @@
 
 """
 Title: Plot Multi-Sample Dotplot From Config Local
-Date: 2026-09-15
+Date: 2026-09-23
 Summary: Local-working copy of the multi-sample dotplot renderer. Read one or
 more long-format dotplot summary CSVs produced by
 03_export_dotplot_data_from_config.py and render a combined multi-sample
 dotplot from a JSON config using a compact local layout. Rows can represent
 BANKSY clusters or any other exported grouping, including archived cell-type
-labels. Per-sample filters can keep one resolution, several resolutions, or all
-available resolutions for cross-resolution marker review.
+labels. Optional row metadata can add annotation labels, filters, and ordering
+without rewriting the expression exports. Per-sample filters can keep one
+resolution, several resolutions, or all available resolutions for
+cross-resolution marker review.
 """
 
 import argparse
@@ -191,6 +193,156 @@ def load_export_tables(input_csvs):
     return combined
 
 
+def normalize_join_column(series, column):
+    """Return string join keys with resolution values normalized consistently."""
+    values = series.astype(str)
+    if column == "resolution":
+        return values.map(normalize_resolution_value)
+    return values
+
+
+def apply_row_metadata(df, cfg):
+    """Join optional cluster-level metadata tables onto expression rows.
+
+    Args:
+        df: Combined long-format dotplot summary table.
+        cfg: Plot config containing `row_metadata_files`, or the legacy singular
+            `row_metadata_file`, and associated join settings.
+
+    Returns:
+        Expression rows augmented with the requested metadata columns.
+
+    Raises:
+        ValueError: If keys or requested columns are missing, metadata keys are
+            duplicated, output columns collide, or any expression row is unmatched.
+    """
+    metadata_specs = cfg.get("row_metadata_files")
+    if metadata_specs is None and cfg.get("row_metadata_file"):
+        metadata_specs = [{
+            "file": cfg["row_metadata_file"],
+            "join_columns": cfg.get(
+                "row_metadata_join_columns", ["sample", "cluster_id"]
+            ),
+            "columns": cfg.get("row_metadata_columns"),
+        }]
+    if not metadata_specs:
+        return df
+
+    if isinstance(metadata_specs, (str, dict)):
+        metadata_specs = [metadata_specs]
+
+    merged = df
+    for raw_spec in metadata_specs:
+        spec = {"file": raw_spec} if isinstance(raw_spec, str) else raw_spec
+        metadata_file = spec["file"]
+        join_columns = spec.get("join_columns", ["sample", "cluster_id"])
+        metadata = pd.read_csv(metadata_file)
+
+        missing_left = set(join_columns) - set(merged.columns)
+        missing_right = set(join_columns) - set(metadata.columns)
+        if missing_left or missing_right:
+            raise ValueError(
+                f"Cannot join row metadata {metadata_file}: missing expression "
+                f"keys {sorted(missing_left)} and metadata keys {sorted(missing_right)}"
+            )
+
+        selected_columns = spec.get("columns")
+        if selected_columns is None:
+            selected_columns = [
+                column for column in metadata.columns if column not in join_columns
+            ]
+        missing_selected = set(selected_columns) - set(metadata.columns)
+        if missing_selected:
+            raise ValueError(
+                f"Row metadata {metadata_file} is missing requested columns: "
+                f"{sorted(missing_selected)}"
+            )
+        collisions = (set(selected_columns) & set(merged.columns)) - set(join_columns)
+        if collisions:
+            raise ValueError(
+                f"Row metadata {metadata_file} would overwrite columns: "
+                f"{sorted(collisions)}"
+            )
+
+        metadata = metadata[join_columns + selected_columns].copy()
+        for column in join_columns:
+            merged[column] = normalize_join_column(merged[column], column)
+            metadata[column] = normalize_join_column(metadata[column], column)
+        if metadata.duplicated(join_columns).any():
+            duplicate_count = int(metadata.duplicated(join_columns, keep=False).sum())
+            raise ValueError(
+                f"Row metadata {metadata_file} has {duplicate_count} rows with "
+                f"duplicate join keys {join_columns}"
+            )
+
+        # Validate every plotted cluster against exactly one metadata row so a
+        # partial annotation file cannot silently produce misleading labels.
+        merged = merged.merge(
+            metadata,
+            on=join_columns,
+            how="left",
+            validate="many_to_one",
+            indicator="_row_metadata_match",
+        )
+        unmatched = merged["_row_metadata_match"] != "both"
+        if unmatched.any():
+            missing_keys = merged.loc[unmatched, join_columns].drop_duplicates().head(10)
+            raise ValueError(
+                f"Row metadata {metadata_file} did not match {unmatched.sum()} "
+                f"expression rows. Example keys:\n{missing_keys.to_string(index=False)}"
+            )
+        merged = merged.drop(columns="_row_metadata_match")
+        print(
+            f"Joined {len(selected_columns)} columns from {metadata_file} "
+            f"using {join_columns}"
+        )
+
+    return merged
+
+
+def apply_row_filters(df, row_filters, mode="all"):
+    """Apply configured allowed-value filters to joined row metadata columns.
+
+    Args:
+        df: Dotplot rows after optional metadata joins.
+        row_filters: Mapping of column names to allowed values.
+        mode: `all` to require every filter or `any` to keep rows matching at
+            least one filter.
+
+    Returns:
+        Filtered dotplot rows.
+    """
+    if not row_filters:
+        return df
+
+    if mode not in {"all", "any"}:
+        raise ValueError("row_filter_mode must be either 'all' or 'any'")
+
+    masks = []
+    for column, allowed_values in row_filters.items():
+        if column not in df.columns:
+            raise ValueError(
+                f"Row filter column {column!r} was not found. "
+                f"Available columns: {list(df.columns)}"
+            )
+        allowed_values = {str(value) for value in allowed_values}
+        values = df[column].astype(str)
+        if column == "resolution":
+            allowed_values = {
+                normalize_resolution_value(value) for value in allowed_values
+            }
+            values = values.map(normalize_resolution_value)
+        masks.append(values.isin(allowed_values))
+
+    combined_mask = masks[0]
+    for mask in masks[1:]:
+        combined_mask = combined_mask & mask if mode == "all" else combined_mask | mask
+    filtered = df[combined_mask].copy()
+    if filtered.empty:
+        raise ValueError(f"Configured row filters in {mode!r} mode removed all rows")
+    return filtered
+
+
 def normalize_resolution_value(value):
     """Return a comparable resolution label while preserving non-numeric values."""
     value = str(value).strip()
@@ -309,6 +461,8 @@ def load_gene_file(
     gene_order_column=None,
     gene_label_columns=None,
     gene_label_separator=" - ",
+    group_gene_order=False,
+    gene_group_order=None,
 ):
     """Load an optional gene filter, grouping table, display labels, and order.
 
@@ -319,6 +473,9 @@ def load_gene_file(
         gene_order_column: Optional column used to order genes before plotting.
         gene_label_columns: Optional columns joined to make x-axis gene labels.
         gene_label_separator: Separator used when joining label column values.
+        group_gene_order: Whether to keep gene groups together before applying
+            the within-group gene order.
+        gene_group_order: Optional explicit ordering of gene-group labels.
 
     Returns:
         GeneMetadata containing requested gene order, groups, and labels.
@@ -365,8 +522,26 @@ def load_gene_file(
         gene_df["_gene_order_sort"] = pd.to_numeric(
             gene_df[gene_order_column], errors="coerce"
         )
+        sort_columns = ["_gene_order_sort", gene_order_column, gene_column]
+        if group_gene_order and gene_group_column:
+            configured_groups = {
+                str(group): index for index, group in enumerate(gene_group_order or [])
+            }
+            gene_df["_gene_group_sort"] = (
+                gene_df[gene_group_column].astype(str).map(configured_groups)
+            )
+            gene_df["_gene_group_sort"] = gene_df["_gene_group_sort"].fillna(
+                len(configured_groups)
+            )
+            sort_columns = [
+                "_gene_group_sort",
+                gene_group_column,
+                "_gene_order_sort",
+                gene_order_column,
+                gene_column,
+            ]
         gene_df = gene_df.sort_values(
-            ["_gene_order_sort", gene_order_column, gene_column],
+            sort_columns,
             na_position="last",
             kind="mergesort",
         )
@@ -706,6 +881,8 @@ def resolve_gene_order(df, cfg):
         cfg.get("gene_order_column"),
         cfg.get("gene_label_columns"),
         cfg.get("gene_label_separator", " - "),
+        cfg.get("group_gene_order", False),
+        cfg.get("gene_group_order"),
     )
 
     if gene_metadata.order:
@@ -794,6 +971,42 @@ def build_cluster_order(df, cfg):
     Returns:
         Ordered list of `sample_cluster` identifiers for the y-axis.
     """
+    row_order_columns = cfg.get("row_order_columns")
+    if row_order_columns:
+        missing_columns = set(row_order_columns) - set(df.columns)
+        if missing_columns:
+            raise ValueError(
+                f"Row order columns were not found: {sorted(missing_columns)}"
+            )
+        unique_rows = df.drop_duplicates("sample_group").copy()
+        row_order_values = cfg.get("row_order_values", {})
+        sort_columns = []
+        for index, column in enumerate(row_order_columns):
+            text_column = f"_row_sort_{index}_text"
+            rank_column = f"_row_sort_{index}_rank"
+            numeric_column = f"_row_sort_{index}_numeric"
+            text_values = unique_rows[column].fillna("").astype(str)
+            configured = {
+                str(value): position
+                for position, value in enumerate(row_order_values.get(column, []))
+            }
+            if configured:
+                unique_rows[rank_column] = (
+                    text_values.map(configured).fillna(len(configured)).astype(int)
+                )
+                unique_rows[text_column] = text_values
+                sort_columns.extend([rank_column, text_column])
+            else:
+                numeric_values = pd.to_numeric(text_values, errors="coerce")
+                unique_rows[rank_column] = numeric_values.isna().astype(int)
+                unique_rows[numeric_column] = numeric_values.fillna(0)
+                unique_rows[text_column] = text_values
+                sort_columns.extend([rank_column, numeric_column, text_column])
+        return (
+            unique_rows.sort_values(sort_columns, kind="mergesort")["sample_group"]
+            .tolist()
+        )
+
     sample_order = sort_with_optional_order(
         df["sample"].drop_duplicates(), cfg.get("sample_order")
     )
@@ -829,18 +1042,7 @@ def build_cluster_order(df, cfg):
 
 def make_cluster_labels(df, cluster_order, cfg):
     """Create readable y-axis labels for sample/resolution/group rows."""
-    label_df = (
-        df[[
-            "sample_group",
-            "sample",
-            "resolution",
-            "group_id",
-            "group_label",
-            "groupby_label",
-        ]]
-        .drop_duplicates("sample_group")
-        .set_index("sample_group")
-    )
+    label_df = df.drop_duplicates("sample_group").set_index("sample_group")
     label_template = cfg.get(
         "y_label_template",
         "{sample} | r{resolution} | {group_label}",
@@ -848,16 +1050,15 @@ def make_cluster_labels(df, cluster_order, cfg):
     labels = []
     for sample_group in cluster_order:
         row = label_df.loc[sample_group]
-        labels.append(
-            label_template.format(
-                sample=row["sample"],
-                resolution=row["resolution"],
-                group_id=row["group_id"],
-                cluster_id=row["group_id"],
-                group_label=row["group_label"],
-                groupby_label=row["groupby_label"],
-            )
-        )
+        template_values = row.to_dict()
+        template_values["sample_group"] = sample_group
+        template_values.setdefault("cluster_id", row["group_id"])
+        try:
+            labels.append(label_template.format_map(template_values))
+        except KeyError as error:
+            raise ValueError(
+                f"Y-axis label template references missing column {error.args[0]!r}"
+            ) from error
     return labels
 
 
@@ -949,6 +1150,28 @@ def style_highlighted_gene_labels(ax, gene_metadata, figure_cfg):
 
 def add_group_separators(ax, df, cluster_order, cfg):
     """Draw horizontal separators between sample and resolution blocks."""
+    if not cfg.get("show_group_separators", True):
+        return
+
+    separator_column = cfg.get("row_separator_column")
+    if separator_column:
+        if separator_column not in df.columns:
+            raise ValueError(
+                f"Row separator column {separator_column!r} was not found"
+            )
+        label_df = (
+            df[["sample_group", separator_column]]
+            .drop_duplicates("sample_group")
+            .set_index("sample_group")
+        )
+        previous_value = None
+        for idx, sample_group in enumerate(cluster_order):
+            value = label_df.loc[sample_group, separator_column]
+            if previous_value is not None and value != previous_value:
+                ax.axhline(idx - 0.5, color="#555555", linewidth=1.0)
+            previous_value = value
+        return
+
     label_df = (
         df[["sample_group", "sample", "resolution"]]
         .drop_duplicates("sample_group")
@@ -1228,6 +1451,12 @@ def main():
     df = apply_sample_filters(df, cfg.get("sample_filters"))
     df = filter_values(df, "sample", cfg.get("samples"))
     df = filter_values(df, "resolution", cfg.get("resolutions"))
+    df = apply_row_metadata(df, cfg)
+    df = apply_row_filters(
+        df,
+        cfg.get("row_filters"),
+        cfg.get("row_filter_mode", "all"),
+    )
 
     df, gene_metadata = resolve_gene_order(df, cfg)
     df, gene_metadata = apply_gene_review_filter(

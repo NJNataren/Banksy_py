@@ -1,0 +1,23 @@
+{
+  "project": "vbct",
+  "dataset_name": "MG_gastric_non_res",
+  "output_label": "filtered_qc_v1_grouped_area95_trial",
+  "max_area_threshold_mode": "cell_type_group",
+  "max_area_threshold_groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
+  "max_area_threshold_percentile": 0.95,
+  "max_area_threshold_group_map": {
+    "0": "Melanoma_Cell_or_Melanocyte",
+    "1": "Melanoma_Cell_or_Melanocyte",
+    "2": "Melanoma_Cell_or_Melanocyte",
+    "3": "Epithelial_Cell",
+    "4": "Epithelial_Cell",
+    "5": "Fibroblast",
+    "6": "Fibroblast",
+    "9": "Epithelial_Cell",
+    "11": "Fibroblast",
+    "12": "Melanoma_Cell_or_Melanocyte",
+    "13": "Fibroblast",
+    "15": "Melanoma_Cell_or_Melanocyte",
+    "17": "Fibroblast"
+  }
+}
