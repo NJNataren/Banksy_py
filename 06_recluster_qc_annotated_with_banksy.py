@@ -3,11 +3,12 @@
 
 """
 Title: QC-Annotated Xenium BANKSY Reclustering
-Date: 2026-08-18
+Date: 2026-09-28
 Summary: Recluster a script 05 QC-annotated clean expression AnnData object
 with BANKSY using either qc_pass_only or all_cells inclusion, copy reclustering
 labels back onto the full object, and write clustering QC plots from clean
 log-normalized expression, including clean-object UMAP cluster and QC plots.
+Area-filter plot labels are derived from script 05 provenance.
 """
 
 import argparse
@@ -73,6 +74,29 @@ def ensure_directory(path, label):
     """Create `path` and log the resolved location."""
     os.makedirs(path, exist_ok=True)
     print(f"{label} directory ready: {os.path.abspath(path)}")
+
+
+def describe_area_percentile_filter(adata):
+    """Return a plot title derived from script 05 area-filter provenance."""
+    qc_provenance = adata.uns.get("qc_filter_provenance", {})
+    area_provenance = qc_provenance.get("area_percentile_filter", {})
+    if not area_provenance:
+        return "Failed area-percentile filter"
+
+    percentile = float(area_provenance.get("percentile", 0.99))
+    upper_tail = float(area_provenance.get("upper_tail_fraction", 1.0 - percentile))
+    mode = str(area_provenance.get("mode", "unknown"))
+    group_description = {
+        "cluster": "cluster",
+        "cell_type_group": "cell-type group",
+        "existing_script01_mask": "script 01 group",
+    }.get(mode, "configured group")
+    percentile_label = f"{percentile * 100:g}"
+    upper_tail_label = f"{upper_tail * 100:g}"
+    return (
+        f"Failed upper {upper_tail_label}% cell-area filter "
+        f"(p{percentile_label}) within {group_description}"
+    )
 
 
 def make_cluster_palette(n_colors):
@@ -932,13 +956,14 @@ else:
 # Clean-object UMAP plots
 # -----------------------------------------------------------------------------
 
+area_filter_plot_title = describe_area_percentile_filter(full_adata)
 qc_umap_titles = {
     "qc_filter_status": "Combined QC filter status",
     "qc_keep_for_reclustering": "Kept for BANKSY reclustering",
     "qc_fail_min_trans_passed": "Failed minimum transcript threshold",
     "qc_fail_max_trans_threshold_passed": "Failed maximum transcript threshold",
     "qc_fail_negative_control_probe_ge2": "Failed negative-control probe threshold",
-    "qc_fail_max_area_threshold_99_by_cluster": "Failed top 1% area within cluster threshold",
+    "qc_fail_area_percentile_filter": area_filter_plot_title,
     "qc_fail_reason": "Primary QC fail reason",
     "qc_fail_reason_set": "QC fail reason set",
 }

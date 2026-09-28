@@ -543,56 +543,55 @@ annotated_output_h5ad
 
 Do not use `filtered_output_h5ad`. Script 05 now raises an error if that stale key appears in a config, because it no longer writes hard-filtered AnnData files.
 
-Optional max-area recompute settings let script 05 replace the script 01 `max_area_threshold_99_by_cluster` mask without rerunning script 01. Current behavior remains the default:
+Area-percentile filtering uses a stable schema independent of the chosen
+percentile. If `area_percentile_filter` is absent, script 05 imports the
+historical script 01 `max_area_threshold_99_by_cluster` mask into the generic
+output schema.
+
+To calculate a percentile independently within each BANKSY cluster:
 
 ```json
-"max_area_threshold_mode": "existing"
-```
-
-To recompute the 99th percentile of `cell_area` within raw clusters from a chosen resolution:
-
-```json
-"max_area_threshold_mode": "cluster_col",
-"max_area_threshold_groupby": "labels_scaled_gaussian_pc55_nc0.20_r0.70",
-"max_area_threshold_percentile": 0.99
-```
-
-To collapse selected clusters into temporary area-filter groups only:
-
-```json
-"max_area_threshold_mode": "cell_type_group",
-"max_area_threshold_groupby": "labels_scaled_gaussian_pc55_nc0.20_r0.70",
-"max_area_threshold_percentile": 0.99,
-"max_area_threshold_group_map": {
-  "0": "Melanoma",
-  "3": "Melanoma",
-  "8": "Melanoma",
-  "1": "Macrophage",
-  "5": "Macrophage"
+"area_percentile_filter": {
+  "mode": "cluster",
+  "percentile": 0.99,
+  "groupby": "labels_scaled_gaussian_pc55_nc0.20_r0.70"
 }
 ```
 
-Unmapped cluster labels stay as separate area-filter groups. Script 05 still writes the compatibility fail mask `max_area_threshold_99_by_cluster`, plus audit columns describing the grouping source, mode, group label, and threshold.
+To collapse selected clusters into temporary cell-type groups for the area
+calculation only:
+
+```json
+"area_percentile_filter": {
+  "mode": "cell_type_group",
+  "percentile": 0.95,
+  "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
+  "group_map": {
+    "0": "Melanoma",
+    "3": "Melanoma",
+    "8": "Melanoma",
+    "1": "Macrophage",
+    "5": "Macrophage"
+  }
+}
+```
+
+Unmapped clusters stay as separate area-filter groups. BANKSY labels are never
+merged or overwritten.
 
 ### Required Input Columns
 
-The input AnnData must contain these QC columns in `.obs`. `max_area_threshold_99_by_cluster` can either come from script 01 or be recomputed by script 05 when `max_area_threshold_mode` is set to `cluster_col` or `cell_type_group`:
+All runs require these script 01 QC columns in `.obs`:
 
 ```text
 min_trans_passed
 max_trans_threshold_passed
 negative_control_probe_ge2
-max_area_threshold_99_by_cluster
 ```
 
-Mask semantics are explicit:
-
-```text
-min_trans_passed                         pass mask; True means keep
-max_trans_threshold_passed               fail mask; True means remove from qc_pass_only reclustering
-negative_control_probe_ge2               fail mask; True means remove from qc_pass_only reclustering
-max_area_threshold_99_by_cluster         fail mask; True means remove from qc_pass_only reclustering
-```
+Configured area-percentile runs also require `cell_area` and the configured
+`groupby` column. Runs without an `area_percentile_filter` block require the
+historical script 01 `max_area_threshold_99_by_cluster` input mask.
 
 ### Main Outputs
 
@@ -602,26 +601,39 @@ Full-cell annotated AnnData:
 data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_qc_annotated_<output_label>.h5ad
 ```
 
-Audit CSV:
+Readable audit files:
 
 ```text
 data/xenium/output/<project>/QC_filtering/<dataset_name>/<dataset_name>_qc_filter_summary_<output_label>.csv
+data/xenium/output/<project>/QC_filtering/<dataset_name>/<dataset_name>_area_percentile_filter_groups_<output_label>.csv
+data/xenium/output/<project>/QC_filtering/<dataset_name>/<dataset_name>_qc_filter_resolved_config_<output_label>.json
 ```
+
+The group-level area CSV is written for newly calculated area filters. The
+resolved config and summary are written for every run.
 
 New `.obs` columns include:
 
 ```text
+area_percentile_filter_fail
+area_percentile_filter_status
+area_percentile_group
+area_percentile_threshold
 qc_keep_for_reclustering
 qc_filter_status
 qc_fail_min_trans_passed
 qc_fail_max_trans_threshold_passed
 qc_fail_negative_control_probe_ge2
-qc_fail_max_area_threshold_99_by_cluster
+qc_fail_area_percentile_filter
 qc_fail_reason
 qc_fail_reason_set
 ```
 
-`qc_keep_for_reclustering` is the column script 06 uses when `recluster_inclusion` is set to the default `qc_pass_only` mode.
+The resolved filter settings are also embedded in
+`adata.uns["qc_filter_provenance"]`. Script 06 uses that provenance to label
+area-filter QC plots with the actual percentile and grouping mode.
+`qc_keep_for_reclustering` remains the inclusion column used by script 06 in
+`qc_pass_only` mode.
 
 ### Example Run
 

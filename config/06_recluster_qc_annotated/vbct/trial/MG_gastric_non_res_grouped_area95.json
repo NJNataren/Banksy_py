@@ -31,7 +31,8 @@
   "qc_umap_metrics": [
     "qc_filter_status",
     "qc_keep_for_reclustering",
-    "qc_fail_reason"
+    "qc_fail_reason",
+    "qc_fail_area_percentile_filter"
   ],
   "banksy_umap_alpha": 0.35,
   "banksy_pca_alpha": 0.35,
