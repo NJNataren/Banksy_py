@@ -1,0 +1,17 @@
+{
+  "project": "vbct",
+  "dataset_name": "EL_skin_res",
+  "output_label": "filtered_qc_v1_grouped_area95",
+  "area_percentile_filter": {
+    "mode": "cell_type_group",
+    "percentile": 0.95,
+    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+    "group_map": {
+      "0": "Melanoma_Cell_or_Melanocyte", "1": "Melanoma_Cell_or_Melanocyte",
+      "2": "Melanoma_Cell_or_Melanocyte", "4": "Melanoma_Cell_or_Melanocyte",
+      "7": "Melanoma_Cell_or_Melanocyte", "10": "Melanoma_Cell_or_Melanocyte",
+      "12": "Fibroblast", "13": "Fibroblast", "15": "Melanoma_Cell_or_Melanocyte",
+      "17": "Melanoma_Cell_or_Melanocyte", "18": "Fibroblast", "19": "Fibroblast"
+    }
+  }
+}

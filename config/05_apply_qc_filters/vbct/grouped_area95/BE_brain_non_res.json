@@ -1,0 +1,14 @@
+{
+  "project": "vbct",
+  "dataset_name": "BE_brain_non_res",
+  "output_label": "filtered_qc_v1_grouped_area95",
+  "area_percentile_filter": {
+    "mode": "cell_type_group",
+    "percentile": 0.95,
+    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+    "group_map": {
+      "0": "Macrophage", "4": "Macrophage", "5": "Macrophage",
+      "6": "Macrophage", "12": "Macrophage", "13": "Macrophage"
+    }
+  }
+}

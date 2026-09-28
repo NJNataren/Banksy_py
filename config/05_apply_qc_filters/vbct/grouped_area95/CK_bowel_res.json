@@ -1,0 +1,22 @@
+{
+  "project": "vbct",
+  "dataset_name": "CK_bowel_res",
+  "output_label": "filtered_qc_v1_grouped_area95",
+  "area_percentile_filter": {
+    "mode": "cell_type_group",
+    "percentile": 0.95,
+    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+    "group_map": {
+      "0": "T_Cell", "1": "Melanoma_Cell_or_Melanocyte", "2": "Macrophage",
+      "3": "Endothelial_Cell", "6": "Melanoma_Cell_or_Melanocyte",
+      "8": "Melanoma_Cell_or_Melanocyte", "9": "Melanoma_Cell_or_Melanocyte",
+      "11": "Macrophage", "12": "Melanoma_Cell_or_Melanocyte",
+      "14": "Melanoma_Cell_or_Melanocyte", "15": "Macrophage",
+      "17": "Melanoma_Cell_or_Melanocyte", "18": "Melanoma_Cell_or_Melanocyte",
+      "19": "T_Cell", "20": "Melanoma_Cell_or_Melanocyte",
+      "21": "Melanoma_Cell_or_Melanocyte", "22": "Melanoma_Cell_or_Melanocyte",
+      "23": "Endothelial_Cell", "24": "T_Cell", "25": "T_Cell",
+      "26": "Melanoma_Cell_or_Melanocyte"
+    }
+  }
+}

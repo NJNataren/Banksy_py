@@ -1,0 +1,20 @@
+{
+  "project": "vbct",
+  "dataset_name": "HW_brain_res",
+  "output_label": "filtered_qc_v1_grouped_area95",
+  "area_percentile_filter": {
+    "mode": "cell_type_group",
+    "percentile": 0.95,
+    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+    "group_map": {
+      "0": "Melanoma_Cell_or_Melanocyte", "2": "Melanoma_Cell_or_Melanocyte",
+      "3": "Melanoma_Cell_or_Melanocyte", "4": "Melanoma_Cell_or_Melanocyte",
+      "5": "Melanoma_Cell_or_Melanocyte", "6": "Melanoma_Cell_or_Melanocyte",
+      "7": "Melanoma_Cell_or_Melanocyte", "9": "Melanoma_Cell_or_Melanocyte",
+      "10": "Melanoma_Cell_or_Melanocyte", "12": "Melanoma_Cell_or_Melanocyte",
+      "13": "Melanoma_Cell_or_Melanocyte", "14": "Melanoma_Cell_or_Melanocyte",
+      "18": "Melanoma_Cell_or_Melanocyte", "19": "Melanoma_Cell_or_Melanocyte",
+      "20": "Melanoma_Cell_or_Melanocyte"
+    }
+  }
+}
