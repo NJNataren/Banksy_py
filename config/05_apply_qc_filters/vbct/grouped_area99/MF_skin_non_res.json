@@ -1,0 +1,10 @@
+{
+  "project": "vbct",
+  "dataset_name": "MF_skin_non_res",
+  "output_label": "filtered_qc_v1_grouped_area99",
+  "area_percentile_filter": {
+    "mode": "cluster",
+    "percentile": 0.99,
+    "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.50"
+  }
+}
