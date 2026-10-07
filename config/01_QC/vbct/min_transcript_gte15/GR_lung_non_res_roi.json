@@ -1,0 +1,42 @@
+{
+    "project": "vbct",
+    "raw_subdir": "vbct",
+    "dataset_name": "GR_lung_non_res_roi",
+    "pc_label": "35",
+    "lambda_label": "0.20",
+    "res_label": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10"
+    ],
+    "plot_res_label": "0.70",
+    "nbr_weight_decay": "scaled_gaussian",
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
+    "cluster_col": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
+    "new_labels": {
+        "0": "Melanoma_Cell_or_Melanocyte_0",
+        "1": "Unassigned_1",
+        "2": "Melanoma_Cell_or_Melanocyte_2",
+        "3": "Fibroblast_Macrophage_3",
+        "4": "Macrophage_4",
+        "5": "Melanoma_Cell_or_Melanocyte_5",
+        "6": "Macrophage_6",
+        "7": "T_Cell_7",
+        "8": "Fibroblast_Pericyte_8",
+        "9": "Endothelial_Cell_9",
+        "10": "Melanoma_Cell_or_Melanocyte_10",
+        "11": "Melanoma_Cell_or_Melanocyte_11",
+        "12": "Unassigned_12"
+    },
+    "qc_output_label": "min_transcript_gte15",
+    "min_transcript_threshold": 15,
+    "min_transcript_pass_operator": "gte"
+}

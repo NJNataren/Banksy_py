@@ -169,6 +169,21 @@ cluster_col = cfg.get("cluster_col", f"labels_scaled_gaussian_pc{pc_label}_nc{la
 cluster_ann_col = f"{cluster_col}_ann"
 new_labels = cfg.get("new_labels", {}) # These are the cluster labels for cell types
 
+qc_output_label = cfg.get("qc_output_label", "")
+min_transcript_threshold = int(cfg.get("min_transcript_threshold", 10))
+min_transcript_pass_operator = cfg.get("min_transcript_pass_operator", "gt")
+if min_transcript_pass_operator not in {"gt", "gte"}:
+    raise ValueError(
+        "min_transcript_pass_operator must be either 'gt' or 'gte'. "
+        f"Received: {min_transcript_pass_operator!r}"
+    )
+min_transcript_fail_operator_label = (
+    "<=" if min_transcript_pass_operator == "gt" else "<"
+)
+min_transcript_pass_operator_label = (
+    ">" if min_transcript_pass_operator == "gt" else ">="
+)
+
 
 
 
@@ -1348,6 +1363,8 @@ clean_adata_path = os.path.join(
 
 ## Create a path for QC results, if it does not already exist
 qc_path = os.path.join(base_dir, "output", project, "QC_testing", dataset_name)
+if qc_output_label:
+    qc_path = os.path.join(qc_path, qc_output_label)
 
 if not os.path.isdir(qc_path):
     os.makedirs(qc_path)
@@ -2169,12 +2186,15 @@ negative_probe_vars
 #                FILTER 2 - Set the minimum transcript threshold               #
 # ---------------------------------------------------------------------------- #
 
-threshold = 10
+threshold = min_transcript_threshold
 knee = np.sort((np.array(adata.X.sum(axis=1))).flatten())[::-1]
 
 ## Plot the knee plot
 cell_set = np.arange(len(knee))
-num_cells = (knee > threshold).sum()
+if min_transcript_pass_operator == "gt":
+    num_cells = (knee > threshold).sum()
+else:
+    num_cells = (knee >= threshold).sum()
 fig, ax = plt.subplots(figsize=(10, 7))
 
 ax.semilogy(knee, linewidth =5, color="g")
@@ -2188,13 +2208,20 @@ ax.set_yticks([10, 20, 40, 60, 80, 100, 120, 140, 160, 200, 250, 300, 400, 500, 
 ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter())
 
 ax.grid(True, which="both")
-ax.set_title(f"Knee Plot | Threshold = {threshold} counts | {num_cells:,} cells pass")
+ax.set_title(
+    f"Knee Plot | Pass if nCount_Xenium {min_transcript_pass_operator_label} "
+    f"{threshold} counts | {num_cells:,} cells pass"
+)
 fig.tight_layout()
 fig.savefig(os.path.join(qc_path, f"transcript_knee_plot_{dataset_name}.png"), dpi=300, bbox_inches="tight")
 plt.show()
 plt.close(fig)
 
-print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee):,} ({num_cells/len(knee)*100:.1f}%)")
+print(
+    f"Cells passing nCount_Xenium {min_transcript_pass_operator_label} "
+    f"{threshold} counts: {num_cells:,} / {len(knee):,} "
+    f"({num_cells/len(knee)*100:.1f}%)"
+)
 
 
 
@@ -2210,7 +2237,10 @@ print(f"Cells passing threshold of {threshold} counts: {num_cells:,} / {len(knee
 # ---------------- Apply the minimum transcripts per cell mask --------------- #
 
 ## Apply a mask to retrieve cells that don't pass the filter
-mask = adata.obs['nCount_Xenium'] <= threshold
+if min_transcript_pass_operator == "gt":
+    mask = adata.obs['nCount_Xenium'] <= threshold
+else:
+    mask = adata.obs['nCount_Xenium'] < threshold
 
 # Turn the masked cells into a data frame
 mask.to_frame()
@@ -2221,7 +2251,9 @@ mask_cells = mask_cells.rename(columns={"index":"cell_id", "nCount_Xenium" : "mi
 # min_trans_filter_failed = mask_cells[mask_cells['min_trans_passed']]
 
 # Put results for the cells passing the threshold into the object directly
-adata.obs['min_trans_passed'] = adata.obs['nCount_Xenium'] > threshold #True = passed
+adata.obs['min_trans_passed'] = ~mask #True = passed
+adata.obs['min_transcript_threshold'] = threshold
+adata.obs['min_transcript_pass_operator'] = min_transcript_pass_operator
 
 
 
@@ -2618,7 +2650,10 @@ ax.axhline(
     color="red",
     linestyle="--",
     linewidth=1.5,
-    label=f"Minimum transcript threshold ({threshold})",
+    label=(
+        "Minimum transcript threshold "
+        f"(nCount_Xenium {min_transcript_pass_operator_label} {threshold})"
+    ),
 )
 
 area_p1 = adata.obs["cell_area"].quantile(0.01)
@@ -2666,7 +2701,7 @@ plt.close(fig)
 
 # -------- Summarize overlap of low-transcript and smallest-area cells -------- #
 
-low_transcript_mask = adata.obs["nCount_Xenium"] <= threshold
+low_transcript_mask = mask
 bottom_area_1pct_mask = adata.obs["cell_area"] <= area_p1
 low_transcript_and_bottom_area_mask = low_transcript_mask & bottom_area_1pct_mask
 bottom_area_not_low_transcript_mask = bottom_area_1pct_mask & ~low_transcript_mask
@@ -2681,7 +2716,10 @@ low_transcript_area_overlap_summary = pd.DataFrame(
     [
         {
             "metric": "low_transcript_cells",
-            "description": f"Cells with nCount_Xenium <= {threshold}",
+            "description": (
+                "Cells failing minimum transcript threshold: "
+                f"nCount_Xenium {min_transcript_fail_operator_label} {threshold}"
+            ),
             "n_cells": n_low_transcript,
             "percent_all_cells": n_low_transcript / n_total_cells * 100,
             "percent_bottom_area_1pct_cells": np.nan,
@@ -2696,7 +2734,9 @@ low_transcript_area_overlap_summary = pd.DataFrame(
         {
             "metric": "low_transcript_and_bottom_area_1pct",
             "description": (
-                f"Cells with nCount_Xenium <= {threshold} and in the bottom "
+                "Cells failing minimum transcript threshold "
+                f"(nCount_Xenium {min_transcript_fail_operator_label} {threshold}) "
+                "and in the bottom "
                 "1% by cell_area"
             ),
             "n_cells": n_low_transcript_and_bottom_area,
@@ -2709,8 +2749,9 @@ low_transcript_area_overlap_summary = pd.DataFrame(
         {
             "metric": "bottom_area_1pct_not_low_transcript",
             "description": (
-                f"Cells in the bottom 1% by cell_area but with nCount_Xenium > "
-                f"{threshold}"
+                "Cells in the bottom 1% by cell_area but passing the "
+                "minimum transcript threshold "
+                f"(nCount_Xenium {min_transcript_pass_operator_label} {threshold})"
             ),
             "n_cells": n_bottom_area_not_low_transcript,
             "percent_all_cells": n_bottom_area_not_low_transcript / n_total_cells * 100,
@@ -2759,10 +2800,9 @@ print(
 
 # -------- Spatial overlap: smallest-area cells vs low-transcript cells -------- #
 
-min_transcript_threshold = 10
 small_area_percentile = 0.01  # bottom 1% by cell area
 
-low_transcript_mask = adata.obs["nCount_Xenium"] <= min_transcript_threshold
+low_transcript_mask = mask
 
 small_area_threshold = adata.obs["cell_area"].quantile(small_area_percentile)
 small_area_mask = adata.obs["cell_area"] <= small_area_threshold
@@ -2820,7 +2860,7 @@ ax.set_xlabel("x")
 ax.set_ylabel("y")
 ax.set_title(
     f"{dataset_name}: bottom {small_area_percentile:.0%} cell area vs "
-    f"nCount_Xenium <= {min_transcript_threshold}"
+    f"nCount_Xenium {min_transcript_fail_operator_label} {threshold}"
 )
 ax.legend(fontsize=12, markerscale=4, frameon=False)
 
@@ -2830,7 +2870,7 @@ output_file = os.path.join(
     qc_path,
     (
         f"tissue_spatial_scatter_small_area_p{int(small_area_percentile * 100)}"
-        f"_low_transcript_threshold_{min_transcript_threshold}_{dataset_name}.png"
+        f"_low_transcript_threshold_{threshold}_{dataset_name}.png"
     ),
 )
 
@@ -3503,10 +3543,21 @@ else:
 #                         SAVE QC-ANNOTATED ANNDATA                            #
 # ---------------------------------------------------------------------------- #
 
+qc_annotated_filename = f"adata_expression_clean_{dataset_name}_qc_annotated"
+if qc_output_label:
+    qc_annotated_filename = f"{qc_annotated_filename}_{qc_output_label}"
 qc_annotated_adata_path = os.path.join(
     processed_path,
-    f"adata_expression_clean_{dataset_name}_qc_annotated.h5ad"
+    f"{qc_annotated_filename}.h5ad"
 )
+adata.uns["script01_qc_provenance"] = {
+    "qc_output_label": qc_output_label or "default",
+    "min_transcript_threshold": threshold,
+    "min_transcript_pass_operator": min_transcript_pass_operator,
+    "min_transcript_pass_condition": (
+        f"nCount_Xenium {min_transcript_pass_operator_label} {threshold}"
+    ),
+}
 
 adata.write_h5ad(qc_annotated_adata_path)
 print(f"Saved QC-annotated AnnData object to: {qc_annotated_adata_path}")

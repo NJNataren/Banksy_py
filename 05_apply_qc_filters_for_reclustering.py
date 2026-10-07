@@ -230,11 +230,15 @@ output_dir = cfg.get(
 
 # Input is the script 01 QC-annotated clean expression object. It should still
 # contain every non-zero-count cell plus the QC columns produced during review.
+input_qc_label = cfg.get("input_qc_label", "")
+input_qc_filename = f"adata_expression_clean_{dataset_name}_qc_annotated"
+if input_qc_label:
+    input_qc_filename = f"{input_qc_filename}_{input_qc_label}"
 input_h5ad = cfg.get(
     "input_h5ad",
     os.path.join(
         processed_path,
-        f"adata_expression_clean_{dataset_name}_qc_annotated.h5ad",
+        f"{input_qc_filename}.h5ad",
     ),
 )
 
@@ -403,6 +407,8 @@ for audit_key, audit_value in area_filter_audit.items():
 
 filter_provenance = {
     "output_label": output_label,
+    "script01_input_qc_label": input_qc_label or "default",
+    "script01_qc_provenance": adata.uns.get("script01_qc_provenance", {}),
     "active_filters": [
         "minimum_transcripts",
         "maximum_transcripts",

@@ -1,0 +1,38 @@
+{
+    "project": "vbct",
+    "raw_subdir": "vbct",
+    "dataset_name": "CK_skin_res",
+    "pc_label": "30",
+    "lambda_label": "0.20",
+    "res_label": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10"
+    ],
+    "plot_res_label": "0.70",
+    "nbr_weight_decay": "scaled_gaussian",
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
+    "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+    "new_labels": {
+        "0": "Melanoma_Cell_or_Melanocyte_0",
+        "1": "Fibroblast_Macrophage_1",
+        "2": "Macrophage_(weak)_2",
+        "3": "Fibroblast_Pericyte_3",
+        "4": "T_Cell_Macrophage_Fibroblast_4",
+        "5": "Macrophage_5",
+        "6": "Endothelial_Cell_Fibroblast_Pericytes_6",
+        "7": "Fibroblast_(weak_Macrophage_Melanoma_Pericytes)_7",
+        "8": "Melanoma_Cell_or_Melanocyte_8"
+    },
+    "qc_output_label": "min_transcript_gte15",
+    "min_transcript_threshold": 15,
+    "min_transcript_pass_operator": "gte"
+}

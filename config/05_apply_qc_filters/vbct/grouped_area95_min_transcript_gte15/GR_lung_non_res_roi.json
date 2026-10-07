@@ -1,0 +1,20 @@
+{
+  "project": "vbct",
+  "dataset_name": "GR_lung_non_res_roi",
+  "output_label": "filtered_qc_v1_grouped_area95_min_transcript_gte15",
+  "area_percentile_filter": {
+    "mode": "cell_type_group",
+    "percentile": 0.95,
+    "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70",
+    "group_map": {
+      "0": "Melanoma_Cell_or_Melanocyte",
+      "2": "Melanoma_Cell_or_Melanocyte",
+      "4": "Macrophage",
+      "5": "Melanoma_Cell_or_Melanocyte",
+      "6": "Macrophage",
+      "10": "Melanoma_Cell_or_Melanocyte",
+      "11": "Melanoma_Cell_or_Melanocyte"
+    }
+  },
+  "input_qc_label": "min_transcript_gte15"
+}

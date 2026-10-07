@@ -1,0 +1,21 @@
+{
+    "project": "vbct",
+    "raw_subdir": "vbct",
+    "dataset_name": "MF_skin_non_res",
+    "pc_label": "20",
+    "lambda_label": "0.20",
+    "res_label": [
+        "0.5"
+    ],
+    "plot_res_label": "0.50",
+    "nbr_weight_decay": "scaled_gaussian",
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
+    "cluster_col": "labels_scaled_gaussian_pc20_nc0.20_r0.50",
+    "qc_output_label": "min_transcript_gte15",
+    "min_transcript_threshold": 15,
+    "min_transcript_pass_operator": "gte"
+}

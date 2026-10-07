@@ -1,0 +1,44 @@
+{
+    "project": "vbct",
+    "raw_subdir": "vbct",
+    "dataset_name": "BE_brain_non_res",
+    "pc_label": "30",
+    "lambda_label": "0.20",
+    "res_label": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10"
+    ],
+    "plot_res_label": "0.70",
+    "nbr_weight_decay": "scaled_gaussian",
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
+    "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+    "new_labels": {
+        "0": "Macrophage_0",
+        "1": "T_Cell_1",
+        "2": "Fibroblast_Pericytes_2",
+        "3": "Melanoma_Cell_or_Melanocyte_Epithelial_Cell_3",
+        "4": "Macrophage_4",
+        "5": "Macrophage_5",
+        "6": "Macrophage_(weak)_6",
+        "7": "Melanoma_Cell_or_Melanocyte_Epithelial_Cell_7",
+        "8": "Melanoma_Cell_or_Melanocyte_Epithelial_Cell_8",
+        "9": "Endothelial_Cell_9",
+        "10": "Fibroblast_10",
+        "11": "B_Cell_and_Macrophage_(weak)_11",
+        "12": "Macrophage_12",
+        "13": "Macrophage_(weak)_13",
+        "14": "T_Cell_Macrophage_(weak)_14"
+    },
+    "qc_output_label": "min_transcript_gte15",
+    "min_transcript_threshold": 15,
+    "min_transcript_pass_operator": "gte"
+}

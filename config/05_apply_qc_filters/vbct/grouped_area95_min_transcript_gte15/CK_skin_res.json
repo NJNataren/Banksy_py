@@ -1,0 +1,17 @@
+{
+  "project": "vbct",
+  "dataset_name": "CK_skin_res",
+  "output_label": "filtered_qc_v1_grouped_area95_min_transcript_gte15",
+  "area_percentile_filter": {
+    "mode": "cell_type_group",
+    "percentile": 0.95,
+    "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+    "group_map": {
+      "0": "Melanoma_Cell_or_Melanocyte",
+      "2": "Macrophage",
+      "5": "Macrophage",
+      "8": "Melanoma_Cell_or_Melanocyte"
+    }
+  },
+  "input_qc_label": "min_transcript_gte15"
+}

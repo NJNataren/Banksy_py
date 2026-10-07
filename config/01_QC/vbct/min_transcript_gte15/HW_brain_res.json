@@ -1,0 +1,48 @@
+{
+    "project": "vbct",
+    "raw_subdir": "vbct",
+    "dataset_name": "HW_brain_res",
+    "pc_label": "30",
+    "lambda_label": "0.20",
+    "res_label": [
+        "1.10"
+    ],
+    "plot_res_label": "1.10",
+    "nbr_weight_decay": "scaled_gaussian",
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
+    "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.10",
+    "new_labels": {
+        "0": "Melanoma_Cell_or_Melanocyte_0",
+        "1": "Macrophage_Melanoma_Cell_or_Melanocyte_1",
+        "2": "Melanoma_Cell_or_Melanocyte_2",
+        "3": "Melanoma_Cell_or_Melanocyte_3",
+        "4": "Melanoma_Cell_or_Melanocyte_4",
+        "5": "Melanoma_Cell_or_Melanocyte_5",
+        "6": "Melanoma_Cell_or_Melanocyte_6",
+        "7": "Melanoma_Cell_or_Melanocyte_7",
+        "8": "Fibroblast_Melanoma_Cell_or_Melanocyte_8",
+        "9": "Melanoma_Cell_or_Melanocyte_9",
+        "10": "Melanoma_Cell_or_Melanocyte_10",
+        "11": "Endothelial_Cell_Pericytes_11",
+        "12": "Melanoma_Cell_or_Melanocyte_12",
+        "13": "Melanoma_Cell_or_Melanocyte_13",
+        "14": "Melanoma_Cell_or_Melanocyte_14",
+        "15": "Macrophage_Melanoma_Cell_or_Melanocyte_15",
+        "16": "B_Cell_Melanoma_Cell_or_Melanocyte_16",
+        "17": "T_Cell_B_Cell_17",
+        "18": "Melanoma_Cell_or_Melanocyte_18",
+        "19": "Melanoma_Cell_or_Melanocyte_19",
+        "20": "Melanoma_Cell_or_Melanocyte_(weak)_20",
+        "21": "Macrophage_21",
+        "22": "Pericyte_22",
+        "23": "Unassigned_23",
+        "24": "unassigned_24"
+    },
+    "qc_output_label": "min_transcript_gte15",
+    "min_transcript_threshold": 15,
+    "min_transcript_pass_operator": "gte"
+}

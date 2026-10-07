@@ -1,0 +1,49 @@
+{
+    "project": "vbct",
+    "raw_subdir": "vbct",
+    "dataset_name": "EL_skin_res",
+    "pc_label": "30",
+    "lambda_label": "0.20",
+    "res_label": [
+        "0.50",
+        "0.60",
+        "0.70",
+        "0.80",
+        "0.90",
+        "1.00",
+        "1.10"
+    ],
+    "plot_res_label": "0.70",
+    "nbr_weight_decay": "scaled_gaussian",
+    "coord_keys": [
+        "x",
+        "y",
+        "xy"
+    ],
+    "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.70",
+    "new_labels": {
+        "0": "Melanoma_Cell_or_Melanocyte_0",
+        "1": "Melanoma_Cell_or_Melanocyte_1",
+        "2": "Melanoma_Cell_or_Melanocyte_2",
+        "3": "Fibroblast_Macrophage_(weak)_3",
+        "4": "Melanoma_Cell_or_Melanocyte_4",
+        "5": "Melanoma_Cell_or_Melanocyte_Macrophage_(weak)_5",
+        "6": "Melanoma_Cell_or_Melanocyte_Macrophage_(weak)_6",
+        "7": "Melanoma_Cell_or_Melanocyte_7",
+        "8": "Endothelial_Cell_Fibroblast_Pericytes_8",
+        "9": "Endothelial_Cell_Fibroblast_Pericytes_9",
+        "10": "Melanoma_Cell_or_Melanocyte_10",
+        "11": "Endothelial_Cell_Fibroblast_Pericytes_11",
+        "12": "Fibroblast_12",
+        "13": "Fibroblast_(MMP9_only)_13",
+        "14": "Macrophage_T Cell _14",
+        "15": "Melanoma_Cell_or_Melanocyte_0_15",
+        "16": "Epithelial_Cell_16",
+        "17": "Melanoma_Cell_or_Melanocyte_17",
+        "18": "Fibroblast_18",
+        "19": "Fibroblast_(weak)_19"
+    },
+    "qc_output_label": "min_transcript_gte15",
+    "min_transcript_threshold": 15,
+    "min_transcript_pass_operator": "gte"
+}
