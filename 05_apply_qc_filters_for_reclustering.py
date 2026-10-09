@@ -3,12 +3,13 @@
 
 """
 Title: Apply QC Filters For Xenium Reclustering
-Date: 2026-09-28
+Date: 2026-10-09
 Summary: Read a script 01 QC-annotated Xenium AnnData object, apply the
 reviewed filtered_qc_v1 cell filter masks, and write a provenance-preserving
 AnnData object with all cells retained for downstream reclustering. Configurable
-area-percentile filters use percentile-neutral output columns and write embedded
-and sidecar provenance describing the resolved threshold settings.
+area-percentile filters run after the minimum-transcript mask, use
+percentile-neutral output columns, and write embedded and sidecar provenance
+describing the resolved threshold settings.
 """
 
 import argparse
@@ -16,6 +17,7 @@ import json
 import os
 
 import anndata as ad
+import numpy as np
 import pandas as pd
 
 
@@ -39,46 +41,55 @@ AREA_GROUP_COL = "area_percentile_group"
 AREA_THRESHOLD_COL = "area_percentile_threshold"
 
 
-def apply_area_percentile_filter(adata, cfg):
-    """Resolve and apply the configured upper-tail cell-area filter.
+def make_json_serializable(value):
+    """Return `value` converted to objects accepted by `json.dump`."""
+    if isinstance(value, dict):
+        return {str(key): make_json_serializable(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [make_json_serializable(item) for item in value]
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
 
-    Args:
-        adata: QC-annotated AnnData object with `.obs` metadata.
-        cfg: Script 05 JSON config dictionary.
 
-    Returns:
-        Tuple containing flattened summary fields, group-level audit rows, and
-        the structured area-filter provenance stored in the output object.
-    """
+def validate_upstream_qc_columns(adata):
+    """Validate script 01 QC masks required before script 05 filtering."""
+    required_cols = [
+        "min_trans_passed",
+        "max_trans_threshold_passed",
+        "negative_control_probe_ge2",
+    ]
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+    if missing_cols:
+        raise KeyError(
+            f"Missing required upstream QC columns in adata.obs: {missing_cols}"
+        )
+
+    null_cols = [col for col in required_cols if adata.obs[col].isna().any()]
+    if null_cols:
+        raise ValueError(
+            f"Required upstream QC columns contain missing values: {null_cols}"
+        )
+
+
+def build_min_transcript_mask(adata):
+    """Return the script 01 minimum-transcript pass mask as a boolean Series."""
+    return adata.obs["min_trans_passed"].astype(bool)
+
+
+def resolve_area_filter_config(cfg):
+    """Return a normalized area-filter config dictionary."""
     area_cfg = cfg.get("area_percentile_filter")
     if area_cfg is None:
         source_col = cfg.get(
             "existing_area_percentile_filter_column",
             "max_area_threshold_99_by_cluster",
         )
-        if source_col not in adata.obs.columns:
-            raise KeyError(
-                "No area_percentile_filter config was provided and the existing "
-                f"script 01 mask {source_col!r} is missing from adata.obs."
-            )
-        if adata.obs[source_col].isna().any():
-            raise ValueError(
-                f"Existing area filter column {source_col!r} contains NA values."
-            )
-
-        fail_mask = adata.obs[source_col].astype(bool)
-        adata.obs[AREA_FAIL_COL] = fail_mask
-        adata.obs[AREA_STATUS_COL] = (
-            fail_mask.map({True: "Fail", False: "Pass"}).astype("category")
-        )
-        # Script 01 did not persist its per-cell threshold or grouping label.
-        # Keep that absence explicit rather than fabricating audit values.
-        adata.obs[AREA_GROUP_COL] = pd.Categorical(
-            ["not_recorded_by_script01"] * adata.n_obs
-        )
-        adata.obs[AREA_THRESHOLD_COL] = float("nan")
-
-        provenance = {
+        return {
             "mode": "existing_script01_mask",
             "source_column": source_col,
             "percentile": 0.99,
@@ -86,19 +97,6 @@ def apply_area_percentile_filter(adata, cfg):
             "groupby": "not_recorded_by_script01",
             "group_map": {},
         }
-        audit = {
-            "area_percentile_filter_mode": provenance["mode"],
-            "area_percentile_filter_source_column": source_col,
-            "area_percentile_filter_percentile": provenance["percentile"],
-            "area_percentile_filter_upper_tail_fraction": provenance[
-                "upper_tail_fraction"
-            ],
-            "area_percentile_filter_groupby": provenance["groupby"],
-            "area_percentile_filter_n_groups": "not_recorded_by_script01",
-            "area_percentile_filter_n_mapped_clusters": 0,
-        }
-        print(f"Using existing script 01 area filter mask: {source_col}")
-        return audit, pd.DataFrame(), provenance
 
     mode = area_cfg.get("mode", "cluster")
     if mode not in {"cluster", "cell_type_group"}:
@@ -107,87 +105,22 @@ def apply_area_percentile_filter(adata, cfg):
             "'cell_type_group'."
         )
 
-    groupby = area_cfg["groupby"]
     percentile = float(area_cfg.get("percentile", 0.99))
     if not 0 < percentile < 1:
         raise ValueError("area_percentile_filter.percentile must be between 0 and 1.")
 
-    required_cols = [groupby, "cell_area"]
-    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
-    if missing_cols:
-        raise KeyError(f"Missing columns for area-percentile filter: {missing_cols}")
-
-    area_values = pd.to_numeric(adata.obs["cell_area"], errors="coerce")
-    if area_values.isna().any():
-        n_bad = int(area_values.isna().sum())
-        raise ValueError(f"cell_area contains {n_bad} missing or non-numeric values.")
-
-    raw_group_values = adata.obs[groupby]
-    if raw_group_values.isna().any():
-        n_bad = int(raw_group_values.isna().sum())
-        raise ValueError(f"{groupby} contains {n_bad} missing group labels.")
-    raw_group = raw_group_values.astype(str)
-
-    if mode == "cluster":
-        area_group = raw_group
-        group_map = {}
-    else:
-        group_map = {
-            str(key): str(value)
-            for key, value in area_cfg.get("group_map", {}).items()
-        }
-        if not group_map:
-            raise ValueError(
-                "area_percentile_filter.group_map is required when mode is "
-                "'cell_type_group'."
-            )
-        # Unmapped annotations remain separate rather than being pooled into an
-        # ambiguous fallback cell type.
-        area_group = raw_group.map(group_map).fillna(raw_group)
-
-    thresholds_by_group = area_values.groupby(area_group, observed=True).quantile(
-        percentile
-    )
-    group_thresholds = area_group.map(thresholds_by_group).astype(float)
-    fail_mask = area_values >= group_thresholds
-
-    adata.obs[AREA_FAIL_COL] = fail_mask
-    adata.obs[AREA_STATUS_COL] = (
-        fail_mask.map({True: "Fail", False: "Pass"}).astype("category")
-    )
-    adata.obs[AREA_GROUP_COL] = area_group.astype("category")
-    adata.obs[AREA_THRESHOLD_COL] = group_thresholds
-
-    group_audit_rows = []
-    for group_name, group_index in area_group.groupby(area_group).groups.items():
-        group_fail = fail_mask.loc[group_index]
-        source_clusters = sorted(raw_group.loc[group_index].unique())
-        group_audit_rows.append(
-            {
-                "group": str(group_name),
-                "source_clusters": ";".join(source_clusters),
-                "n_cells": int(len(group_index)),
-                "percentile": percentile,
-                "upper_tail_fraction": 1.0 - percentile,
-                "area_threshold": float(thresholds_by_group.loc[group_name]),
-                "n_failed": int(group_fail.sum()),
-                "percent_failed": float(group_fail.mean() * 100),
-                "group_mode": mode,
-                "groupby": groupby,
-            }
-        )
-    group_audit = pd.DataFrame(group_audit_rows).sort_values("group")
-
-    audit = {
-        "area_percentile_filter_mode": mode,
-        "area_percentile_filter_source_column": AREA_FAIL_COL,
-        "area_percentile_filter_percentile": percentile,
-        "area_percentile_filter_upper_tail_fraction": 1.0 - percentile,
-        "area_percentile_filter_groupby": groupby,
-        "area_percentile_filter_n_groups": int(area_group.nunique(dropna=False)),
-        "area_percentile_filter_n_mapped_clusters": len(group_map),
+    groupby = area_cfg["groupby"]
+    group_map = {
+        str(key): str(value)
+        for key, value in area_cfg.get("group_map", {}).items()
     }
-    provenance = {
+    if mode == "cell_type_group" and not group_map:
+        raise ValueError(
+            "area_percentile_filter.group_map is required when mode is "
+            "'cell_type_group'."
+        )
+
+    return {
         "mode": mode,
         "source_column": AREA_FAIL_COL,
         "percentile": percentile,
@@ -195,16 +128,202 @@ def apply_area_percentile_filter(adata, cfg):
         "groupby": groupby,
         "group_map": group_map,
     }
+
+
+def build_area_groups(adata, area_cfg):
+    """Return raw cluster labels and resolved area-filter groups per cell."""
+    groupby = area_cfg["groupby"]
+    if groupby not in adata.obs.columns:
+        raise KeyError(f"Missing groupby column for area-percentile filter: {groupby}")
+
+    raw_group_values = adata.obs[groupby]
+    if raw_group_values.isna().any():
+        n_bad = int(raw_group_values.isna().sum())
+        raise ValueError(f"{groupby} contains {n_bad} missing group labels.")
+
+    raw_group = raw_group_values.astype(str)
+    if area_cfg["mode"] == "cluster":
+        return raw_group, raw_group
+
+    # Unmapped annotations remain separate rather than being pooled into an
+    # ambiguous fallback cell type.
+    area_group = raw_group.map(area_cfg["group_map"]).fillna(raw_group)
+    return raw_group, area_group
+
+
+def calculate_area_thresholds(area_values, area_group, eligible_mask, percentile):
+    """Calculate per-group area thresholds from eligible cells only."""
+    threshold_area_values = area_values.loc[eligible_mask]
+    threshold_area_group = area_group.loc[eligible_mask]
+    if threshold_area_values.empty:
+        raise ValueError(
+            "No cells passed the upstream filters required for area percentile "
+            "threshold calculation."
+        )
+
+    thresholds_by_group = threshold_area_values.groupby(
+        threshold_area_group, observed=True
+    ).quantile(percentile)
+    group_thresholds = area_group.map(thresholds_by_group).astype(float)
+    return thresholds_by_group, group_thresholds
+
+
+def build_area_fail_mask(area_values, group_thresholds, eligible_mask):
+    """Return the area fail mask after upstream eligibility is applied."""
+    return eligible_mask & (area_values >= group_thresholds)
+
+
+def write_area_filter_obs(adata, fail_mask, area_group, thresholds):
+    """Write standardized area-filter columns to `adata.obs`."""
+    adata.obs[AREA_FAIL_COL] = fail_mask
+    adata.obs[AREA_STATUS_COL] = (
+        fail_mask.map({True: "Fail", False: "Pass"}).astype("category")
+    )
+    adata.obs[AREA_GROUP_COL] = area_group.astype("category")
+    adata.obs[AREA_THRESHOLD_COL] = thresholds
+
+
+def build_area_group_audit(
+    area_group,
+    raw_group,
+    eligible_mask,
+    fail_mask,
+    thresholds_by_group,
+    percentile,
+    mode,
+    groupby,
+):
+    """Build the per-area-group threshold and failure audit table."""
+    group_audit_rows = []
+    for group_name, group_index in area_group.groupby(area_group).groups.items():
+        group_fail = fail_mask.loc[group_index]
+        group_eligible = eligible_mask.loc[group_index]
+        source_clusters = sorted(raw_group.loc[group_index].unique())
+        threshold = thresholds_by_group.get(group_name, float("nan"))
+        n_eligible = int(group_eligible.sum())
+        group_audit_rows.append(
+            {
+                "group": str(group_name),
+                "source_clusters": ";".join(source_clusters),
+                "n_cells": n_eligible,
+                "n_cells_all": int(len(group_index)),
+                "n_cells_area_filter_eligible": n_eligible,
+                "percentile": percentile,
+                "upper_tail_fraction": 1.0 - percentile,
+                "area_threshold": float(threshold),
+                "n_failed": int(group_fail.sum()),
+                "percent_failed": (
+                    float(group_fail.sum() / n_eligible * 100)
+                    if n_eligible > 0
+                    else 0.0
+                ),
+                "group_mode": mode,
+                "groupby": groupby,
+            }
+        )
+    return pd.DataFrame(group_audit_rows).sort_values("group")
+
+
+def import_existing_area_filter(adata, area_cfg):
+    """Import a historical script 01 area mask into standardized columns."""
+    source_col = area_cfg["source_column"]
+    if source_col not in adata.obs.columns:
+        raise KeyError(
+            "No area_percentile_filter config was provided and the existing "
+            f"script 01 mask {source_col!r} is missing from adata.obs."
+        )
+    if adata.obs[source_col].isna().any():
+        raise ValueError(
+            f"Existing area filter column {source_col!r} contains NA values."
+        )
+
+    fail_mask = adata.obs[source_col].astype(bool)
+    area_group = pd.Series("not_recorded_by_script01", index=adata.obs_names)
+    thresholds = pd.Series(float("nan"), index=adata.obs_names)
+    write_area_filter_obs(adata, fail_mask, area_group, thresholds)
+
+    audit = {
+        "area_percentile_filter_mode": area_cfg["mode"],
+        "area_percentile_filter_source_column": source_col,
+        "area_percentile_filter_percentile": area_cfg["percentile"],
+        "area_percentile_filter_upper_tail_fraction": area_cfg["upper_tail_fraction"],
+        "area_percentile_filter_groupby": area_cfg["groupby"],
+        "area_percentile_filter_n_groups": "not_recorded_by_script01",
+        "area_percentile_filter_n_mapped_clusters": 0,
+    }
+    print(f"Using existing script 01 area filter mask: {source_col}")
+    return audit, pd.DataFrame(), area_cfg
+
+
+def apply_area_percentile_filter(adata, cfg, area_filter_eligible_mask=None):
+    """Resolve, calculate, write, and audit the configured area filter."""
+    area_cfg = resolve_area_filter_config(cfg)
+    if area_cfg["mode"] == "existing_script01_mask":
+        return import_existing_area_filter(adata, area_cfg)
+
+    if "cell_area" not in adata.obs.columns:
+        raise KeyError("Missing column for area-percentile filter: cell_area")
+    area_values = pd.to_numeric(adata.obs["cell_area"], errors="coerce")
+    if area_values.isna().any():
+        n_bad = int(area_values.isna().sum())
+        raise ValueError(f"cell_area contains {n_bad} missing or non-numeric values.")
+
+    raw_group, area_group = build_area_groups(adata, area_cfg)
+    if area_filter_eligible_mask is None:
+        eligible_mask = pd.Series(True, index=adata.obs_names)
+    else:
+        eligible_mask = pd.Series(area_filter_eligible_mask, index=adata.obs_names)
+    if eligible_mask.isna().any():
+        raise ValueError("area_filter_eligible_mask contains missing values.")
+    eligible_mask = eligible_mask.astype(bool)
+
+    # Minimum-transcript filtering is applied before area filtering: only cells
+    # that already pass that upstream mask define percentile thresholds and only
+    # those cells can fail the area filter.
+    thresholds_by_group, group_thresholds = calculate_area_thresholds(
+        area_values,
+        area_group,
+        eligible_mask,
+        area_cfg["percentile"],
+    )
+    fail_mask = build_area_fail_mask(area_values, group_thresholds, eligible_mask)
+    write_area_filter_obs(adata, fail_mask, area_group, group_thresholds)
+
+    group_audit = build_area_group_audit(
+        area_group,
+        raw_group,
+        eligible_mask,
+        fail_mask,
+        thresholds_by_group,
+        area_cfg["percentile"],
+        area_cfg["mode"],
+        area_cfg["groupby"],
+    )
+    audit = {
+        "area_percentile_filter_mode": area_cfg["mode"],
+        "area_percentile_filter_source_column": AREA_FAIL_COL,
+        "area_percentile_filter_percentile": area_cfg["percentile"],
+        "area_percentile_filter_upper_tail_fraction": area_cfg["upper_tail_fraction"],
+        "area_percentile_filter_groupby": area_cfg["groupby"],
+        "area_percentile_filter_n_groups": int(area_group.nunique(dropna=False)),
+        "area_percentile_filter_n_mapped_clusters": len(area_cfg["group_map"]),
+        "area_percentile_filter_threshold_population": "min_trans_passed_cells",
+        "area_percentile_filter_n_threshold_cells": int(eligible_mask.sum()),
+    }
+    provenance = dict(area_cfg)
+    provenance["threshold_population"] = "min_trans_passed_cells"
+    provenance["n_threshold_cells"] = int(eligible_mask.sum())
+
     print(
         "Calculated area percentile filter using "
-        f"mode={mode}, groupby={groupby}, percentile={percentile}."
+        f"mode={area_cfg['mode']}, groupby={area_cfg['groupby']}, "
+        f"percentile={area_cfg['percentile']}."
     )
     print(
         f"Area-filter groups: {audit['area_percentile_filter_n_groups']} "
         f"({audit['area_percentile_filter_n_mapped_clusters']} mapped cluster labels)."
     )
     return audit, group_audit, provenance
-
 
 args = parse_args()
 
@@ -279,20 +398,27 @@ os.makedirs(output_dir, exist_ok=True)
 
 print(f"Reading QC-annotated AnnData from: {input_h5ad}")
 adata = ad.read_h5ad(input_h5ad)
-area_filter_audit, area_group_audit, area_filter_provenance = (
-    apply_area_percentile_filter(adata, cfg)
-)
 
-# These are the reviewed QC masks produced upstream. The script refuses to
-# continue if any are missing or contain NA values, because ambiguous QC state
-# would make the reclustering subset non-auditable.
-required_cols = [
+# Validate script 01 masks before computing configured area filters so
+# low-transcript cells do not set area thresholds.
+validate_upstream_qc_columns(adata)
+upstream_required_cols = [
     "min_trans_passed",
     "max_trans_threshold_passed",
     "negative_control_probe_ge2",
-    AREA_FAIL_COL,
 ]
+min_trans_pass_mask = build_min_transcript_mask(adata)
+area_filter_audit, area_group_audit, area_filter_provenance = (
+    apply_area_percentile_filter(
+        adata,
+        cfg,
+        area_filter_eligible_mask=min_trans_pass_mask,
+    )
+)
 
+# The area filter column is produced above, either from a configured percentile
+# calculation or by importing the historical script 01 area mask.
+required_cols = upstream_required_cols + [AREA_FAIL_COL]
 missing_cols = [col for col in required_cols if col not in adata.obs.columns]
 if missing_cols:
     raise KeyError(f"Missing required QC columns in adata.obs: {missing_cols}")
@@ -301,12 +427,16 @@ null_cols = [col for col in required_cols if adata.obs[col].isna().any()]
 if null_cols:
     raise ValueError(f"Required QC columns contain missing values: {null_cols}")
 
+# ---------------------------------------------------------------------------- #
+#                              FILTER APPLICATION                              #
+# ---------------------------------------------------------------------------- #
+
 # Mask semantics are explicit:
 # - min_trans_passed is a pass mask, so True means keep.
 # - max_trans_threshold_passed, negative_control_probe_ge2, and the generic
 #   area-percentile result are fail masks, so True means remove.
 keep_mask = (
-    adata.obs["min_trans_passed"].astype(bool)
+    min_trans_pass_mask
     & ~adata.obs["max_trans_threshold_passed"].astype(bool)
     & ~adata.obs["negative_control_probe_ge2"].astype(bool)
     & ~adata.obs[AREA_FAIL_COL].astype(bool)
@@ -322,7 +452,7 @@ adata.obs["qc_filter_status"] = (
 # Store every individual fail mask with a common prefix so later plotting or
 # audits can ask which exact rule excluded a cell.
 filter_fail_masks = {
-    "min_trans_passed": ~adata.obs["min_trans_passed"].astype(bool),
+    "min_trans_passed": ~min_trans_pass_mask,
     "max_trans_threshold_passed": adata.obs["max_trans_threshold_passed"].astype(bool),
     "negative_control_probe_ge2": adata.obs["negative_control_probe_ge2"].astype(bool),
     "area_percentile_filter": adata.obs[AREA_FAIL_COL].astype(bool),
@@ -430,7 +560,7 @@ adata.uns["qc_filter_provenance"] = filter_provenance
 resolved_config = dict(cfg)
 resolved_config["resolved_filter_provenance"] = filter_provenance
 with open(resolved_config_json, "w") as f:
-    json.dump(resolved_config, f, indent=2)
+    json.dump(make_json_serializable(resolved_config), f, indent=2)
 
 summary.to_csv(summary_csv, index=False)
 if not area_group_audit.empty:
