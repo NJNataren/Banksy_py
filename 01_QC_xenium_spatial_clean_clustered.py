@@ -2275,8 +2275,8 @@ plot_qc_spatial_tissue(
 # In[54]:
 
 
-# -------------- Plot of total transripts per cell across sample ------------- #
-# gist_stern, dynamic vmax threshold
+# ---------- Plot nCount_Xenium per cell across the spatial tissue ----------- #
+# Dynamic range shows the full per-cell transcript-count range.
 with rc_context({"figure.figsize": (12, 8)}):
     sq.pl.spatial_scatter(
         adata,
@@ -2286,15 +2286,14 @@ with rc_context({"figure.figsize": (12, 8)}):
         shape=None,
         size=2,
         img=False,
-        vmax = adata.obs['nCount_Xenium'].max(),
+        vmax=adata.obs["nCount_Xenium"].max(),
         cmap="Spectral"
     )
 
-## Save the figure
 plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_dynamic_range_{dataset_name}.png"),
+    os.path.join(qc_path, f"tissue_spatial_scatter_nCount_Xenium_dynamic_range_{dataset_name}.png"),
     dpi=300,
-    bbox_inches='tight'
+    bbox_inches="tight"
     )
 plt.show()
 plt.close()
@@ -2303,8 +2302,8 @@ plt.close()
 # In[25]:
 
 
-# -------------- Plot of total transripts per cell across sample ------------- #
-# vmax set to the 99th percentile of transcript counts
+# ---------- Plot nCount_Xenium per cell across the spatial tissue ----------- #
+# Cap the colour scale at the 99th percentile so extreme cells do not dominate.
 with rc_context({"figure.figsize": (12, 8)}):
     sq.pl.spatial_scatter(
         adata,
@@ -2314,34 +2313,24 @@ with rc_context({"figure.figsize": (12, 8)}):
         shape=None,
         size=2,
         img=False,
-        vmax = adata.obs['nCount_Xenium'].quantile(0.99),
-        #cmap="gist_stern"
-        #cmap="gist_rainbow"
-        #cmap="rainbow"
+        vmax=adata.obs["nCount_Xenium"].quantile(0.99),
         cmap="Spectral"
     )
 
 plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_quantile_99_{dataset_name}.png"),
+    os.path.join(qc_path, f"tissue_spatial_scatter_nCount_Xenium_quantile_99_{dataset_name}.png"),
     dpi=300,
-    bbox_inches='tight'
+    bbox_inches="tight"
     )
 plt.show()
 plt.close()
 
 
-
-
-# In[26]:
-
-
-
-
 # In[55]:
 
 
-# -------------- Plot of total transripts per cell across sample ------------- #
-# vmax set to the 99th percentile of transcript counts
+# ---------- Plot nCount_Xenium per cell across the spatial tissue ----------- #
+# Hard cap at 200 to make the low-to-moderate transcript-count range visible.
 with rc_context({"figure.figsize": (12, 8)}):
     sq.pl.spatial_scatter(
         adata,
@@ -2351,45 +2340,17 @@ with rc_context({"figure.figsize": (12, 8)}):
         shape=None,
         size=2,
         img=False,
-        vmax = adata.obs['nCount_Xenium'].quantile(0.99),
-        #cmap="gist_stern"
-        #cmap="gist_rainbow"
-        #cmap="rainbow"
+        vmax=200,
         cmap="Spectral"
     )
 
 plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_quantile_99_{dataset_name}.png"),
+    os.path.join(qc_path, f"tissue_spatial_scatter_nCount_Xenium_hard_threshold_200_{dataset_name}.png"),
     dpi=300,
-    bbox_inches='tight'
+    bbox_inches="tight"
     )
-plt.show() 
-
-
-# -------------- Plot of total transripts per cell across sample ------------- #
-# vmax set to a hard threshold of 200 to make better use of the lower end of the scale
-with rc_context({"figure.figsize": (12, 8)}):
-    sq.pl.spatial_scatter(
-        adata,
-        library_id="dataset_name",
-        spatial_key="xy",
-        color="nCount_Xenium",
-        shape=None,
-        size=2,
-        img=False,
-        vmax = 200,
-        #cmap="gist_stern"
-        #cmap="gist_rainbow"
-        #cmap="rainbow"
-        cmap="Spectral"
-    )
-
-plt.savefig(
-    os.path.join(qc_path, f"tissue_spatial_scatter_transcripts_qc_hard_threshold_200_{dataset_name}.png"),
-    dpi=300,
-    bbox_inches='tight'
-    )
-plt.show() 
+plt.show()
+plt.close()
 
 
 # In[56]:
