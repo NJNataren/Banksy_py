@@ -158,6 +158,109 @@ figures/dotplots/
 - For post-07 recluster clustree plots, use `./helper_scripts/local_runs/run_01a_clustree_from_config_local.sh` or `python3 01a_run_clustree_from_config.py --config config/01a_clustree/vbct/small_recluster_qc_pass_only.json`.
 - Script 06 UMAP transparency is config-driven: `banksy_umap_alpha`/`banksy_pca_alpha` for BANKSY full-figure embedding panels and `clean_umap_alpha` for clean-object UMAPs. Current VBCT script 06 configs use `0.35`, `0.35`, and `0.6`.
 
+## VBCT Grouped QC Filter Branches
+
+This is the standard four-way sensitivity set for VBCT samples. Area thresholds
+are calculated by the configured biological cluster groups for annotated samples.
+`MF_skin_non_res` is intentionally unannotated and therefore uses its raw
+cluster labels as the area-filter groups.
+
+| Short label | Minimum-transcript rule | Area filter | Script 05 output label | Script 06 run label |
+|---|---|---|---|---|
+| `min10_area99` | historical `nCount_Xenium > 10` | grouped p99 | `filtered_qc_v1_grouped_area99` | `filtered_qc_v1_grouped_area99_qc_pass_only` |
+| `min10_area95` | historical `nCount_Xenium > 10` | grouped p95 | `filtered_qc_v1_grouped_area95` | `filtered_qc_v1_grouped_area95_qc_pass_only` |
+| `min15_area99` | `nCount_Xenium >= 15` | grouped p99 | `filtered_qc_v1_grouped_area99_min_transcript_gte15` | `filtered_qc_v1_grouped_area99_min_transcript_gte15_qc_pass_only` |
+| `min15_area95` | `nCount_Xenium >= 15` | grouped p95 | `filtered_qc_v1_grouped_area95_min_transcript_gte15` | `filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only` |
+
+Run the following from the HPC repository root:
+
+```bash
+cd /scratchdata1/users/a1210419/Banksy_py
+mkdir -p logs
+```
+
+### 10-Transcript Branches
+
+The default script 01 QC configs already generate the historical
+`nCount_Xenium > 10` mask. Run script 01 only when that QC object is missing
+or needs regeneration. Then run script 05 and script 06 for the desired area
+percentile.
+
+```bash
+# Regenerate default script 01 QC objects only when needed.
+sbatch --array=0-7%2 \
+  --export=ALL,CONFIG_DIR=config/01_QC/vbct \
+  hpc/slurm/run_01_xenium_QC_array_vbct.sl
+
+# Script 05: grouped p99 or grouped p95 filtering.
+sbatch --array=0-7%2 \
+  --export=ALL,CONFIG_DIR=config/05_apply_qc_filters/vbct/grouped_area99 \
+  hpc/slurm/run_05_apply_qc_filters_for_reclustering.sl
+
+sbatch --array=0-7%2 \
+  --export=ALL,CONFIG_DIR=config/05_apply_qc_filters/vbct/grouped_area95 \
+  hpc/slurm/run_05_apply_qc_filters_for_reclustering.sl
+
+# Script 06: grouped p99 reclustering for all eight samples.
+sbatch --array=0-7%1 \
+  --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/grouped_area99 \
+  hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+```
+
+The grouped-p95 script 06 configs are split by expected resource use. Submit
+the five small samples and three large samples separately:
+
+```bash
+sbatch --array=0-4%1 \
+  --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/grouped_area95/small \
+  hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+
+sbatch --array=0-2%1 \
+  --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/grouped_area95/large \
+  hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+```
+
+The `large/` p95 directory contains `CK_bowel_res`, `HW_brain_res`, and
+`MF_skin_non_res`, in alphabetical array order `0`, `1`, and `2`.
+
+### 15-Transcript Branches
+
+The 15-transcript branches require their own script 01 QC objects because
+script 05 reads the `min_trans_passed` mask from that labeled output. Run the
+three stages in order:
+
+```bash
+# Script 01: generates qc_annotated_min_transcript_gte15 objects.
+sbatch --array=0-7%2 \
+  --export=ALL,CONFIG_DIR=config/01_QC/vbct/min_transcript_gte15 \
+  hpc/slurm/run_01_xenium_QC_array_vbct.sl
+
+# Script 05: grouped p99 or grouped p95 filtering from the labeled QC objects.
+sbatch --array=0-7%2 \
+  --export=ALL,CONFIG_DIR=config/05_apply_qc_filters/vbct/grouped_area99_min_transcript_gte15 \
+  hpc/slurm/run_05_apply_qc_filters_for_reclustering.sl
+
+sbatch --array=0-7%2 \
+  --export=ALL,CONFIG_DIR=config/05_apply_qc_filters/vbct/grouped_area95_min_transcript_gte15 \
+  hpc/slurm/run_05_apply_qc_filters_for_reclustering.sl
+
+# Script 06: recluster the selected p99 or p95 branch.
+sbatch --array=0-7%1 \
+  --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/grouped_area99_min_transcript_gte15 \
+  hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+
+sbatch --array=0-7%1 \
+  --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/grouped_area95_min_transcript_gte15 \
+  hpc/slurm/run_06_recluster_qc_annotated_with_banksy.sl
+```
+
+Script 05 is annotation-first: it retains all cells and writes
+`adata_expression_clean_<sample>_qc_annotated_<output_label>.h5ad`. Script 06
+uses `qc_pass_only` by default and writes the clean recluster `.h5ad` and
+cluster-across-resolution CSV needed for dotplots, clustree, and script 07.
+For an already completed script 05 branch, rerun only script 06; do not repeat
+filtering.
+
 ## Validation
 
 Use targeted checks rather than full local workflow runs:

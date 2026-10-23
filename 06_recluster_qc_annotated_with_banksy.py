@@ -3,12 +3,13 @@
 
 """
 Title: QC-Annotated Xenium BANKSY Reclustering
-Date: 2026-09-28
+Date: 2026-10-23
 Summary: Recluster a script 05 QC-annotated clean expression AnnData object
 with BANKSY using either qc_pass_only or all_cells inclusion, copy reclustering
 labels back onto the full object, and write clustering QC plots from clean
 log-normalized expression, including clean-object UMAP cluster and QC plots.
-Area-filter plot labels are derived from script 05 provenance.
+Area-filter plot labels are derived from script 05 provenance. Explicit config
+worker limits cap parallel Leiden tasks on memory-intensive sample runs.
 """
 
 import argparse
@@ -611,8 +612,11 @@ resolutions = [float(res) for res in res_label_list]
 res_str = "_".join(res_label_list)
 nbr_weight_decay = cfg["nbr_weight_decay"]
 coord_keys = tuple(cfg["coord_keys"])
+# Each Leiden worker receives a substantial BANKSY object through process-based
+# parallelism. Honour an explicit config cap before the Slurm CPU allocation so
+# large samples do not duplicate that object once per allocated CPU.
 max_workers = int(
-    os.environ.get("SLURM_CPUS_PER_TASK", cfg.get("max_workers", 4))
+    cfg.get("max_workers", os.environ.get("SLURM_CPUS_PER_TASK", 4))
 )
 
 # -----------------------------------------------------------------------------
