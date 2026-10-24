@@ -21,6 +21,18 @@ Most wrappers change to `REPO_DIR` before running the Python workflow scripts, s
 - `run_04_xenium_multi_sample_dotplot_from_config.sl`: script 04 multi-sample dotplot plotting.
 - `run_05_apply_qc_filters_for_reclustering.sl`: script 05 QC filter annotation.
 - `run_06_recluster_qc_annotated_with_banksy.sl`: script 06 BANKSY reclustering from QC-annotated objects; defaults to `config/06_recluster_qc_annotated/vbct/small`.
+- `run_06_recluster_qc_annotated_mf_skin_non_res.sl`: 48-hour, 180 GB script 06 wrapper restricted to `MF_skin_non_res`. Use it for the large min10/area95 and min10/area99 sensitivity branches:
+
+  ```bash
+  sbatch --array=2-2%1 \
+    --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/grouped_area95/large \
+    hpc/slurm/run_06_recluster_qc_annotated_mf_skin_non_res.sl
+
+  sbatch --array=6-6%1 \
+    --export=ALL,CONFIG_DIR=config/06_recluster_qc_annotated/vbct/grouped_area99 \
+    hpc/slurm/run_06_recluster_qc_annotated_mf_skin_non_res.sl
+  ```
+
 - `run_07_squidpy_recluster_spatial_analysis.sl`: script 07 Squidpy spatial analysis on reclustered objects; defaults to `config/07_squidpy_recluster_analysis/vbct`.
 
 ## Smoke-Test Wrappers
