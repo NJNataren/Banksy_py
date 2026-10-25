@@ -2,6 +2,14 @@
 
 Use this file as the quick orientation map for the Xenium BANKSY pipeline. Use `README_00_04_XENIUM_ANALYSIS_WORKFLOW.md` when implementation details, commands, or path inventories are needed. Use `re-clustering.md` only as historical notes for the QC-filtered reclustering branch.
 
+## Loading Context in a New Chat
+
+Use the `banksy-context` skill to read this overview and the relevant task handoff under `context/tasks/`. For example:
+
+> Use $banksy-context for dotplot.md.
+
+Name another task file to change focus. The skill briefly confirms the loaded context and relevant constraints; a request only to initialise context does not start the tasks recorded in the handoff.
+
 ## Core Rule
 
 Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-expression dotplots. Those matrices contain BANKSY-expanded/scaled neighbour features. Use clean expression AnnData objects with BANKSY cluster labels copied into `.obs`.

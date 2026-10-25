@@ -8,6 +8,17 @@
   "output_csv": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/GR_lung_non_res_roi_r1.00_filter_sensitivity_dotplot_summary.csv",
   "samples": [
     {
+      "sample": "prefiltered",
+      "adata_path": "data/xenium/processed/vbct/GR_lung_non_res_roi/adata_expression_clean_GR_lung_non_res_roi_with_banksy_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10.h5ad",
+      "groupbys": [
+        {
+          "resolution": "1.00",
+          "groupby": "labels_scaled_gaussian_pc35_nc0.20_r1.00",
+          "groupby_label": "prefiltered_r1.00"
+        }
+      ]
+    },
+    {
       "sample": "min10_area99",
       "adata_path": "data/xenium/processed/vbct/GR_lung_non_res_roi/adata_expression_clean_GR_lung_non_res_roi_recluster_filtered_qc_v1_grouped_area99_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
       "groupbys": [
@@ -51,5 +62,6 @@
         }
       ]
     }
-  ]
+  ],
+  "use_qc_annotations": false
 }

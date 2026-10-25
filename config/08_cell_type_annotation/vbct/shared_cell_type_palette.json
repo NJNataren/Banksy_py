@@ -1,0 +1,22 @@
+{
+  "cell_type_order": [
+    "Melanoma cell",
+    "Macrophage",
+    "T cell",
+    "B cell",
+    "Fibroblast",
+    "Endothelial cell",
+    "Epithelial cell",
+    "Pericyte"
+  ],
+  "colors": {
+    "Melanoma cell": "#AA4499",
+    "Macrophage": "#EE7733",
+    "T cell": "#4477AA",
+    "B cell": "#66CCEE",
+    "Fibroblast": "#228833",
+    "Endothelial cell": "#CC3311",
+    "Epithelial cell": "#CCBB44",
+    "Pericyte": "#777777"
+  }
+}

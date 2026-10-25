@@ -1,0 +1,71 @@
+{
+  "project": "vbct",
+  "use_all_genes": true,
+  "expression_source": "raw",
+  "exclude_group_ids": [
+    "excluded_by_qc"
+  ],
+  "output_csv": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/HW_brain_res_r0.80_filter_sensitivity_dotplot_summary.csv",
+  "samples": [
+    {
+      "sample": "prefiltered",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/HW_brain_res/adata_expression_clean_HW_brain_res_normalized_log1p.h5ad",
+      "label_csvs": [
+        "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/HW_brain_res/HW_brain_res_cell_cluster_id_across_clustering_res_0.8.csv"
+      ],
+      "label_csv_cell_id_col": "index",
+      "groupbys": [
+        {
+          "resolution": "0.80",
+          "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80",
+          "groupby_label": "prefiltered_r0.80"
+        }
+      ]
+    },
+    {
+      "sample": "min10_area99",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/HW_brain_res/adata_expression_clean_HW_brain_res_recluster_filtered_qc_v1_grouped_area99_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
+      "groupbys": [
+        {
+          "resolution": "0.80",
+          "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area99_qc_pass_only",
+          "groupby_label": "min10_area99_r0.80"
+        }
+      ]
+    },
+    {
+      "sample": "min10_area95",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/HW_brain_res/adata_expression_clean_HW_brain_res_recluster_filtered_qc_v1_grouped_area95_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
+      "groupbys": [
+        {
+          "resolution": "0.80",
+          "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_qc_pass_only",
+          "groupby_label": "min10_area95_r0.80"
+        }
+      ]
+    },
+    {
+      "sample": "min15_area99",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/HW_brain_res/adata_expression_clean_HW_brain_res_recluster_filtered_qc_v1_grouped_area99_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
+      "groupbys": [
+        {
+          "resolution": "0.80",
+          "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area99_min_transcript_gte15_qc_pass_only",
+          "groupby_label": "min15_area99_r0.80"
+        }
+      ]
+    },
+    {
+      "sample": "min15_area95",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/HW_brain_res/adata_expression_clean_HW_brain_res_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
+      "groupbys": [
+        {
+          "resolution": "0.80",
+          "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+          "groupby_label": "min15_area95_r0.80"
+        }
+      ]
+    }
+  ],
+  "use_qc_annotations": false
+}

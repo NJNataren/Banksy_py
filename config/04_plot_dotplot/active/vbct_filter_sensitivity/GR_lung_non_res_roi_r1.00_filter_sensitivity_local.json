@@ -1,10 +1,11 @@
 {
   "output_png": "figures/dotplots/filter_sensitivity/GR_lung_non_res_roi_r1.00_filter_sensitivity_zscore_dotplot.png",
-  "title": "GR_lung_non_res_roi filter-sensitivity dotplot, recluster r1.00",
+  "title": "GR_lung_non_res_roi prefiltered and QC filter-sensitivity dotplot, r1.00",
   "gene_file": "data/xenium/raw_data/gene_markers/01_xenium_gene_list_annotation_master_v1_May_2026_Tier1_2026-06-15.csv",
   "gene_column": "Gene",
   "gene_group_column": "Tier_1_annotation",
   "sample_order": [
+    "prefiltered",
     "min10_area99",
     "min10_area95",
     "min15_area99",
@@ -52,6 +53,10 @@
     "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/GR_lung_non_res_roi_r1.00_filter_sensitivity_dotplot_summary.csv"
   ],
   "sample_filters": [
+    {
+      "sample": "prefiltered",
+      "resolution": "1.00"
+    },
     {
       "sample": "min10_area99",
       "resolution": "1.00"
