@@ -3,10 +3,11 @@
 
 """
 Title: Squidpy Spatial Analysis For BANKSY Reclusters
-Date: 2026-10-25
+Date: 2026-10-26
 Summary: Reuse script 08 annotated clean expression objects and reviewed cell
 types for Squidpy neighbourhood enrichment, centrality, co-occurrence, and
 Moran's I. Legacy script 06 cluster-based configurations remain supported.
+The workflow is compatible with Squidpy 1.6 spatial-scatter plotting.
 """
 
 import argparse
@@ -155,7 +156,7 @@ def run_squidpy_for_resolution(
             f"Available obs columns: {list(adata.obs.columns)}"
         )
 
-    if not pd.api.types.is_categorical_dtype(adata.obs[cluster_key]):
+    if not isinstance(adata.obs[cluster_key].dtype, pd.CategoricalDtype):
         adata.obs[cluster_key] = adata.obs[cluster_key].astype("category")
 
     # Squidpy plotting looks for this colour vector in `.uns`. Supplying it
@@ -294,7 +295,8 @@ def run_squidpy_for_resolution(
                 shape=None,
                 size=2,
                 img=False,
-                show=False,
+                # Squidpy 1.6 forwards unknown kwargs to Matplotlib; `show`
+                # therefore raises on PathCollection instead of controlling display.
                 save=(
                     f"spatial_scatter_top_moran_I_{gene}_{dataset_name}"
                     f"_pc{pc_label}_nc{lambda_label}_r{res_str_single}.png"

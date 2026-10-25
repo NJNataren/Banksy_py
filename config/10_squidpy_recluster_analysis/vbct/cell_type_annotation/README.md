@@ -28,7 +28,8 @@ the annotated H5AD inputs in their configured HPC-relative paths. The adjacent
 inputs.
 
 The dedicated `hpc/slurm/run_10_cell_type_spatial_analysis.sl` wrapper uses one
-task per sample (`0-7%2`) and selects samples from script 08's config. Submit it
+task per sample (`0-7%2`) and selects samples from script 08's config. Each task
+requests 8 CPUs, 180 GB RAM, and 24 hours. Submit it
 yourself after script 08 has completed on HPC (or annotated files are transferred):
 
 ```bash
@@ -61,4 +62,13 @@ configs still work and now also accept --validate-only.
 
 Validation completed on all eight objects (2,083,396 cells). A CK dispatch check
 verified grouping, palette, output separation, and provenance with scientific
-calculations and H5AD writes mocked. No full spatial analysis has been launched.
+calculations and H5AD writes mocked.
+
+The first full HPC array run on 2026-10-25 completed tasks 0, 2, and 3 (CK skin,
+GR lung, and BE brain). Tasks 1, 4, and 6 reached top-Moran spatial plotting but
+failed because Squidpy 1.6 forwarded the unsupported `show` keyword to
+Matplotlib. Tasks 5 and 7 (MF skin and CK bowel) reached co-occurrence but hit
+the original eight-hour limit. Script 10 now omits that keyword and the active
+wrapper allows 24 hours. After updating the HPC checkout, rerun only failed task
+indices with `sbatch --array=1,4-7%2 hpc/slurm/run_10_cell_type_spatial_analysis.sl`.
+Existing annotated script 08 inputs remain unchanged.
