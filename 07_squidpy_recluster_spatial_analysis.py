@@ -3,16 +3,17 @@
 
 """
 Title: Squidpy Spatial Analysis For BANKSY Reclusters
-Date: 2026-08-18
-Summary: Read the clean expression AnnData used for BANKSY by script 06,
-then run Squidpy neighbourhood enrichment, centrality, co-occurrence, and
-Moran's I analyses for selected BANKSY reclustering resolutions.
+Date: 2026-10-25
+Summary: Reuse script 08 annotated clean expression objects and reviewed cell
+types for Squidpy neighbourhood enrichment, centrality, co-occurrence, and
+Moran's I. Legacy script 06 cluster-based configurations remain supported.
 """
 
 import argparse
 import json
 import os
 import random
+from pathlib import Path
 from datetime import datetime
 from matplotlib import rc_context
 
@@ -48,6 +49,9 @@ def parse_args():
         required=True,
         help="JSON config with project, dataset_name, input_label, and reclustering settings.",
     )
+    parser.add_argument("--sample", action="append", help="Select a script 08 sample; repeat as needed")
+    parser.add_argument("--validate-only", action="store_true", help="Check annotated inputs without running analyses")
+    parser.add_argument("--annotation-root", help="Override the root containing script 08 annotated outputs")
     return parser.parse_args()
 
 
@@ -299,97 +303,210 @@ def run_squidpy_for_resolution(
         plt.close("all")
 
 
-# -----------------------------------------------------------------------------
-# Read config and resolve paths
-# -----------------------------------------------------------------------------
+def resolve_path(root, value):
+    """Resolve a configured absolute path or a path relative to its project root."""
+    path = Path(value)
+    return path if path.is_absolute() else root / path
 
-args = parse_args()
-with open(args.config) as f:
-    cfg = json.load(f)
 
-project = cfg["project"]
-dataset_name = cfg["dataset_name"]
-input_label = cfg.get("input_label", cfg.get("output_label", "filtered_qc_v1"))
-recluster_inclusion = cfg.get("recluster_inclusion", "qc_pass_only")
-if recluster_inclusion not in ["qc_pass_only", "all_cells"]:
-    raise ValueError(
-        "recluster_inclusion must be either 'qc_pass_only' or 'all_cells'. "
-        f"Received: {recluster_inclusion!r}"
+def run_annotation_config(cfg, args):
+    """Reuse script 08 sample definitions and annotated outputs for cell-type analyses.
+
+    Validation reads only backed metadata. Full runs load one sample at a time;
+    annotation inputs remain unchanged and spatial results use separate paths.
+    """
+    config_path = Path(args.config).resolve()
+    root = config_path.parents[int(cfg.get("project_root_parent_depth", 4))]
+    annotation_path = resolve_path(root, cfg["annotation_config"])
+    annotation = json.loads(annotation_path.read_text())
+    annotation_project = annotation_path.parents[int(annotation.get("project_root_parent_depth", 3))]
+    annotation_root = Path(args.annotation_root or annotation.get("output_root", annotation_project)).resolve()
+    palette = json.loads(resolve_path(annotation_project, annotation["palette_json"]).read_text())
+    order, colors = palette["cell_type_order"], palette["colors"]
+    if len(order) != len(set(order)) or set(order) != set(colors):
+        raise ValueError("Shared palette has inconsistent labels")
+    if not all(mpl.colors.is_color_like(color) for color in colors.values()):
+        raise ValueError("Invalid shared palette colour")
+    samples = annotation["samples"]
+    names = [sample["sample"] for sample in samples]
+    if len(names) != len(set(names)):
+        raise ValueError("Duplicate samples in annotation config")
+    if args.sample:
+        if set(args.sample) - set(names):
+            raise ValueError("Requested samples are absent from script 08 config")
+        samples = [sample for sample in samples if sample["sample"] in args.sample]
+    mapping = pd.read_csv(resolve_path(annotation_project, annotation["mapping_csv"]), dtype={"cluster_id": str, "resolution": str})
+    for sample in samples:
+        name = sample["sample"]
+        source = resolve_path(annotation_root, sample["output_h5ad"])
+        adata = ad.read_h5ad(source, backed="r" if args.validate_only else None)
+        try:
+            groupby = sample["groupby"]
+            for key in ("cell_type", groupby):
+                if key not in adata.obs or adata.obs[key].isna().any():
+                    raise ValueError(f"{name}: missing labels in {key}")
+            if not adata.obs_names.is_unique:
+                raise ValueError(f"{name}: duplicate cell identifiers")
+            labels = adata.obs["cell_type"].astype(str)
+            if set(labels) - set(order):
+                raise ValueError(f"{name}: unknown cell types")
+            # Verify annotations against the reviewed mapping for this exact grouping.
+            rows = mapping.loc[(mapping["sample"] == name) & (mapping["branch"] == sample["branch"])
+                               & (mapping["resolution"] == sample["resolution"]) & (mapping["groupby"] == groupby)]
+            if rows.empty or rows["cluster_id"].duplicated().any():
+                raise ValueError(f"{name}: missing or duplicate reviewed mapping")
+            expected = adata.obs[groupby].astype(str).map(rows.set_index("cluster_id")["cell_type"])
+            if expected.isna().any() or not (expected.to_numpy() == labels.to_numpy()).all():
+                raise ValueError(f"{name}: annotations disagree with reviewed cluster mapping")
+            prepare_spatial_coordinates(adata, cfg.get("coord_keys", ["x", "y"]))
+            if not np.isfinite(adata.obsm["spatial"]).all():
+                raise ValueError(f"{name}: nonfinite spatial coordinates")
+            # Absent types must not create empty groups in Squidpy's calculations.
+            present = [label for label in order if label in set(labels)]
+            adata.obs["cell_type"] = pd.Categorical(labels, categories=present)
+            adata.uns["cell_type_colors"] = [colors[label] for label in present]
+            print(f"Validated {name}: {adata.n_obs:,} cells; {len(present)} types; {sample['branch']} r{sample['resolution']}")
+            if args.validate_only:
+                continue
+            tag = f"{sample['branch']}_r{sample['resolution']}"
+            output = resolve_path(root, cfg["figure_dir"]) / name / tag
+            destination = resolve_path(root, cfg["result_dir"]) / name / f"{source.stem}_squidpy.h5ad"
+            if destination.resolve() == source.resolve():
+                raise ValueError("Spatial output must not overwrite the annotated input")
+            os.makedirs(destination.parent, exist_ok=True)
+            run_cfg = dict(cfg)
+            run_cfg.setdefault("max_cooccurrence_clusters", len(present))
+            run_squidpy_for_resolution(
+                adata, "cell_type", str(output), name, "annotated", "cell_type",
+                sample["resolution"].replace(".", "p"), run_cfg,
+            )
+            adata.uns["spatial_analysis_provenance"] = {
+                "annotation_config": str(annotation_path), "input_h5ad": str(source),
+                "sample": name, "branch": sample["branch"],
+                "resolution": sample["resolution"], "source_groupby": groupby,
+            }
+            adata.write_h5ad(destination)
+            print(f"Saved spatial results: {destination}")
+        finally:
+            if adata.isbacked:
+                adata.file.close()
+        del adata
+
+
+def run_legacy_config(cfg, args):
+    """Preserve the existing single-sample BANKSY-cluster workflow."""
+    project = cfg["project"]
+    dataset_name = cfg["dataset_name"]
+    input_label = cfg.get("input_label", cfg.get("output_label", "filtered_qc_v1"))
+    recluster_inclusion = cfg.get("recluster_inclusion", "qc_pass_only")
+    if recluster_inclusion not in ["qc_pass_only", "all_cells"]:
+        raise ValueError(
+            "recluster_inclusion must be either 'qc_pass_only' or 'all_cells'. "
+            f"Received: {recluster_inclusion!r}"
+        )
+    run_label = cfg.get("run_label", f"{input_label}_{recluster_inclusion}")
+    pc_label = cfg["pc_label"]
+    lambda_label = cfg["lambda_label"]
+    res_label = cfg["res_label"]
+    res_label_list = res_label if isinstance(res_label, list) else [res_label]
+    res_str = "_".join(res_label_list)
+    nbr_weight_decay = cfg["nbr_weight_decay"]
+    coord_keys = tuple(cfg.get("coord_keys", ["x", "y", "xy"]))
+
+    base_dir = cfg.get("base_dir", "data/xenium")
+    processed_path = os.path.join(base_dir, "processed", project, dataset_name)
+    output_path = cfg.get(
+        "output_path",
+        os.path.join(
+            base_dir,
+            "output",
+            project,
+            dataset_name,
+            f"reclustering_{run_label}",
+        ),
     )
-run_label = cfg.get("run_label", f"{input_label}_{recluster_inclusion}")
-pc_label = cfg["pc_label"]
-lambda_label = cfg["lambda_label"]
-res_label = cfg["res_label"]
-res_label_list = res_label if isinstance(res_label, list) else [res_label]
-res_str = "_".join(res_label_list)
-nbr_weight_decay = cfg["nbr_weight_decay"]
-coord_keys = tuple(cfg.get("coord_keys", ["x", "y", "xy"]))
+    if not args.validate_only:
+        ensure_directory(output_path, "Output reclustering sample")
 
-base_dir = cfg.get("base_dir", "data/xenium")
-processed_path = os.path.join(base_dir, "processed", project, dataset_name)
-output_path = cfg.get(
-    "output_path",
-    os.path.join(
-        base_dir,
-        "output",
-        project,
-        dataset_name,
-        f"reclustering_{run_label}",
-    ),
-)
-ensure_directory(output_path, "Output reclustering sample")
-
-input_h5ad = cfg.get(
-    "input_h5ad",
-    os.path.join(
-        processed_path,
-        f"adata_expression_clean_{dataset_name}_recluster_{run_label}"
-        f"_cells_used_for_banksy_with_clusters_{res_str}.h5ad",
-    ),
-)
-if not os.path.isfile(input_h5ad):
-    raise FileNotFoundError(f"Script 06 reclustered-cell AnnData does not exist: {input_h5ad}")
-
-output_h5ad = cfg.get(
-    "output_h5ad",
-    os.path.join(
-        processed_path,
-        f"adata_expression_clean_{dataset_name}_recluster_{run_label}"
-        f"_cells_used_for_banksy_with_clusters_{res_str}_squidpy.h5ad",
-    ),
-)
-
-# -----------------------------------------------------------------------------
-# Load clean passing-cell object and run selected Squidpy resolutions
-# -----------------------------------------------------------------------------
-
-log_time(f"Reading script 06 reclustered-cell clean AnnData from: {input_h5ad}")
-adata = ad.read_h5ad(input_h5ad)
-prepare_spatial_coordinates(adata, coord_keys)
-
-analysis_resolutions = resolve_analysis_resolutions(cfg, res_label_list)
-print(f"Running Squidpy analyses for resolutions: {analysis_resolutions}")
-
-for res in analysis_resolutions:
-    res_str_single = str(res).replace(".", "p")
-    cluster_key = make_recluster_label_col(
-        nbr_weight_decay,
-        pc_label,
-        lambda_label,
-        res,
-        run_label,
+    input_h5ad = cfg.get(
+        "input_h5ad",
+        os.path.join(
+            processed_path,
+            f"adata_expression_clean_{dataset_name}_recluster_{run_label}"
+            f"_cells_used_for_banksy_with_clusters_{res_str}.h5ad",
+        ),
     )
-    run_squidpy_for_resolution(
-        adata=adata,
-        cluster_key=cluster_key,
-        output_dir=output_path,
-        dataset_name=dataset_name,
-        pc_label=pc_label,
-        lambda_label=lambda_label,
-        res_str_single=res_str_single,
-        cfg=cfg,
+    if not os.path.isfile(input_h5ad):
+        raise FileNotFoundError(f"Script 06 reclustered-cell AnnData does not exist: {input_h5ad}")
+
+    output_h5ad = cfg.get(
+        "output_h5ad",
+        os.path.join(
+            processed_path,
+            f"adata_expression_clean_{dataset_name}_recluster_{run_label}"
+            f"_cells_used_for_banksy_with_clusters_{res_str}_squidpy.h5ad",
+        ),
     )
 
-adata.write_h5ad(output_h5ad)
-print(f"Wrote Squidpy-annotated reclustered-cell AnnData to: {output_h5ad}")
-log_time(f"Finished Squidpy recluster spatial analysis for {dataset_name}.")
+    # -----------------------------------------------------------------------------
+    # Load clean passing-cell object and run selected Squidpy resolutions
+    # -----------------------------------------------------------------------------
+
+    log_time(f"Reading script 06 reclustered-cell clean AnnData from: {input_h5ad}")
+    adata = ad.read_h5ad(input_h5ad, backed="r" if args.validate_only else None)
+    if args.validate_only:
+        try:
+            prepare_spatial_coordinates(adata, coord_keys)
+            for res in resolve_analysis_resolutions(cfg, res_label_list):
+                key = make_recluster_label_col(nbr_weight_decay, pc_label, lambda_label, res, run_label)
+                if key not in adata.obs:
+                    raise KeyError(key)
+            print(f"Validated {dataset_name}: {adata.n_obs:,} cells")
+        finally:
+            adata.file.close()
+        return
+    prepare_spatial_coordinates(adata, coord_keys)
+
+    analysis_resolutions = resolve_analysis_resolutions(cfg, res_label_list)
+    print(f"Running Squidpy analyses for resolutions: {analysis_resolutions}")
+
+    for res in analysis_resolutions:
+        res_str_single = str(res).replace(".", "p")
+        cluster_key = make_recluster_label_col(
+            nbr_weight_decay,
+            pc_label,
+            lambda_label,
+            res,
+            run_label,
+        )
+        run_squidpy_for_resolution(
+            adata=adata,
+            cluster_key=cluster_key,
+            output_dir=output_path,
+            dataset_name=dataset_name,
+            pc_label=pc_label,
+            lambda_label=lambda_label,
+            res_str_single=res_str_single,
+            cfg=cfg,
+        )
+
+    adata.write_h5ad(output_h5ad)
+    print(f"Wrote Squidpy-annotated reclustered-cell AnnData to: {output_h5ad}")
+    log_time(f"Finished Squidpy recluster spatial analysis for {dataset_name}.")
+
+
+def main():
+    """Dispatch shared script 08 inputs or legacy cluster-based configurations."""
+    args = parse_args()
+    with open(args.config) as handle:
+        cfg = json.load(handle)
+    if "annotation_config" in cfg:
+        run_annotation_config(cfg, args)
+    else:
+        if args.sample or args.annotation_root:
+            raise ValueError("--sample and --annotation-root require an annotation_config")
+        run_legacy_config(cfg, args)
+
+
+if __name__ == "__main__":
+    main()

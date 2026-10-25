@@ -1,0 +1,15 @@
+{
+  "project_root_parent_depth": 4,
+  "annotation_config": "config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json",
+  "figure_dir": "figures/spatial_analysis/vbct_min15_area95_selected_resolutions",
+  "result_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions",
+  "coord_keys": [
+    "x",
+    "y"
+  ],
+  "moran_subsample_fraction": 0.25,
+  "moran_n_perms": 10,
+  "moran_n_jobs": 1,
+  "moran_fdr_threshold": 0.1,
+  "top_moran_n": 5
+}

@@ -1,0 +1,81 @@
+{
+  "project_root_parent_depth": 3,
+  "counts_csv": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cell_type_counts.csv",
+  "palette_json": "config/08_cell_type_annotation/vbct/shared_cell_type_palette.json",
+  "expected_total_cells": 2083396,
+  "output_dir": "figures/cell_type_proportions/vbct_min15_area95_selected_resolutions",
+  "output_stem": "cell_type_proportions_by_tissue",
+  "plot": {
+    "figsize": [
+      17,
+      8
+    ],
+    "dpi": 300,
+    "title": "VBCT cell-type composition",
+    "caption": "Minimum 15 transcripts · grouped cell-area p95 filtering. Proportions use all annotated post-filtered cells within each sample.\nBANKSY resolutions: CK skin 1.00; EL 0.80; MF 0.50; BE 0.90; HW 0.80; GR 1.00; MG 0.70; CK bowel 0.80.",
+    "facet_order": [
+      "Skin",
+      "Brain",
+      "Lung",
+      "Gastrointestinal"
+    ]
+  },
+  "samples": [
+    {
+      "sample": "CK_skin_res",
+      "branch": "min15_area95",
+      "resolution": "1.00",
+      "tissue": "Skin",
+      "display_label": "CK · responder"
+    },
+    {
+      "sample": "EL_skin_res",
+      "branch": "min15_area95",
+      "resolution": "0.80",
+      "tissue": "Skin",
+      "display_label": "EL · responder"
+    },
+    {
+      "sample": "GR_lung_non_res_roi",
+      "branch": "min15_area95",
+      "resolution": "1.00",
+      "tissue": "Lung",
+      "display_label": "GR · non-responder"
+    },
+    {
+      "sample": "BE_brain_non_res",
+      "branch": "min15_area95",
+      "resolution": "0.90",
+      "tissue": "Brain",
+      "display_label": "BE · non-responder"
+    },
+    {
+      "sample": "HW_brain_res",
+      "branch": "min15_area95",
+      "resolution": "0.80",
+      "tissue": "Brain",
+      "display_label": "HW · responder"
+    },
+    {
+      "sample": "MF_skin_non_res",
+      "branch": "min15_area95",
+      "resolution": "0.50",
+      "tissue": "Skin",
+      "display_label": "MF · non-responder"
+    },
+    {
+      "sample": "MG_gastric_non_res",
+      "branch": "min15_area95",
+      "resolution": "0.70",
+      "tissue": "Gastrointestinal",
+      "display_label": "MG · gastric · non-responder"
+    },
+    {
+      "sample": "CK_bowel_res",
+      "branch": "min15_area95",
+      "resolution": "0.80",
+      "tissue": "Gastrointestinal",
+      "display_label": "CK · bowel · responder"
+    }
+  ]
+}

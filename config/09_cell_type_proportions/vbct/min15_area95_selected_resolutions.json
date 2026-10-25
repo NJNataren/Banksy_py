@@ -1,0 +1,59 @@
+{
+  "project_root_parent_depth": 3,
+  "counts_csv": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cell_type_counts.csv",
+  "palette_json": "config/08_cell_type_annotation/vbct/shared_cell_type_palette.json",
+  "expected_total_cells": 2083396,
+  "output_dir": "figures/cell_type_proportions/vbct_min15_area95_selected_resolutions",
+  "output_stem": "cell_type_proportions",
+  "plot": {
+    "figsize": [
+      15,
+      8
+    ],
+    "dpi": 300,
+    "title": "VBCT cell-type composition",
+    "caption": "Minimum 15 transcripts \u00b7 grouped cell-area p95 filtering\nProportions use all annotated post-filtered cells within each sample; r indicates the BANKSY resolution."
+  },
+  "samples": [
+    {
+      "sample": "CK_skin_res",
+      "branch": "min15_area95",
+      "resolution": "1.00"
+    },
+    {
+      "sample": "EL_skin_res",
+      "branch": "min15_area95",
+      "resolution": "0.80"
+    },
+    {
+      "sample": "GR_lung_non_res_roi",
+      "branch": "min15_area95",
+      "resolution": "1.00"
+    },
+    {
+      "sample": "BE_brain_non_res",
+      "branch": "min15_area95",
+      "resolution": "0.90"
+    },
+    {
+      "sample": "HW_brain_res",
+      "branch": "min15_area95",
+      "resolution": "0.80"
+    },
+    {
+      "sample": "MF_skin_non_res",
+      "branch": "min15_area95",
+      "resolution": "0.50"
+    },
+    {
+      "sample": "MG_gastric_non_res",
+      "branch": "min15_area95",
+      "resolution": "0.70"
+    },
+    {
+      "sample": "CK_bowel_res",
+      "branch": "min15_area95",
+      "resolution": "0.80"
+    }
+  ]
+}
