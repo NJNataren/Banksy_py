@@ -33,7 +33,8 @@ Most wrappers change to `REPO_DIR` before running the Python workflow scripts, s
     hpc/slurm/run_06_recluster_qc_annotated_mf_skin_non_res.sl
   ```
 
-- `run_07_squidpy_recluster_spatial_analysis.sl`: script 07 Squidpy spatial analysis on reclustered objects; defaults to `config/07_squidpy_recluster_analysis/vbct`.
+- `run_10_cell_type_spatial_analysis.sl`: active script 10 cell-type analysis; requires script 08 annotated H5ADs. Uses the shared annotation config with one task per sample (`0-7%2`).
+- `run_10_squidpy_recluster_spatial_analysis.sl`: script 10 Squidpy spatial analysis on reclustered objects; defaults to `config/10_squidpy_recluster_analysis/vbct`.
 
 ## Smoke-Test Wrappers
 
@@ -41,3 +42,7 @@ Most wrappers change to `REPO_DIR` before running the Python workflow scripts, s
 - `run_00_xenium_clustering_clean_adata_ck_skin_res_test.sl`
 - `run_01_xenium_QC_ck_skin_res_test.sl`
 - `run_xenium_clustering_test_single.sl`
+
+The spatial step was renamed from 07 to 10. Complete script 08 annotation before
+submitting the cell-type wrapper; script 09 proportions are optional. Commands
+are for Nathalie to execute; agents must not connect to HPC or submit jobs.

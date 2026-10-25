@@ -35,7 +35,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 1a. `01a_clustree_cluster_resolution_qc.R`
    - Local clustree resolution-stability QC from script 00 cluster CSVs or script 06 recluster cluster CSVs.
    - `01a_merge_cluster_resolution_csvs.R` merges split per-resolution CSVs first when needed.
-   - `01a_run_clustree_from_config.py` runs clustree batches from JSON configs, including post-07 VBCT small recluster plots.
+   - `01a_run_clustree_from_config.py` runs clustree batches from JSON configs, including post-10 VBCT small recluster plots.
 
 2. `02_create_expression_adata_with_banksy_clusters.py`
    - Legacy/helper path for rebuilding clean expression objects from existing BANKSY outputs or archived labels.
@@ -61,14 +61,20 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
    - Saves `results_df`, full-cell cluster tables, clean expression objects with recluster labels/embeddings, marker tables/plots, BANKSY plots, and cluster-count QC plots. Heavy per-resolution BANKSY spatial objects and `banksy_dict` are opt-in only.
    - Writes clean-object UMAP cluster plots under `umap_cluster_plot/` and cluster-plus-QC UMAPs under `umap_qc/`.
 
-7. `07_squidpy_recluster_spatial_analysis.py`
-   - Runs downstream Squidpy spatial interpretation on the clean expression object used by script 06.
+8. `08_annotate_cell_types_and_plot_umaps.py`
+   - Apply reviewed cluster-to-cell-type mappings to script 06 clean objects and save annotated H5ADs plus shared-colour UMAPs.
+
+9. `09_plot_cell_type_proportions.py`
+   - Optional composition plots from script 08 count tables, including tissue facets. This is not a prerequisite for spatial analysis.
+
+10. `10_squidpy_recluster_spatial_analysis.py`
+   - Runs cell-type spatial interpretation on the annotated clean objects written by script 08. Legacy cluster-based analysis of script 06 objects remains supported.
    - Includes neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots.
 
 ## Where Things Run
 
-- HPC: scripts 00, 00a, 001b, 01, 02, 03, 05, 06, and 07.
-- Local: script 01a clustree QC and script 04 plotting after outputs are copied back.
+- HPC: scripts 00, 00a, 001b, 01, 02, 03, 05, 06, 08, and 10.
+- Local: script 01a clustree QC, script 04 dotplots, and script 09 composition plots. Script 08 can also run locally; its annotated outputs must be available wherever script 10 runs.
 - Slurm array ranges must match the number of JSON configs in the selected leaf config directory.
 - Some wrappers accept `CONFIG_DIR` overrides, especially `hpc/slurm/run_00_xenium_clustering.sl` and `hpc/slurm/run_01_xenium_QC_array_ptmt.sl`.
 
@@ -85,7 +91,7 @@ config/04_plot_dotplot/active/
 config/04_plot_dotplot/active/vbct_recluster_qc_pass_only/
 config/05_apply_qc_filters/
 config/06_recluster_qc_annotated/
-config/07_squidpy_recluster_analysis/
+config/10_squidpy_recluster_analysis/
 ```
 
 Useful project split:
@@ -122,7 +128,7 @@ Script 06 full provenance object:
 data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_qc_annotated_<input_label>_with_banksy_reclusters_<run_label>_<resolutions>.h5ad
 ```
 
-Script 06 clean object used for BANKSY and script 07:
+Script 06 clean object used for BANKSY and script 10:
 
 ```text
 data/xenium/processed/<project>/<sample>/adata_expression_clean_<sample>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>.h5ad
@@ -162,8 +168,8 @@ figures/dotplots/
 - Keep PC55 outputs under `ptmt_pc55`; do not mix with standard `ptmt` outputs.
 - Keep `input_label` and `run_label` in reclustering output filenames to avoid overwriting original script 00 outputs.
 - Default script 06 to `recluster_inclusion = "qc_pass_only"`; use `all_cells` only as a sensitivity analysis.
-- Keep Squidpy analyses in script 07 so BANKSY does not need to be rerun when spatial interpretation settings change.
-- For post-07 recluster clustree plots, use `./helper_scripts/local_runs/run_01a_clustree_from_config_local.sh` or `python3 01a_run_clustree_from_config.py --config config/01a_clustree/vbct/small_recluster_qc_pass_only.json`.
+- Keep Squidpy analyses in script 10 so BANKSY does not need to be rerun when spatial interpretation settings change.
+- For post-10 recluster clustree plots, use `./helper_scripts/local_runs/run_01a_clustree_from_config_local.sh` or `python3 01a_run_clustree_from_config.py --config config/01a_clustree/vbct/small_recluster_qc_pass_only.json`.
 - Script 06 UMAP transparency is config-driven: `banksy_umap_alpha`/`banksy_pca_alpha` for BANKSY full-figure embedding panels and `clean_umap_alpha` for clean-object UMAPs. Current VBCT script 06 configs use `0.35`, `0.35`, and `0.6`.
 
 ## VBCT Grouped QC Filter Branches
@@ -265,7 +271,7 @@ sbatch --array=0-7%1 \
 Script 05 is annotation-first: it retains all cells and writes
 `adata_expression_clean_<sample>_qc_annotated_<output_label>.h5ad`. Script 06
 uses `qc_pass_only` by default and writes the clean recluster `.h5ad` and
-cluster-across-resolution CSV needed for dotplots, clustree, and script 07.
+cluster-across-resolution CSV needed for dotplots, clustree, and script 10.
 For an already completed script 05 branch, rerun only script 06; do not repeat
 filtering.
 
@@ -289,14 +295,14 @@ python -m json.tool <config.json>
 - CK smoke testing used project `vbct`, sample `CK_skin_res`, and `run_label = filtered_qc_v1_qc_pass_only_smoke`.
 - Script 05 kept 6,387 / 6,760 cells for reclustering; 373 cells were excluded by QC masks.
 - Script 06 completed qc-pass-only reclustering for resolutions `0.50` through `1.50`.
-- Script 07 completed on the clean recluster object for analysis resolution `1.50`.
+- Script 10 completed on the clean recluster object for analysis resolution `1.50`.
 - Script 03/04 marker dotplots were generated using configs under `vbct_recluster_qc_pass_only`.
 - The all-gene script 03 export contains all 304 genes. Script 04 now has configs for canonical markers, reviewed/manual-filtered all-gene plotting, and all-304-gene plotting.
 
 ## Current Clustree State
 
 - `01a_clustree_cluster_resolution_qc.R` supports script 06 recluster CSVs via `--cluster_suffix`, for example `_recluster_filtered_qc_v1_qc_pass_only` or `_recluster_filtered_qc_v1_qc_pass_only_smoke`.
-- Config-driven VBCT small post-07 clustree config:
+- Config-driven VBCT small post-10 clustree config:
 
 ```text
 config/01a_clustree/vbct/small_recluster_qc_pass_only.json
@@ -317,3 +323,41 @@ config/01a_clustree/vbct/small_recluster_qc_pass_only.json
 - The runner reuses script 06 configs from `config/06_recluster_qc_annotated/vbct/small` and resolves `<sample>_recluster_<run_label>_cell_cluster_id_across_clustering_res_<resolutions>.csv` automatically.
 - Skip `--qc_config` for post-recluster clustree unless annotation configs explicitly refer to recluster cluster columns.
 
+
+
+## Cell-Type Spatial Analysis: 08 → 10
+
+The spatial step was renamed from 07 to 10 on 2026-10-25 to reflect its
+annotation dependency. Use `10_squidpy_recluster_spatial_analysis.py`, configs
+under `config/10_squidpy_recluster_analysis/`, and
+`hpc/slurm/run_10_cell_type_spatial_analysis.sl`. No step 07 alias is retained.
+The workflow is **06 → 08 → 10**; step 09 is an optional plotting branch from 08.
+
+For HPC execution, Nathalie runs these commands herself. First generate the
+annotated objects with script 08 in a suitably resourced compute allocation
+(the input-root override avoids the local mount path stored in its config):
+
+```bash
+cd /scratchdata1/users/a1210419/Banksy_py
+conda activate banksy
+python 08_annotate_cell_types_and_plot_umaps.py \
+  --config config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json \
+  --input-root "$PWD" --output-root "$PWD"
+```
+
+Once script 08 has completed successfully, validate its outputs and submit:
+
+```bash
+python 10_squidpy_recluster_spatial_analysis.py \
+  --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json \
+  --validate-only
+mkdir -p logs
+sbatch hpc/slurm/run_10_cell_type_spatial_analysis.sl
+```
+
+Alternatively, existing script 08 annotated objects can be transferred to the
+same relative paths. Script 10 does not create missing annotations. Outputs
+remain under `figures/spatial_analysis/` and the separate processed
+`spatial_analysis/` directory; renaming does not change scientific settings or
+existing results. The older recluster-only wrapper is now
+`run_10_squidpy_recluster_spatial_analysis.sl`.

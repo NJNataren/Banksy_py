@@ -1,5 +1,5 @@
 {
-  "description": "Post-07 clustree plots for VBCT small script 06 qc-pass-only recluster outputs.",
+  "description": "Post-10 clustree plots for VBCT small script 06 qc-pass-only recluster outputs.",
   "source_config_dir": "config/06_recluster_qc_annotated/vbct/small",
   "r_script": "01a_clustree_cluster_resolution_qc.R",
   "rscript_executable": "Rscript",

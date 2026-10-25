@@ -3,7 +3,7 @@
 This configuration references script 08's configuration directly. Sample names,
 branches, resolutions, original grouping columns, reviewed mapping, annotated
 output paths, and shared palette are taken from that source of truth.
-Script 07 reads the `output_h5ad` objects written by script 08, not its unannotated
+Script 10 reads the `output_h5ad` objects written by script 08, not its unannotated
 HPC inputs. It groups spatial analyses by `cell_type` and processes one sample
 at a time. Original annotation objects remain unchanged.
 
@@ -11,26 +11,36 @@ From the Banksy_py project root:
 
 ```bash
 # Read-only metadata validation for all eight annotated objects.
-python 07_squidpy_recluster_spatial_analysis.py --config config/07_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json --validate-only
+python 10_squidpy_recluster_spatial_analysis.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json --validate-only
 
 # Run one sample; repeat --sample to select additional samples.
-python 07_squidpy_recluster_spatial_analysis.py --config config/07_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json --sample CK_skin_res
+python 10_squidpy_recluster_spatial_analysis.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json --sample CK_skin_res
 ```
 
 Without `--sample`, a full run processes all eight sequentially. Use the HPC
 workflow for full spatial calculations. Annotated objects must be available
 there at script 08's relative output paths. `--annotation-root` overrides their
 root directory (including when script 08 previously used --output-root).
-The supplied config uses one shared batch definition, so an HPC array pointed at
-this directory must have just one task, not eight; per-sample job submissions can
-instead call Python with --sample.
+The dedicated `hpc/slurm/run_10_cell_type_spatial_analysis.sl` wrapper uses one
+task per sample (`0-7%2`) and selects samples from script 08's config. Submit it
+yourself after script 08 has completed on HPC (or annotated files are transferred):
+
+```bash
+mkdir -p logs
+sbatch hpc/slurm/run_10_cell_type_spatial_analysis.sl
+```
+
+Do not use the legacy config-per-task wrapper for this batch config. If using
+that legacy wrapper with this directory, only one task is appropriate because
+the config itself contains all eight samples. See the workflow README for the
+script 08 HPC input-root override and full 08 → 10 sequence.
 
 Figures and CSVs are written under
 `figures/spatial_analysis/vbct_min15_area95_selected_resolutions/<sample>/<branch>_r<resolution>/squidpy/`.
 Spatial H5AD results are written separately under
 `data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/`.
 Re-running a full analysis replaces its generated results using existing script
-07 behavior. The annotated source objects are not overwritten.
+10 behavior. The annotated source objects are not overwritten.
 
 Validation checks unique cell IDs, cell-type vocabulary, finite coordinates,
 and agreement with the reviewed mapping for the exact original cluster column,

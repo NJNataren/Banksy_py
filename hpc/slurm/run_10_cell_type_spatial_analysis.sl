@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=07_cell_type_spatial
+#SBATCH --job-name=10_cell_type_spatial
 #SBATCH --array=0-7%2
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -13,7 +13,7 @@ REPO_DIR="${REPO_DIR:-/scratchdata1/users/a1210419/Banksy_py}"
 cd "$REPO_DIR"
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
-CONFIG=config/07_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json
+CONFIG=config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json
 # Derive task order from the annotation config.
 SAMPLE=$(python - "$CONFIG" "${SLURM_ARRAY_TASK_ID:?Run through sbatch}" <<'PYCODE'
 import json
@@ -25,5 +25,5 @@ print(annotation['samples'][int(sys.argv[2])]['sample'])
 PYCODE
 )
 echo "Sample: $SAMPLE"
-python -u 07_squidpy_recluster_spatial_analysis.py --config "$CONFIG" --sample "$SAMPLE" --validate-only
-python -u 07_squidpy_recluster_spatial_analysis.py --config "$CONFIG" --sample "$SAMPLE"
+python -u 10_squidpy_recluster_spatial_analysis.py --config "$CONFIG" --sample "$SAMPLE" --validate-only
+python -u 10_squidpy_recluster_spatial_analysis.py --config "$CONFIG" --sample "$SAMPLE"

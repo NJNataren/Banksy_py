@@ -1,5 +1,14 @@
 # Project Notes
 
+## HPC access restriction — user rule (2026-10-25)
+
+- Never initiate a direct SSH connection to Phoenix or any HPC system, including login tests, authentication probes, remote commands, job submission, or job monitoring. Do not use SSH-backed tools such as scp, sftp, rsync over SSH, or create/reconnect SSHFS mounts as a workaround.
+- Existing local HPC mounts may be used to inspect files. Permission to inspect a mount does not authorize remote execution or changes to mounted files.
+- Prepare and review HPC scripts and provide commands for Nathalie to run herself. Do not connect to the HPC to execute them, even when asked generally to launch or run an analysis.
+- If a mount is unavailable, report that; do not attempt an SSH connection or reconnect it. Phoenix may perceive automated connection attempts as an attack.
+- This rule supersedes historical handoffs suggesting SSH authentication, retries, or agent-submitted HPC jobs.
+
+
 ## Project background
 The aim of this project is to perform bioinformatic analysis of Xenium Spatial transcriptomic data of metastatic melanoma samples.The biological aim of the work is to identify the biological and mechanistic determinants of immune checkpoint inhibitor (ICI) response and to understand why some patients respond or do not respond to this treatment.
 

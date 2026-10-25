@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=07_squidpy_recluster
+#SBATCH --job-name=10_squidpy_recluster
 #SBATCH --array=0-7%2
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
@@ -27,10 +27,10 @@ mkdir -p logs
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
-CONFIG_DIR="${CONFIG_DIR:-config/07_squidpy_recluster_analysis/vbct}"
+CONFIG_DIR="${CONFIG_DIR:-config/10_squidpy_recluster_analysis/vbct}"
 # Example override:
-# sbatch --array=0-0 --export=ALL,CONFIG_DIR=config/07_squidpy_recluster_analysis/vbct/smoke hpc/slurm/run_07_squidpy_recluster_spatial_analysis.sl
-# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/07_squidpy_recluster_analysis/vbct hpc/slurm/run_07_squidpy_recluster_spatial_analysis.sl
+# sbatch --array=0-0 --export=ALL,CONFIG_DIR=config/10_squidpy_recluster_analysis/vbct/smoke hpc/slurm/run_10_squidpy_recluster_spatial_analysis.sl
+# sbatch --array=0-7%2 --export=ALL,CONFIG_DIR=config/10_squidpy_recluster_analysis/vbct hpc/slurm/run_10_squidpy_recluster_spatial_analysis.sl
 CONFIGS=("${CONFIG_DIR}"/*.json)
 
 if (( ${#CONFIGS[@]} == 0 )); then
@@ -56,6 +56,6 @@ echo "Config contents:"
 cat "${CONFIG}"
 echo "================================="
 
-python 07_squidpy_recluster_spatial_analysis.py --config "${CONFIG}"
+python 10_squidpy_recluster_spatial_analysis.py --config "${CONFIG}"
 
 echo "Squidpy recluster spatial analysis finished: $(date '+%Y-%m-%d %H:%M:%S')"
