@@ -2084,16 +2084,20 @@ under `config/10_squidpy_recluster_analysis/`, and
 The workflow is **06 → 08 → 10**; step 09 is an optional plotting branch from 08.
 
 For HPC execution, Nathalie runs these commands herself. First generate the
-annotated objects with script 08 in a suitably resourced compute allocation
-(the input-root override avoids the local mount path stored in its config):
+annotated objects with the script 08 batch wrapper. It supplies the HPC
+input/output-root overrides and keeps this work off the login node:
 
 ```bash
 cd /scratchdata1/users/a1210419/Banksy_py
-conda activate banksy
-python 08_annotate_cell_types_and_plot_umaps.py \
-  --config config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json \
-  --input-root "$PWD" --output-root "$PWD"
+mkdir -p logs
+sbatch hpc/slurm/run_08_cell_type_annotation.sl
 ```
+
+Script 08 runs as one job rather than an array because it writes shared count
+tables and the combined eight-sample UMAP. The wrapper requests 8 CPUs, 180 GB,
+and 8 hours. Its default refuses to replace existing outputs; use
+`sbatch --export=ALL,OVERWRITE=1 hpc/slurm/run_08_cell_type_annotation.sl` only
+when intentionally replacing a partial or completed run.
 
 Once script 08 has completed successfully, validate its outputs and submit:
 

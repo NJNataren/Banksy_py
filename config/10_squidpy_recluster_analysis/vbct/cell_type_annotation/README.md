@@ -21,6 +21,12 @@ Without `--sample`, a full run processes all eight sequentially. Use the HPC
 workflow for full spatial calculations. Annotated objects must be available
 there at script 08's relative output paths. `--annotation-root` overrides their
 root directory (including when script 08 previously used --output-root).
+Run script 08 first with `hpc/slurm/run_08_cell_type_annotation.sl`; it creates
+the annotated H5AD inputs in their configured HPC-relative paths. The adjacent
+`hpc_staging_files.txt` lists the code and configuration files needed for the
+08 → 10 workflow; generated annotated H5ADs are no longer listed as staging
+inputs.
+
 The dedicated `hpc/slurm/run_10_cell_type_spatial_analysis.sl` wrapper uses one
 task per sample (`0-7%2`) and selects samples from script 08's config. Submit it
 yourself after script 08 has completed on HPC (or annotated files are transferred):

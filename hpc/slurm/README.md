@@ -33,6 +33,7 @@ Most wrappers change to `REPO_DIR` before running the Python workflow scripts, s
     hpc/slurm/run_06_recluster_qc_annotated_mf_skin_non_res.sl
   ```
 
+- `run_08_cell_type_annotation.sl`: active script 08 reviewed cell-type annotation. Runs all eight configured samples sequentially in one job because the workflow writes shared count tables and a combined UMAP. Requests 8 CPUs, 180 GB, and 8 hours. Set `OVERWRITE=1` only to replace existing or partial outputs deliberately.
 - `run_10_cell_type_spatial_analysis.sl`: active script 10 cell-type analysis; requires script 08 annotated H5ADs. Uses the shared annotation config with one task per sample (`0-7%2`).
 - `run_10_squidpy_recluster_spatial_analysis.sl`: script 10 Squidpy spatial analysis on reclustered objects; defaults to `config/10_squidpy_recluster_analysis/vbct`.
 
@@ -43,6 +44,7 @@ Most wrappers change to `REPO_DIR` before running the Python workflow scripts, s
 - `run_01_xenium_QC_ck_skin_res_test.sl`
 - `run_xenium_clustering_test_single.sl`
 
-The spatial step was renamed from 07 to 10. Complete script 08 annotation before
-submitting the cell-type wrapper; script 09 proportions are optional. Commands
-are for Nathalie to execute; agents must not connect to HPC or submit jobs.
+The spatial step was renamed from 07 to 10. Submit script 08 with its wrapper and
+wait for successful completion before submitting the script 10 cell-type
+wrapper; script 09 proportions are optional. Commands are for Nathalie to
+execute; agents must not connect to HPC or submit jobs.

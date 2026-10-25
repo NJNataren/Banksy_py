@@ -77,6 +77,9 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 - Local: script 01a clustree QC, script 04 dotplots, and script 09 composition plots. Script 08 can also run locally; its annotated outputs must be available wherever script 10 runs.
 - Slurm array ranges must match the number of JSON configs in the selected leaf config directory.
 - Some wrappers accept `CONFIG_DIR` overrides, especially `hpc/slurm/run_00_xenium_clustering.sl` and `hpc/slurm/run_01_xenium_QC_array_ptmt.sl`.
+- Script 08 uses `hpc/slurm/run_08_cell_type_annotation.sl` as one batch job,
+  rather than an array, because it writes shared count tables and a combined UMAP.
+- Submit script 10 only after script 08 completes successfully.
 
 ## Config Roots
 
@@ -333,16 +336,14 @@ under `config/10_squidpy_recluster_analysis/`, and
 `hpc/slurm/run_10_cell_type_spatial_analysis.sl`. No step 07 alias is retained.
 The workflow is **06 → 08 → 10**; step 09 is an optional plotting branch from 08.
 
-For HPC execution, Nathalie runs these commands herself. First generate the
-annotated objects with script 08 in a suitably resourced compute allocation
-(the input-root override avoids the local mount path stored in its config):
+For HPC execution, Nathalie runs these commands herself. Generate the annotated
+objects with the script 08 batch wrapper; it supplies the HPC input/output-root
+overrides and does not run on the login node:
 
 ```bash
 cd /scratchdata1/users/a1210419/Banksy_py
-conda activate banksy
-python 08_annotate_cell_types_and_plot_umaps.py \
-  --config config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json \
-  --input-root "$PWD" --output-root "$PWD"
+mkdir -p logs
+sbatch hpc/slurm/run_08_cell_type_annotation.sl
 ```
 
 Once script 08 has completed successfully, validate its outputs and submit:
