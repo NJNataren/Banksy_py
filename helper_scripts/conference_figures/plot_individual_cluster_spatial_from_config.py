@@ -3,12 +3,12 @@
 
 """
 Title: Plot Individual Cluster Spatial Figures From Config
-Date: 2026-08-31
+Date: 2026-10-26
 Summary: Generate one spatial highlight plot per configured reclustered BANKSY
 cluster from the shared conference JSON config. Each plot shows all QC-passing
 cells in grey and redraws the selected cluster in its conference palette colour,
 then writes PNG, PDF, and SVG files under each sample's individual_clusters
-output directory.
+output directory. Optional cell-type filtering supports focused poster exports.
 """
 
 import argparse
@@ -66,6 +66,15 @@ def parse_args():
         default=None,
         help="Override selected-cluster point size. Defaults to background point size.",
     )
+    parser.add_argument(
+        "--only-cell-type",
+        action="append",
+        default=[],
+        help=(
+            "Only plot clusters with this reviewed cell-type annotation. "
+            "Repeat to include several cell types."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -77,11 +86,16 @@ def safe_filename_part(value):
 
 def prepare_sample_adata(sample_cfg, cfg):
     """Load one sample and apply shared conference presentation transforms."""
-    adata = conference.prepare_adata(sample_cfg["adata_path"], sample_cfg["cluster_col"])
+    adata = conference.prepare_adata(
+        sample_cfg["adata_path"],
+        sample_cfg["cluster_col"],
+        backed=conference.get_sample_value(sample_cfg, cfg, "read_backed", None),
+    )
     adata = conference.exclude_configured_clusters(adata, sample_cfg, cfg)
     conference.add_cell_type_labels(adata, sample_cfg)
     collapse_rules = conference.get_sample_value(sample_cfg, cfg, "label_collapse_rules", [])
     conference.collapse_cell_type_labels(adata, collapse_rules)
+    conference.apply_configured_cell_type_order(adata, sample_cfg, cfg)
     conference.apply_conference_palette(adata, sample_cfg, cfg)
     return adata
 
@@ -197,6 +211,13 @@ def run_sample(sample_cfg, cfg, args):
     adata = prepare_sample_adata(sample_cfg, cfg)
     cluster_colors = color_by_cluster(adata)
     categories = list(adata.obs["conference_cluster"].cat.categories)
+    requested_cell_types = {value.casefold() for value in args.only_cell_type}
+    if requested_cell_types:
+        categories = [
+            cluster_id
+            for cluster_id in categories
+            if annotation_for_cluster(adata, cluster_id).casefold() in requested_cell_types
+        ]
 
     print(
         f"Running individual cluster plots for {sample_name}: "

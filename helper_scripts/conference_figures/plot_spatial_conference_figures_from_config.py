@@ -178,10 +178,10 @@ def reorder_obs_category(adata, obs_col):
         adata.obs[obs_col] = adata.obs[obs_col].astype("category").cat.reorder_categories(categories)
 
 
-def prepare_adata(adata_path, cluster_col):
+def prepare_adata(adata_path, cluster_col, backed=None):
     """Load AnnData and add Scanpy-compatible spatial coordinates."""
     print(f"Reading {adata_path}")
-    adata = sc.read_h5ad(adata_path)
+    adata = sc.read_h5ad(adata_path, backed=backed)
 
     if cluster_col not in adata.obs.columns:
         raise KeyError(
@@ -328,6 +328,25 @@ def collapse_cell_type_labels(adata, collapse_rules):
     reorder_obs_category(adata, "conference_cell_type")
 
 
+def apply_configured_cell_type_order(adata, sample_cfg, cfg):
+    """Order displayed cell types using the shared configured biological order."""
+    if "conference_cell_type" not in adata.obs.columns:
+        return
+
+    configured = get_sample_value(sample_cfg, cfg, "cell_type_order", [])
+    if not configured:
+        return
+
+    present = set(adata.obs["conference_cell_type"].astype(str))
+    ordered = [str(label) for label in configured if str(label) in present]
+    unexpected = sorted(present - set(ordered), key=natural_sort_key)
+    adata.obs["conference_cell_type"] = pd.Categorical(
+        adata.obs["conference_cell_type"].astype(str),
+        categories=ordered + unexpected,
+        ordered=True,
+    )
+
+
 def resolve_cell_type_palette(sample_cfg, cfg):
     """Return the configured cell-type palette with sample-level overrides."""
     palette = dict(cfg.get("cell_type_palette", {}))
@@ -370,7 +389,7 @@ def apply_conference_palette(adata, sample_cfg, cfg):
 
     fallback = plt.get_cmap("tab20")
     if "conference_cell_type" in adata.obs.columns:
-        categories = sorted(adata.obs["conference_cell_type"].cat.categories, key=natural_sort_key)
+        categories = list(adata.obs["conference_cell_type"].cat.categories)
         adata.uns["conference_cell_type_colors"] = [
             color_for_cell_type(category, palette, fallback(i % fallback.N))
             for i, category in enumerate(categories)
@@ -521,8 +540,11 @@ def force_categorical_legend(adata, color_col, point_size, label_col=None):
         existing_legend.remove()
 
     values = adata.obs[color_col]
-    categories = list(values.cat.categories) if hasattr(values, "cat") else list(pd.Categorical(values).categories)
-    categories = sorted(categories, key=natural_sort_key)
+    categories = (
+        list(values.cat.categories)
+        if hasattr(values, "cat")
+        else list(pd.Categorical(values).categories)
+    )
     palette = adata.uns.get(f"{color_col}_colors")
     if palette is None or len(palette) == 0:
         color_map = categorical_color_map(values.astype(str))
@@ -579,6 +601,7 @@ def plot_spatial_category(
     force_legend=False,
     legend_label_col=None,
     figsize=None,
+    save_svg=True,
 ):
     """Plot spatial coordinates colored by a categorical obs column."""
     sc.pl.embedding(
@@ -599,7 +622,7 @@ def plot_spatial_category(
         force_categorical_legend(adata, color_col, point_size, legend_label_col)
     if coordinate_axes:
         add_coordinate_axis_guides(plt.gca())
-    save_current_figure(output_dir, stem, dpi)
+    save_current_figure(output_dir, stem, dpi, save_svg=save_svg)
 
 
 def plot_spatial_on_data(
@@ -758,7 +781,10 @@ def crop_adata_to_window(adata, window):
         raise ValueError(f"Crop window {window.get('name', 'unnamed')!r} contains 0 cells.")
 
     print(f"Crop {window.get('name', 'unnamed')}: {n_cells:,} cells")
-    return adata[mask].copy()
+    cropped = adata[mask]
+    if adata.isbacked:
+        return cropped.to_memory()
+    return cropped.copy()
 
 
 # DAPI/OME-TIFF overlay support disabled for now.
@@ -981,7 +1007,7 @@ def categorical_color_map(values):
 #
 #
 def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution, marker_sets):
-    """Generate manual close-up plots for configured spatial crop windows."""
+    """Generate configured spatial close-ups for the requested plot families."""
     crop_windows = get_sample_value(sample_cfg, cfg, "crop_windows", [])
     if not crop_windows:
         return
@@ -990,7 +1016,15 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
     dpi = int(get_sample_value(sample_cfg, cfg, "dpi", 300))
     frameon = bool(get_sample_value(sample_cfg, cfg, "crop_show_axes", True))
     crop_figsize = get_sample_value(sample_cfg, cfg, "crop_figsize")
-    # image_cfg = resolve_image_overlay(sample_cfg, cfg)
+    plot_crop_clusters = bool(
+        get_sample_value(sample_cfg, cfg, "plot_crop_clusters", True)
+    )
+    plot_crop_cell_types = bool(
+        get_sample_value(sample_cfg, cfg, "plot_crop_cell_types", True)
+    )
+    plot_crop_markers = bool(
+        get_sample_value(sample_cfg, cfg, "plot_crop_markers", True)
+    )
 
     for window in crop_windows:
         name = window["name"].replace(" ", "_")
@@ -1009,21 +1043,22 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
         )
         stem_suffix = f"_{name}"
 
-        plot_spatial_category(
-            cropped,
-            "conference_cluster",
-            f"{sample_name} BANKSY clusters, {resolution}, {window['name']}",
-            crop_dir,
-            f"{sample_name}_spatial_clusters_{resolution}{stem_suffix}",
-            cluster_point_size,
-            dpi,
-            frameon=frameon,
-            highlight_cfg=window.get("cluster_highlight"),
-            force_legend=True,
-            legend_label_col="conference_cell_type",
-            figsize=window.get("figsize", crop_figsize),
-        )
-        if "conference_cell_type" in cropped.obs.columns:
+        if plot_crop_clusters:
+            plot_spatial_category(
+                cropped,
+                "conference_cluster",
+                f"{sample_name} BANKSY clusters, {resolution}, {window['name']}",
+                crop_dir,
+                f"{sample_name}_spatial_clusters_{resolution}{stem_suffix}",
+                cluster_point_size,
+                dpi,
+                frameon=frameon,
+                highlight_cfg=window.get("cluster_highlight"),
+                force_legend=True,
+                legend_label_col="conference_cell_type",
+                figsize=window.get("figsize", crop_figsize),
+            )
+        if plot_crop_cell_types and "conference_cell_type" in cropped.obs.columns:
             plot_spatial_category(
                 cropped,
                 "conference_cell_type",
@@ -1036,21 +1071,22 @@ def plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution,
                 highlight_cfg=cell_type_highlight_cfg,
                 force_legend=True,
                 figsize=window.get("figsize", crop_figsize),
+                save_svg=bool(get_sample_value(sample_cfg, cfg, "crop_save_svg", True)),
             )
 
-        for marker_set in window.get("marker_sets", marker_sets):
-            plot_marker_spatial_panels(
-                cropped,
-                marker_set,
-                crop_dir,
-                sample_name,
-                point_size,
-                dpi,
-                stem_suffix=stem_suffix,
-            )
+        if plot_crop_markers:
+            for marker_set in window.get("marker_sets", marker_sets):
+                plot_marker_spatial_panels(
+                    cropped,
+                    marker_set,
+                    crop_dir,
+                    sample_name,
+                    point_size,
+                    dpi,
+                    stem_suffix=stem_suffix,
+                )
 
         # DAPI/OME-TIFF overlay plotting is disabled for now.
-
 
 def plot_marker_dotplot(adata, marker_set, groupby, output_dir, sample_name, resolution, dpi, figsize=None):
     """Plot marker expression summarized across clusters or cell-type labels."""
@@ -1118,7 +1154,7 @@ def plot_cluster_abundance(adata, abundance_dir, sample_name, resolution, dpi, f
 
 
 def run_sample(sample_cfg, cfg):
-    """Generate all requested conference plots for one sample."""
+    """Generate the configured conference plot families for one sample."""
     sample_name = sample_cfg["sample"]
     resolution = sample_cfg.get("resolution", "selected_resolution")
     output_root = get_sample_value(sample_cfg, cfg, "output_dir", "figures/conference")
@@ -1142,59 +1178,86 @@ def run_sample(sample_cfg, cfg):
     dotplot_figsize = get_sample_value(sample_cfg, cfg, "dotplot_figsize")
     cluster_abundance_figsize = get_sample_value(sample_cfg, cfg, "cluster_abundance_figsize")
 
-    adata = prepare_adata(sample_cfg["adata_path"], sample_cfg["cluster_col"])
+    plot_spatial_clusters = bool(
+        get_sample_value(sample_cfg, cfg, "plot_spatial_clusters", True)
+    )
+    plot_umap = bool(get_sample_value(sample_cfg, cfg, "plot_umap", True))
+    plot_cell_type_spatial = bool(
+        get_sample_value(sample_cfg, cfg, "plot_cell_type_spatial", True)
+    )
+    plot_cell_type_on_data = bool(
+        get_sample_value(sample_cfg, cfg, "plot_cell_type_on_data", True)
+    )
+    plot_marker_spatial = bool(
+        get_sample_value(sample_cfg, cfg, "plot_marker_spatial", True)
+    )
+    plot_dotplots = bool(get_sample_value(sample_cfg, cfg, "plot_dotplots", True))
+    plot_crops = bool(get_sample_value(sample_cfg, cfg, "plot_crops", True))
+    plot_abundance = bool(
+        get_sample_value(sample_cfg, cfg, "plot_cluster_abundance", True)
+    )
+
+    adata = prepare_adata(
+        sample_cfg["adata_path"],
+        sample_cfg["cluster_col"],
+        backed=get_sample_value(sample_cfg, cfg, "read_backed", None),
+    )
     adata = exclude_configured_clusters(adata, sample_cfg, cfg)
     has_cell_type_labels = add_cell_type_labels(adata, sample_cfg)
     collapse_rules = get_sample_value(sample_cfg, cfg, "label_collapse_rules", [])
     collapse_cell_type_labels(adata, collapse_rules)
+    apply_configured_cell_type_order(adata, sample_cfg, cfg)
     apply_conference_palette(adata, sample_cfg, cfg)
 
     print(f"Running {sample_name}: {adata.n_obs:,} cells, {adata.n_vars:,} genes.")
     if bool(get_sample_value(sample_cfg, cfg, "write_coordinate_summary", True)):
         write_spatial_coordinate_summary(adata, summary_dir, sample_name)
 
-    plot_spatial_category(
-        adata,
-        "conference_cluster",
-        f"{sample_name} BANKSY clusters, {resolution}",
-        cluster_dir,
-        f"{sample_name}_spatial_clusters_{resolution}",
-        point_size,
-        dpi,
-        figsize=full_spatial_figsize,
-    )
-    plot_spatial_on_data(
-        adata,
-        "conference_cluster",
-        f"{sample_name} BANKSY clusters, {resolution}",
-        cluster_dir,
-        f"{sample_name}_spatial_clusters_{resolution}_on_data",
-        point_size,
-        dpi,
-        figsize=full_spatial_figsize,
-    )
-    if bool(get_sample_value(sample_cfg, cfg, "write_axis_scout_plots", True)):
-        plot_spatial_axis_scout(
+    if plot_spatial_clusters:
+        plot_spatial_category(
             adata,
             "conference_cluster",
-            f"{sample_name} BANKSY clusters, {resolution}, axis scout",
+            f"{sample_name} BANKSY clusters, {resolution}",
             cluster_dir,
-            f"{sample_name}_spatial_clusters_{resolution}_axis_scout",
+            f"{sample_name}_spatial_clusters_{resolution}",
             point_size,
             dpi,
+            figsize=full_spatial_figsize,
         )
-    plot_umap_category(
-        adata,
-        "conference_cluster",
-        f"{sample_name} BANKSY UMAP, {resolution} clusters",
-        umap_dir,
-        f"{sample_name}_umap_clusters_{resolution}",
-        point_size,
-        dpi,
-        umap_keys,
-    )
+        plot_spatial_on_data(
+            adata,
+            "conference_cluster",
+            f"{sample_name} BANKSY clusters, {resolution}",
+            cluster_dir,
+            f"{sample_name}_spatial_clusters_{resolution}_on_data",
+            point_size,
+            dpi,
+            figsize=full_spatial_figsize,
+        )
+        if bool(get_sample_value(sample_cfg, cfg, "write_axis_scout_plots", True)):
+            plot_spatial_axis_scout(
+                adata,
+                "conference_cluster",
+                f"{sample_name} BANKSY clusters, {resolution}, axis scout",
+                cluster_dir,
+                f"{sample_name}_spatial_clusters_{resolution}_axis_scout",
+                point_size,
+                dpi,
+            )
 
-    if has_cell_type_labels:
+    if plot_umap:
+        plot_umap_category(
+            adata,
+            "conference_cluster",
+            f"{sample_name} BANKSY UMAP, {resolution} clusters",
+            umap_dir,
+            f"{sample_name}_umap_clusters_{resolution}",
+            point_size,
+            dpi,
+            umap_keys,
+        )
+
+    if plot_cell_type_spatial and has_cell_type_labels:
         plot_spatial_category(
             adata,
             "conference_cell_type",
@@ -1205,17 +1268,19 @@ def run_sample(sample_cfg, cfg):
             dpi,
             force_legend=True,
             figsize=full_cell_type_figsize,
+            save_svg=bool(get_sample_value(sample_cfg, cfg, "spatial_save_svg", True)),
         )
-        plot_spatial_on_data(
-            adata,
-            "conference_cell_type",
-            f"{sample_name} cell-type labels, {resolution}",
-            cell_type_dir,
-            f"{sample_name}_spatial_cell_type_labels_{resolution}_on_data",
-            point_size,
-            dpi,
-            figsize=full_cell_type_figsize,
-        )
+        if plot_cell_type_on_data:
+            plot_spatial_on_data(
+                adata,
+                "conference_cell_type",
+                f"{sample_name} cell-type labels, {resolution}",
+                cell_type_dir,
+                f"{sample_name}_spatial_cell_type_labels_{resolution}_on_data",
+                point_size,
+                dpi,
+                figsize=full_cell_type_figsize,
+            )
         if bool(get_sample_value(sample_cfg, cfg, "write_axis_scout_plots", True)):
             plot_spatial_axis_scout(
                 adata,
@@ -1229,28 +1294,35 @@ def run_sample(sample_cfg, cfg):
 
     dotplot_groupby = "conference_cell_type" if has_cell_type_labels else "conference_cluster"
     for marker_set in full_marker_sets:
-        plot_marker_spatial_panels(adata, marker_set, marker_dir, sample_name, point_size, dpi)
-        plot_marker_dotplot(
+        if plot_marker_spatial:
+            plot_marker_spatial_panels(
+                adata, marker_set, marker_dir, sample_name, point_size, dpi
+            )
+        if plot_dotplots:
+            plot_marker_dotplot(
+                adata,
+                marker_set,
+                dotplot_groupby,
+                dotplot_dir,
+                sample_name,
+                resolution,
+                dpi,
+                figsize=marker_set.get("dotplot_figsize", dotplot_figsize),
+            )
+
+    if plot_crops:
+        plot_crop_windows(
+            adata, sample_cfg, cfg, crop_dir, sample_name, resolution, marker_sets
+        )
+    if plot_abundance:
+        plot_cluster_abundance(
             adata,
-            marker_set,
-            dotplot_groupby,
-            dotplot_dir,
+            abundance_dir,
             sample_name,
             resolution,
             dpi,
-            figsize=marker_set.get("dotplot_figsize", dotplot_figsize),
+            figsize=cluster_abundance_figsize,
         )
-
-    plot_crop_windows(adata, sample_cfg, cfg, crop_dir, sample_name, resolution, marker_sets)
-    plot_cluster_abundance(
-        adata,
-        abundance_dir,
-        sample_name,
-        resolution,
-        dpi,
-        figsize=cluster_abundance_figsize,
-    )
-
 
 def main():
     """Run configured conference figure generation."""

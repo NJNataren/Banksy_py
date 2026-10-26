@@ -98,6 +98,7 @@ def prepare_sample_adata(sample_cfg, cfg):
     has_cell_type_labels = conference.add_cell_type_labels(adata, sample_cfg)
     collapse_rules = conference.get_sample_value(sample_cfg, cfg, "label_collapse_rules", [])
     conference.collapse_cell_type_labels(adata, collapse_rules)
+    conference.apply_configured_cell_type_order(adata, sample_cfg, cfg)
     conference.apply_conference_palette(adata, sample_cfg, cfg)
     return adata, has_cell_type_labels
 

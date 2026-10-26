@@ -114,7 +114,15 @@ Current examples:
 ```text
 config/conference_figures/ck_skin_res_unfiltered_r1p10.json
 config/conference_figures/vbct_exemplar_ck_bowel_mg_gastric.json
+config/conference_figures/vbct_min15_area95_selected_resolutions.json
 ```
+
+The `vbct_min15_area95_selected_resolutions.json` config reads the eight reviewed
+script 08 annotated H5ADs from the existing local Phoenix mount. It uses the
+`cell_type` observation column directly, preserves the shared cell-type order and
+palette, and writes new figures locally under
+`figures/conference_min15_area95_selected_resolutions_poster/`. The config disables UMAPs, cluster maps, marker-expression tissue maps and abundance plots; it writes broad cell-type tissue maps, the established CK bowel/MG gastric cell-type crops, and endothelial dotplots. The mount is an input
+only; the helper does not modify those H5ADs.
 
 The exemplar config currently includes:
 
@@ -159,9 +167,15 @@ The focused CK `r1.10` / MG `r0.70` annotated all-gene dotplot is:
 figures/dotplots/vbct/recluster_filtered_qc_pass_only/CK_bowel_res_MG_gastric_non_res_selected_res_all_genes_conference_annotated_zscore_dotplot.png
 ```
 
-Pending helper: create `plot_individual_cluster_spatial_from_config.py` to write
-one grey-background, highlighted-cluster spatial plot per recluster under each
-sample output directory's `individual_clusters/` folder.
+`plot_individual_cluster_spatial_from_config.py` writes one grey-background,
+highlighted-cluster spatial plot per BANKSY cluster under each sample output
+directory's `individual_clusters/` folder. Use `--only-cell-type` to restrict
+the export to reviewed clusters with a specified annotation. The selected
+cluster inherits its colour from the shared cell-type palette. For example:
+
+```bash
+conda run -n banksy python helper_scripts/conference_figures/plot_individual_cluster_spatial_from_config.py   --config config/conference_figures/vbct_min15_area95_selected_resolutions.json   --only-cell-type "Endothelial cell"   --background-color "#d9d9d9"   --background-alpha 0.75
+```
 
 ## Running Locally
 
@@ -223,8 +237,14 @@ Top-level fields:
 - `output_dir`: root folder for figure outputs.
 - `dpi`: raster output resolution.
 - `point_size`: default point size for spatial and UMAP plots.
+- `read_backed`: optional AnnData backed mode such as `r` for memory-efficient read-only plotting.
 - `marker_sets`: named marker panels to plot.
 - `cell_type_palette`: optional explicit colors for biological display labels.
+- `cell_type_order`: optional shared biological display order for legends and plots.
+- `plot_spatial_clusters`, `plot_umap`, `plot_cell_type_spatial`, `plot_marker_spatial`, `plot_dotplots`, `plot_crops`, and `plot_cluster_abundance`: optional plot-family switches; all default to `true`.
+- `plot_cell_type_on_data`: optionally write the redundant on-data-label tissue variant; defaults to `true`.
+- `spatial_save_svg` and `crop_save_svg`: control SVG export for full tissue maps and crops; both default to `true`.
+- `plot_crop_clusters`, `plot_crop_cell_types`, and `plot_crop_markers`: optional crop-family switches; all default to `true`.
 - `organize_output_subdirs`: write plot families into subfolders; defaults to `true`.
 - `label_collapse_rules`: optional presentation-only relabeling rules.
 - `write_coordinate_summary`: write min/max and percentile x/y ranges; defaults to `true`.
