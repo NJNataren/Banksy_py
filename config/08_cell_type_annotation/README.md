@@ -23,6 +23,24 @@ Run all samples by removing `--validate-only`. Use `--sample <sample>` for a
 subset, `--no-write-annotated` for figures and tables only, and `--overwrite`
 to replace existing outputs.
 
+## Clean presentation UMAPs
+
+The companion config
+`vbct/min15_area95_selected_resolutions_clean_umaps.json` reads the existing
+annotated H5AD files and produces clean per-sample Scanpy UMAPs with no title,
+axis labels, or external legend. Cell types are labelled directly on the UMAP
+with 12-point text. It does not rewrite annotated objects or summary tables.
+
+```bash
+conda run -n banksy python 08_annotate_cell_types_and_plot_umaps.py \
+  --config config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_clean_umaps.json \
+  --overwrite
+```
+
+PNG, SVG, and PDF outputs are written to
+`figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/clean_scanpy/per_sample_scanpy/`.
+The original titled UMAPs and combined panel remain unchanged.
+
 ## HPC execution
 
 Submit script 08 from the HPC repository root instead of running it on a login

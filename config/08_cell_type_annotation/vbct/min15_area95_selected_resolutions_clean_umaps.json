@@ -1,0 +1,131 @@
+{
+  "project_root_parent_depth": 3,
+  "mapping_csv": "config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_cell_type_mapping.csv",
+  "palette_json": "config/08_cell_type_annotation/vbct/shared_cell_type_palette.json",
+  "figure_dir": "figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/clean_scanpy",
+  "summary_dir": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions",
+  "write_annotated_objects": false,
+  "h5ad_compression": "gzip",
+  "plot": {
+    "plot_methods": [
+      "scanpy"
+    ],
+    "output_formats": [
+      "png",
+      "svg",
+      "pdf"
+    ],
+    "rasterized_points": true,
+    "point_size": 3,
+    "alpha": 0.6,
+    "label_on_data": true,
+    "label_fontsize": 12,
+    "suptitle_fontsize": 16,
+    "dpi": 300,
+    "individual_figsize": [
+      10,
+      8
+    ],
+    "panel_ncols": 2,
+    "panel_size_per_sample": [
+      7,
+      5.5
+    ],
+    "show_sample_titles": false,
+    "show_figure_title": false,
+    "show_legend": false,
+    "show_axis_labels": false,
+    "make_combined_figure": false
+  },
+  "samples": [
+    {
+      "sample": "CK_skin_res",
+      "branch": "min15_area95",
+      "branch_label": "minimum 15 transcripts, grouped area p95",
+      "resolution": "1.00",
+      "title": "CK_skin_res · r1.00",
+      "input_h5ad": "data/xenium/processed/vbct/CK_skin_res/cell_type_annotation/adata_expression_clean_CK_skin_res_min15_area95_cell_type_annotated_r1.00.h5ad",
+      "output_h5ad": "data/xenium/processed/vbct/CK_skin_res/cell_type_annotation/adata_expression_clean_CK_skin_res_min15_area95_cell_type_annotated_r1.00.h5ad",
+      "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.00_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+    },
+    {
+      "sample": "EL_skin_res",
+      "branch": "min15_area95",
+      "branch_label": "minimum 15 transcripts, grouped area p95",
+      "resolution": "0.80",
+      "title": "EL_skin_res · r0.80",
+      "input_h5ad": "data/xenium/processed/vbct/EL_skin_res/cell_type_annotation/adata_expression_clean_EL_skin_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "output_h5ad": "data/xenium/processed/vbct/EL_skin_res/cell_type_annotation/adata_expression_clean_EL_skin_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+    },
+    {
+      "sample": "GR_lung_non_res_roi",
+      "branch": "min15_area95",
+      "branch_label": "minimum 15 transcripts, grouped area p95",
+      "resolution": "1.00",
+      "title": "GR_lung_non_res_roi · r1.00",
+      "input_h5ad": "data/xenium/processed/vbct/GR_lung_non_res_roi/cell_type_annotation/adata_expression_clean_GR_lung_non_res_roi_min15_area95_cell_type_annotated_r1.00.h5ad",
+      "output_h5ad": "data/xenium/processed/vbct/GR_lung_non_res_roi/cell_type_annotation/adata_expression_clean_GR_lung_non_res_roi_min15_area95_cell_type_annotated_r1.00.h5ad",
+      "groupby": "labels_scaled_gaussian_pc35_nc0.20_r1.00_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "umap_key": "X_umap_scaled_gaussian_pc35_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+    },
+    {
+      "sample": "BE_brain_non_res",
+      "branch": "min15_area95",
+      "branch_label": "minimum 15 transcripts, grouped area p95",
+      "resolution": "0.90",
+      "title": "BE_brain_non_res · r0.90",
+      "input_h5ad": "data/xenium/processed/vbct/BE_brain_non_res/cell_type_annotation/adata_expression_clean_BE_brain_non_res_min15_area95_cell_type_annotated_r0.90.h5ad",
+      "output_h5ad": "data/xenium/processed/vbct/BE_brain_non_res/cell_type_annotation/adata_expression_clean_BE_brain_non_res_min15_area95_cell_type_annotated_r0.90.h5ad",
+      "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.90_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+    },
+    {
+      "sample": "HW_brain_res",
+      "branch": "min15_area95",
+      "branch_label": "minimum 15 transcripts, grouped area p95",
+      "resolution": "0.80",
+      "title": "HW_brain_res · r0.80",
+      "input_h5ad": "data/xenium/processed/vbct/HW_brain_res/cell_type_annotation/adata_expression_clean_HW_brain_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "output_h5ad": "data/xenium/processed/vbct/HW_brain_res/cell_type_annotation/adata_expression_clean_HW_brain_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+    },
+    {
+      "sample": "MF_skin_non_res",
+      "branch": "min15_area95",
+      "branch_label": "minimum 15 transcripts, grouped area p95",
+      "resolution": "0.50",
+      "title": "MF_skin_non_res · r0.50",
+      "input_h5ad": "data/xenium/processed/vbct/MF_skin_non_res/cell_type_annotation/adata_expression_clean_MF_skin_non_res_min15_area95_cell_type_annotated_r0.50.h5ad",
+      "output_h5ad": "data/xenium/processed/vbct/MF_skin_non_res/cell_type_annotation/adata_expression_clean_MF_skin_non_res_min15_area95_cell_type_annotated_r0.50.h5ad",
+      "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.50_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "umap_key": "X_umap_scaled_gaussian_pc20_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+    },
+    {
+      "sample": "MG_gastric_non_res",
+      "branch": "min15_area95",
+      "branch_label": "minimum 15 transcripts, grouped area p95",
+      "resolution": "0.70",
+      "title": "MG_gastric_non_res · r0.70",
+      "input_h5ad": "data/xenium/processed/vbct/MG_gastric_non_res/cell_type_annotation/adata_expression_clean_MG_gastric_non_res_min15_area95_cell_type_annotated_r0.70.h5ad",
+      "output_h5ad": "data/xenium/processed/vbct/MG_gastric_non_res/cell_type_annotation/adata_expression_clean_MG_gastric_non_res_min15_area95_cell_type_annotated_r0.70.h5ad",
+      "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "umap_key": "X_umap_scaled_gaussian_pc35_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+    },
+    {
+      "sample": "CK_bowel_res",
+      "branch": "min15_area95",
+      "branch_label": "minimum 15 transcripts, grouped area p95",
+      "resolution": "0.80",
+      "title": "CK_bowel_res · r0.80",
+      "input_h5ad": "data/xenium/processed/vbct/CK_bowel_res/cell_type_annotation/adata_expression_clean_CK_bowel_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "output_h5ad": "data/xenium/processed/vbct/CK_bowel_res/cell_type_annotation/adata_expression_clean_CK_bowel_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+    }
+  ],
+  "write_summary_tables": false
+}

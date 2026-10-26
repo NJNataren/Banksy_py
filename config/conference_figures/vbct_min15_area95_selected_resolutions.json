@@ -1,0 +1,324 @@
+{
+  "description": "Poster-focused cell-type tissue maps, established CK bowel/MG gastric crops, endothelial marker-expression maps, and endothelial dotplots from reviewed min15/area95 selected-resolution objects.",
+  "source_annotation_config": "config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json",
+  "output_dir": "figures/conference_min15_area95_selected_resolutions_poster",
+  "dpi": 300,
+  "point_size": 2.0,
+  "umap_point_size": 2.0,
+  "organize_output_subdirs": true,
+  "write_coordinate_summary": false,
+  "write_axis_scout_plots": false,
+  "marker_sets": [
+    {
+      "name": "endothelial",
+      "genes": [
+        "AQP1",
+        "CALCRL",
+        "CDH5",
+        "ECSCR",
+        "PLVAP",
+        "SELP",
+        "VWF"
+      ],
+      "cmap": "Reds",
+      "dotplot_cmap": "RdBu_r",
+      "ncols": 4,
+      "vmin": 0,
+      "vmax": "p99",
+      "figsize": [
+        20,
+        10
+      ],
+      "individual_figsize": [
+        7,
+        7
+      ],
+      "write_individual": true
+    }
+  ],
+  "cell_type_order": [
+    "Melanoma cell",
+    "Macrophage",
+    "T cell",
+    "B cell",
+    "Fibroblast",
+    "Endothelial cell",
+    "Epithelial cell",
+    "Pericyte"
+  ],
+  "cell_type_palette": {
+    "Melanoma cell": "#AA4499",
+    "Macrophage": "#EE7733",
+    "T cell": "#4477AA",
+    "B cell": "#66CCEE",
+    "Fibroblast": "#228833",
+    "Endothelial cell": "#CC3311",
+    "Epithelial cell": "#CCBB44",
+    "Pericyte": "#777777"
+  },
+  "samples": [
+    {
+      "sample": "CK_skin_res",
+      "branch": "min15_area95",
+      "resolution": "r1p00",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/CK_skin_res/cell_type_annotation/adata_expression_clean_CK_skin_res_min15_area95_cell_type_annotated_r1.00.h5ad",
+      "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r1.00_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "label_obs_col": "cell_type",
+      "umap_keys": [
+        "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+      ],
+      "output_subdir": "CK_skin_res_min15_area95_r1p00",
+      "crop_cell_type_highlight": {
+        "obs_col": "conference_cell_type",
+        "exact": [
+          "Endothelial cell"
+        ],
+        "point_size": 11,
+        "alpha": 1.0
+      },
+      "crop_cell_type_point_size": 7
+    },
+    {
+      "sample": "EL_skin_res",
+      "branch": "min15_area95",
+      "resolution": "r0p80",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/EL_skin_res/cell_type_annotation/adata_expression_clean_EL_skin_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "label_obs_col": "cell_type",
+      "umap_keys": [
+        "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+      ],
+      "output_subdir": "EL_skin_res_min15_area95_r0p80",
+      "crop_cell_type_highlight": {
+        "obs_col": "conference_cell_type",
+        "exact": [
+          "Endothelial cell"
+        ],
+        "point_size": 11,
+        "alpha": 1.0
+      },
+      "crop_cell_type_point_size": 7
+    },
+    {
+      "sample": "GR_lung_non_res_roi",
+      "branch": "min15_area95",
+      "resolution": "r1p00",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/GR_lung_non_res_roi/cell_type_annotation/adata_expression_clean_GR_lung_non_res_roi_min15_area95_cell_type_annotated_r1.00.h5ad",
+      "cluster_col": "labels_scaled_gaussian_pc35_nc0.20_r1.00_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "label_obs_col": "cell_type",
+      "umap_keys": [
+        "X_umap_scaled_gaussian_pc35_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+      ],
+      "output_subdir": "GR_lung_non_res_roi_min15_area95_r1p00",
+      "crop_cell_type_highlight": {
+        "obs_col": "conference_cell_type",
+        "exact": [
+          "Endothelial cell"
+        ],
+        "point_size": 11,
+        "alpha": 1.0
+      },
+      "crop_cell_type_point_size": 7
+    },
+    {
+      "sample": "BE_brain_non_res",
+      "branch": "min15_area95",
+      "resolution": "r0p90",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/BE_brain_non_res/cell_type_annotation/adata_expression_clean_BE_brain_non_res_min15_area95_cell_type_annotated_r0.90.h5ad",
+      "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.90_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "label_obs_col": "cell_type",
+      "umap_keys": [
+        "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+      ],
+      "output_subdir": "BE_brain_non_res_min15_area95_r0p90",
+      "crop_cell_type_highlight": {
+        "obs_col": "conference_cell_type",
+        "exact": [
+          "Endothelial cell"
+        ],
+        "point_size": 11,
+        "alpha": 1.0
+      },
+      "crop_cell_type_point_size": 7
+    },
+    {
+      "sample": "HW_brain_res",
+      "branch": "min15_area95",
+      "resolution": "r0p80",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/HW_brain_res/cell_type_annotation/adata_expression_clean_HW_brain_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "label_obs_col": "cell_type",
+      "umap_keys": [
+        "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+      ],
+      "output_subdir": "HW_brain_res_min15_area95_r0p80",
+      "crop_cell_type_highlight": {
+        "obs_col": "conference_cell_type",
+        "exact": [
+          "Endothelial cell"
+        ],
+        "point_size": 11,
+        "alpha": 1.0
+      },
+      "crop_cell_type_point_size": 7
+    },
+    {
+      "sample": "MF_skin_non_res",
+      "branch": "min15_area95",
+      "resolution": "r0p50",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/MF_skin_non_res/cell_type_annotation/adata_expression_clean_MF_skin_non_res_min15_area95_cell_type_annotated_r0.50.h5ad",
+      "cluster_col": "labels_scaled_gaussian_pc20_nc0.20_r0.50_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "label_obs_col": "cell_type",
+      "umap_keys": [
+        "X_umap_scaled_gaussian_pc20_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+      ],
+      "output_subdir": "MF_skin_non_res_min15_area95_r0p50",
+      "crop_cell_type_highlight": {
+        "obs_col": "conference_cell_type",
+        "exact": [
+          "Endothelial cell"
+        ],
+        "point_size": 11,
+        "alpha": 1.0
+      },
+      "crop_cell_type_point_size": 7
+    },
+    {
+      "sample": "MG_gastric_non_res",
+      "branch": "min15_area95",
+      "resolution": "r0p70",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/MG_gastric_non_res/cell_type_annotation/adata_expression_clean_MG_gastric_non_res_min15_area95_cell_type_annotated_r0.70.h5ad",
+      "cluster_col": "labels_scaled_gaussian_pc35_nc0.20_r0.70_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "label_obs_col": "cell_type",
+      "umap_keys": [
+        "X_umap_scaled_gaussian_pc35_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+      ],
+      "output_subdir": "MG_gastric_non_res_min15_area95_r0p70",
+      "crop_cell_type_highlight": {
+        "obs_col": "conference_cell_type",
+        "contains": [
+          "Endothelial"
+        ],
+        "point_size": 11,
+        "alpha": 1.0
+      },
+      "crop_cell_type_point_size": 7,
+      "crop_windows": [
+        {
+          "name": "view 1",
+          "xlim": [
+            3000,
+            4200
+          ],
+          "ylim": [
+            1500,
+            2500
+          ],
+          "point_size": 10,
+          "cluster_point_size": 15
+        },
+        {
+          "name": "view 2",
+          "xlim": [
+            4550,
+            5500
+          ],
+          "ylim": [
+            1000,
+            1450
+          ],
+          "point_size": 10,
+          "cluster_point_size": 10
+        },
+        {
+          "name": "view 3",
+          "xlim": [
+            3000,
+            4000
+          ],
+          "ylim": [
+            2250,
+            2750
+          ],
+          "point_size": 10,
+          "cluster_point_size": 10
+        }
+      ],
+      "full_cell_type_figsize": [
+        13.8,
+        8.925
+      ]
+    },
+    {
+      "sample": "CK_bowel_res",
+      "branch": "min15_area95",
+      "resolution": "r0p80",
+      "adata_path": "/home/nnataren/mnt/phoenix_scratch/Banksy_py/data/xenium/processed/vbct/CK_bowel_res/cell_type_annotation/adata_expression_clean_CK_bowel_res_min15_area95_cell_type_annotated_r0.80.h5ad",
+      "cluster_col": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
+      "label_obs_col": "cell_type",
+      "umap_keys": [
+        "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
+      ],
+      "output_subdir": "CK_bowel_res_min15_area95_r0p80",
+      "crop_cell_type_highlight": {
+        "obs_col": "conference_cell_type",
+        "contains": [
+          "Endothelial"
+        ],
+        "point_size": 11,
+        "alpha": 1.0
+      },
+      "crop_cell_type_point_size": 7,
+      "crop_windows": [
+        {
+          "name": "view 1",
+          "xlim": [
+            6700,
+            7900
+          ],
+          "ylim": [
+            7100,
+            8100
+          ],
+          "point_size": 10,
+          "cluster_point_size": 10
+        },
+        {
+          "name": "view 2",
+          "xlim": [
+            1950,
+            3150
+          ],
+          "ylim": [
+            850,
+            1850
+          ],
+          "point_size": 10,
+          "cluster_point_size": 10
+        }
+      ],
+      "full_cell_type_figsize": [
+        12,
+        16.1
+      ]
+    }
+  ],
+  "plot_spatial_clusters": false,
+  "plot_umap": false,
+  "plot_cell_type_spatial": true,
+  "plot_marker_spatial": true,
+  "plot_dotplots": true,
+  "plot_crops": true,
+  "plot_crop_clusters": false,
+  "plot_crop_cell_types": true,
+  "plot_crop_markers": false,
+  "plot_cluster_abundance": false,
+  "crop_figsize": [
+    9,
+    7
+  ],
+  "plot_cell_type_on_data": false,
+  "read_backed": "r",
+  "spatial_save_svg": true,
+  "crop_save_svg": true
+}

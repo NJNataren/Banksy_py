@@ -7,8 +7,8 @@
   "output_stem": "cell_type_proportions_by_tissue",
   "plot": {
     "figsize": [
-      17,
-      8
+      19,
+      9
     ],
     "dpi": 300,
     "title": "VBCT cell-type composition",
@@ -18,7 +18,18 @@
       "Brain",
       "Lung",
       "Gastrointestinal"
-    ]
+    ],
+    "font_size": 14,
+    "title_fontsize": 20,
+    "facet_title_fontsize": 16,
+    "legend_fontsize": 14,
+    "legend_title_fontsize": 15,
+    "caption_fontsize": 12,
+    "ylabel_fontsize": 15,
+    "xtick_fontsize": 13,
+    "ytick_fontsize": 13,
+    "show_figure_title": false,
+    "show_caption": false
   },
   "samples": [
     {

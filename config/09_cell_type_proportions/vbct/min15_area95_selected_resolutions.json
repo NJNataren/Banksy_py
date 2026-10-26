@@ -7,12 +7,23 @@
   "output_stem": "cell_type_proportions",
   "plot": {
     "figsize": [
-      15,
-      8
+      17,
+      9
     ],
     "dpi": 300,
     "title": "VBCT cell-type composition",
-    "caption": "Minimum 15 transcripts \u00b7 grouped cell-area p95 filtering\nProportions use all annotated post-filtered cells within each sample; r indicates the BANKSY resolution."
+    "caption": "Minimum 15 transcripts · grouped cell-area p95 filtering\nProportions use all annotated post-filtered cells within each sample; r indicates the BANKSY resolution.",
+    "font_size": 14,
+    "title_fontsize": 20,
+    "facet_title_fontsize": 16,
+    "legend_fontsize": 14,
+    "legend_title_fontsize": 15,
+    "caption_fontsize": 12,
+    "ylabel_fontsize": 15,
+    "xtick_fontsize": 13,
+    "ytick_fontsize": 13,
+    "show_figure_title": false,
+    "show_caption": false
   },
   "samples": [
     {

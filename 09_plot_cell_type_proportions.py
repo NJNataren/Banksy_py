@@ -1,6 +1,6 @@
 """
 Title: Plot reviewed cell-type proportions across samples
-Date: 2026-10-25
+Date: 2026-10-26
 Summary: Validate an existing cell-type count table against configured samples,
 branches, resolutions, and a shared palette. Export a zero-filled proportion
 table and optionally tissue-faceted 100% stacked bars as PNG, SVG, and PDF
@@ -98,7 +98,13 @@ def plot_proportions(table: pd.DataFrame, palette: dict, cfg: dict, stem: Path) 
     settings = cfg["plot"]
     panels = get_panels(cfg)
     faceted = "facet_order" in settings
-    plt.rcParams.update({"svg.fonttype": "none", "pdf.fonttype": 42, "font.size": 11})
+    plt.rcParams.update(
+        {
+            "svg.fonttype": "none",
+            "pdf.fonttype": 42,
+            "font.size": float(settings.get("font_size", 11)),
+        }
+    )
     fig, axes = plt.subplots(
         1, len(panels), figsize=settings["figsize"], sharey=True, squeeze=False,
         gridspec_kw={"width_ratios": [len(samples) for _, samples in panels]},
@@ -113,7 +119,8 @@ def plot_proportions(table: pd.DataFrame, palette: dict, cfg: dict, stem: Path) 
                    color=palette["colors"][cell_type], label=cell_type)
             bottom += heights
         labels = [sample.get("display_label", f"{sample['sample']}\nr{float(sample['resolution']):.2f}") for sample in samples]
-        ax.set_xticks(x, labels, rotation=35, ha="right", rotation_mode="anchor")
+        ax.set_xticks(x, labels, rotation=35, ha="right", rotation_mode="anchor",
+                      fontsize=float(settings.get("xtick_fontsize", settings.get("font_size", 11))))
         # Explicit limits plus proportional facet widths keep physical bar widths equal.
         ax.set_xlim(-0.5, len(names) - 0.5)
         ax.set_ylim(0, 1)
@@ -122,14 +129,46 @@ def plot_proportions(table: pd.DataFrame, palette: dict, cfg: dict, stem: Path) 
         ax.set_axisbelow(True)
         ax.grid(axis="y", alpha=0.2)
         if faceted:
-            ax.set_title(title, pad=14, fontsize=12, fontweight="bold")
-    axes[0, 0].set_ylabel("Cell proportion")
+            ax.set_title(
+                title, pad=14,
+                fontsize=float(settings.get("facet_title_fontsize", 12)),
+                fontweight="bold",
+            )
+    for ax in axes[0]:
+        ax.tick_params(axis="y", labelsize=float(settings.get("ytick_fontsize", settings.get("font_size", 11))))
+    axes[0, 0].set_ylabel(
+        "Cell proportion", fontsize=float(settings.get("ylabel_fontsize", settings.get("font_size", 11)))
+    )
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, title="Cell type", bbox_to_anchor=(0.82, 0.82),
-               loc="upper left", frameon=False)
-    fig.suptitle(settings["title"], x=0.08, ha="left", y=0.96, fontsize=16)
-    fig.text(0.08, 0.025, settings["caption"], fontsize=9, color="#444444")
-    fig.subplots_adjust(left=0.08, right=0.80, bottom=0.32, top=0.82, wspace=0.16)
+    fig.legend(
+        handles,
+        labels,
+        title="Cell type",
+        bbox_to_anchor=(0.82, 0.82),
+        loc="upper left",
+        frameon=False,
+        fontsize=float(settings.get("legend_fontsize", settings.get("font_size", 11))),
+        title_fontsize=float(settings.get("legend_title_fontsize", settings.get("font_size", 11))),
+    )
+    show_figure_title = settings.get("show_figure_title", True)
+    show_caption = settings.get("show_caption", True)
+    if show_figure_title:
+        fig.suptitle(
+            settings["title"], x=0.08, ha="left", y=0.96,
+            fontsize=float(settings.get("title_fontsize", 16)),
+        )
+    if show_caption:
+        fig.text(
+            0.08, 0.025, settings["caption"],
+            fontsize=float(settings.get("caption_fontsize", 9)), color="#444444",
+        )
+    fig.subplots_adjust(
+        left=0.08,
+        right=0.80,
+        bottom=0.32 if show_caption else 0.24,
+        top=0.82 if show_figure_title else 0.92,
+        wspace=0.16,
+    )
     for extension in ("png", "svg", "pdf"):
         fig.savefig(stem.with_suffix(f".{extension}"), dpi=settings["dpi"])
     plt.close(fig)

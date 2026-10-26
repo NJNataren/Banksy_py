@@ -1,10 +1,11 @@
 """
 Title: Annotate selected BANKSY clusters and plot shared-colour UMAPs
-Date: 2026-10-25
+Date: 2026-10-26
 Summary: Validate a reviewed cluster-to-cell-type mapping, attach annotations to
 clean script 06 AnnData objects, and render matching Matplotlib and Scanpy UMAPs.
 The original expression matrix, cell identifiers, cluster columns, and saved
-embeddings are preserved. Figure formats and point rasterization are config-driven.
+embeddings are preserved. Figure formats, typography, titles, legends, and point
+rasterization are config-driven.
 """
 
 from __future__ import annotations
@@ -262,11 +263,15 @@ def add_centroid_labels(
         )
 
 
-def style_umap_axis(ax: plt.Axes, title: str) -> None:
-    """Apply common axis styling to both plotting implementations."""
-    ax.set_title(title)
-    ax.set_xlabel("UMAP1")
-    ax.set_ylabel("UMAP2")
+def style_umap_axis(ax: plt.Axes, title: str, plot_cfg: dict) -> None:
+    """Apply config-driven title and axis styling to a UMAP panel."""
+    ax.set_title(title if plot_cfg.get("show_sample_titles", True) else "")
+    if plot_cfg.get("show_axis_labels", True):
+        ax.set_xlabel("UMAP1")
+        ax.set_ylabel("UMAP2")
+    else:
+        ax.set_xlabel("")
+        ax.set_ylabel("")
     ax.set_aspect("equal", adjustable="datalim")
     ax.spines[["top", "right", "bottom", "left"]].set_visible(False)
     ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
@@ -296,7 +301,7 @@ def plot_matplotlib_umap(
     present = [label for label in cell_type_order if (labels == label).any()]
     if plot_cfg.get("label_on_data", True):
         add_centroid_labels(ax, coords, labels, present, float(plot_cfg["label_fontsize"]))
-    style_umap_axis(ax, sample_cfg["title"])
+    style_umap_axis(ax, sample_cfg["title"], plot_cfg)
 
 
 def plot_scanpy_umap(
@@ -324,13 +329,13 @@ def plot_scanpy_umap(
             legend_fontsize=float(plot_cfg["label_fontsize"]),
             legend_fontweight="bold",
             frameon=False,
-            title=sample_cfg["title"],
+            title=sample_cfg["title"] if plot_cfg.get("show_sample_titles", True) else "",
             ax=ax,
             show=False,
         )
         for collection in ax.collections:
             collection.set_rasterized(bool(plot_cfg.get("rasterized_points", True)))
-        style_umap_axis(ax, sample_cfg["title"])
+        style_umap_axis(ax, sample_cfg["title"], plot_cfg)
     finally:
         if had_generic:
             adata.obsm["X_umap"] = generic
@@ -376,17 +381,19 @@ def plot_individual_scanpy(
     """Write a Scanpy UMAP for one sample in every configured format."""
     fig, ax = plt.subplots(1, 1, figsize=tuple(plot_cfg["individual_figsize"]))
     plot_scanpy_umap(ax, adata, sample_cfg, cell_type_order, palette, plot_cfg)
-    fig.legend(
-        handles=shared_legend(cell_type_order, palette),
-        loc="center left",
-        bbox_to_anchor=(0.985, 0.5),
-        frameon=False,
-        title="Cell type",
-    )
-    fig.suptitle(
-        f"Shared cell-type colours — {sample_cfg['branch_label']}, r{sample_cfg['resolution']}",
-        fontsize=float(plot_cfg["suptitle_fontsize"]),
-    )
+    if plot_cfg.get("show_legend", True):
+        fig.legend(
+            handles=shared_legend(cell_type_order, palette),
+            loc="center left",
+            bbox_to_anchor=(0.985, 0.5),
+            frameon=False,
+            title="Cell type",
+        )
+    if plot_cfg.get("show_figure_title", True):
+        fig.suptitle(
+            f"Shared cell-type colours — {sample_cfg['branch_label']}, r{sample_cfg['resolution']}",
+            fontsize=float(plot_cfg["suptitle_fontsize"]),
+        )
     path = figure_root / "per_sample_scanpy" / f"{sample_cfg['sample']}_cell_type_umap_scanpy.png"
     save_figure(fig, path, int(plot_cfg["dpi"]), overwrite, plot_cfg.get("output_formats", ["png"]))
 
@@ -418,18 +425,20 @@ def make_panel_figure(
             raise ValueError(f"Unknown plotting method: {method}")
     for ax in axes.flat[len(records):]:
         ax.set_visible(False)
-    fig.legend(
-        handles=shared_legend(cell_type_order, palette),
-        loc="center left",
-        bbox_to_anchor=(0.985, 0.5),
-        frameon=False,
-        title="Cell type",
-    )
-    method_title = "Matplotlib" if method == "matplotlib" else "Scanpy sc.pl.umap"
-    fig.suptitle(
-        f"VBCT min15/area95 reviewed cell types — {method_title}",
-        fontsize=float(plot_cfg["suptitle_fontsize"]),
-    )
+    if plot_cfg.get("show_legend", True):
+        fig.legend(
+            handles=shared_legend(cell_type_order, palette),
+            loc="center left",
+            bbox_to_anchor=(0.985, 0.5),
+            frameon=False,
+            title="Cell type",
+        )
+    if plot_cfg.get("show_figure_title", True):
+        method_title = "Matplotlib" if method == "matplotlib" else "Scanpy sc.pl.umap"
+        fig.suptitle(
+            f"VBCT min15/area95 reviewed cell types — {method_title}",
+            fontsize=float(plot_cfg["suptitle_fontsize"]),
+        )
     path = figure_root / f"combined_{method}_cell_type_umaps.png"
     save_figure(fig, path, int(plot_cfg["dpi"]), overwrite, plot_cfg.get("output_formats", ["png"]))
 
@@ -541,13 +550,14 @@ def main() -> None:
             figure_root,
             args.overwrite,
         )
-        panel_records.append(
-            (
-                sample_cfg,
-                np.asarray(adata.obsm[sample_cfg["umap_key"]]).copy(),
-                adata.obs["cell_type"].values.copy(),
+        if plot_cfg.get("make_combined_figure", True):
+            panel_records.append(
+                (
+                    sample_cfg,
+                    np.asarray(adata.obsm[sample_cfg["umap_key"]]).copy(),
+                    adata.obs["cell_type"].values.copy(),
+                )
             )
-        )
         if cfg.get("write_annotated_objects", True) and not args.no_write_annotated:
             output_h5ad = resolve_path(output_root, sample_cfg["output_h5ad"])
             write_annotated_object(
@@ -562,25 +572,27 @@ def main() -> None:
         print(f"Validation passed for {len(samples)} sample(s); no outputs written.")
         return
 
-    table_root.mkdir(parents=True, exist_ok=True)
-    cluster_counts_path = table_root / "reviewed_cluster_to_cell_type_counts.csv"
-    type_counts_path = table_root / "reviewed_cell_type_counts.csv"
-    for path in (cluster_counts_path, type_counts_path):
-        if path.exists() and not args.overwrite:
-            raise FileExistsError(f"Summary already exists; use --overwrite: {path}")
-    pd.concat(cluster_tables, ignore_index=True).to_csv(cluster_counts_path, index=False)
-    pd.concat(type_tables, ignore_index=True).to_csv(type_counts_path, index=False)
-    print(f"Wrote {cluster_counts_path}")
-    print(f"Wrote {type_counts_path}")
-    make_panel_figure(
-        panel_records,
-        "scanpy",
-        cell_type_order,
-        palette,
-        plot_cfg,
-        figure_root,
-        args.overwrite,
-    )
+    if cfg.get("write_summary_tables", True):
+        table_root.mkdir(parents=True, exist_ok=True)
+        cluster_counts_path = table_root / "reviewed_cluster_to_cell_type_counts.csv"
+        type_counts_path = table_root / "reviewed_cell_type_counts.csv"
+        for summary_path in (cluster_counts_path, type_counts_path):
+            if summary_path.exists() and not args.overwrite:
+                raise FileExistsError(f"Summary already exists; use --overwrite: {summary_path}")
+        pd.concat(cluster_tables, ignore_index=True).to_csv(cluster_counts_path, index=False)
+        pd.concat(type_tables, ignore_index=True).to_csv(type_counts_path, index=False)
+        print(f"Wrote {cluster_counts_path}")
+        print(f"Wrote {type_counts_path}")
+    if plot_cfg.get("make_combined_figure", True):
+        make_panel_figure(
+            panel_records,
+            "scanpy",
+            cell_type_order,
+            palette,
+            plot_cfg,
+            figure_root,
+            args.overwrite,
+        )
 
 
 if __name__ == "__main__":
