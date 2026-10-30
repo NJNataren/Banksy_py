@@ -1,0 +1,28 @@
+{
+  "project_root_parent_depth": 3,
+  "annotation_config": "config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json",
+  "figure_dir": "figures/conference_min15_area95_selected_resolutions_poster/cohort_marker_dotplot",
+  "table_dir": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/poster_cohort_marker_dotplot",
+  "output_stem": "cohort_canonical_marker_dotplot_rdbu_large_font_150dpi",
+  "figure_formats": ["png", "svg", "pdf"],
+  "figure_dpi": 150,
+  "sample_weighting": "equal",
+  "markers": {
+    "Melanoma cell": ["MITF", "MLANA", "PMEL"],
+    "Macrophage": ["C1QA", "CD163", "CD68"],
+    "T cell": ["CD3D", "CD3E", "CD8A"],
+    "B cell": ["CD79A", "MZB1", "TNFRSF17"],
+    "Fibroblast": ["COL6A1", "LUM", "PDGFRA"],
+    "Endothelial cell": ["CDH5", "PLVAP", "VWF"],
+    "Epithelial cell": ["KRT18", "KRT5"],
+    "Pericyte": ["ACTA2", "RGS5", "NOTCH3"]
+  },
+  "plot": {
+    "figsize_in": [11.0, 4.8],
+    "max_dot_size": 160,
+    "cmap": "RdBu_r",
+    "colorbar_label": "Mean expression\nin group",
+    "fontsize": 16,
+    "gene_fontsize": 15
+  }
+}

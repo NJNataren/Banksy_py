@@ -1,0 +1,31 @@
+{
+  "project_root_parent_depth": 3,
+  "annotation_config": "config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json",
+  "figure_dir": "figures/conference_min15_area95_selected_resolutions_poster/cohort_umap_grid",
+  "figure_formats": ["png", "svg", "pdf"],
+  "layouts": [
+    {"output_stem": "cohort_cell_type_umap_grid_2x4", "ncols": 4, "legend_ncol": 8, "dpi": 300},
+    {"output_stem": "cohort_cell_type_umap_grid_4x2_150dpi", "ncols": 2, "legend_ncol": 4, "dpi": 150}
+  ],
+  "plot": {
+    "panel_size_in": [3.6, 3.4],
+    "point_size": 0.6,
+    "alpha": 0.7,
+    "shuffle_seed": 1234,
+    "label_on_data": false,
+    "label_fontsize": 9,
+    "title_fontsize": 13,
+    "subtitle_fontsize": 10,
+    "legend_fontsize": 12
+  },
+  "samples": [
+    {"sample": "CK_skin_res", "title": "Skin · responder", "point_size": 4},
+    {"sample": "EL_skin_res", "title": "Skin · responder"},
+    {"sample": "MF_skin_non_res", "title": "Skin · non-responder"},
+    {"sample": "HW_brain_res", "title": "Brain · responder"},
+    {"sample": "BE_brain_non_res", "title": "Brain · non-responder"},
+    {"sample": "CK_bowel_res", "title": "Bowel · responder"},
+    {"sample": "MG_gastric_non_res", "title": "Gastric · non-responder"},
+    {"sample": "GR_lung_non_res_roi", "title": "Lung · non-responder", "point_size": 2}
+  ]
+}

@@ -70,11 +70,12 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 10. `10_squidpy_recluster_spatial_analysis.py`
    - Runs cell-type spatial interpretation on the annotated clean objects written by script 08. Legacy cluster-based analysis of script 06 objects remains supported.
    - Includes neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots.
+   - Cross-sample comparison helpers read its outputs locally; see "Cross-Sample Spatial Comparison (post-10)" below.
 
 ## Where Things Run
 
 - HPC: scripts 00, 00a, 001b, 01, 02, 03, 05, 06, 08, and 10.
-- Local: script 01a clustree QC, script 04 dotplots, and script 09 composition plots. Script 08 can also run locally; its annotated outputs must be available wherever script 10 runs.
+- Local: script 01a clustree QC, script 04 dotplots, script 09 composition plots, and the post-10 cross-sample spatial helpers under `helper_scripts/spatial_analysis/`. Script 08 can also run locally; its annotated outputs must be available wherever script 10 runs.
 - Slurm array ranges must match the number of JSON configs in the selected leaf config directory.
 - Some wrappers accept `CONFIG_DIR` overrides, especially `hpc/slurm/run_00_xenium_clustering.sl` and `hpc/slurm/run_01_xenium_QC_array_ptmt.sl`.
 - Script 08 uses `hpc/slurm/run_08_cell_type_annotation.sl` as one batch job,
@@ -362,3 +363,51 @@ remain under `figures/spatial_analysis/` and the separate processed
 `spatial_analysis/` directory; renaming does not change scientific settings or
 existing results. The older recluster-only wrapper is now
 `run_10_squidpy_recluster_spatial_analysis.sl`.
+
+## Cross-Sample Spatial Comparison (post-10)
+
+Local helpers compare the script 10 cell-type spatial results across the eight
+VBCT `min15_area95` samples (`res` vs `non_res`). They read script 08 annotated
+objects and script 10 results without modifying them. Full status, decisions,
+findings, and pitfalls: `context/tasks/spatial_analysis.md`.
+
+- Script 10 now seeds `nhood_enrichment` (`seed=1234`); update the HPC checkout
+  before the next run.
+- Compare samples with log2(observed / expected) neighbour edges, not Squidpy
+  z-scores, which grow with cell number.
+- Scripts: `helper_scripts/spatial_analysis/` (`spatial_common.py`,
+  `compare_nhood_enrichment_from_config.py`, `plot_immune_infiltration_from_config.py`).
+- Configs: `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`
+  (`nhood_enrichment_comparison.json`, `immune_infiltration.json`).
+
+```bash
+D=config/10_squidpy_recluster_analysis/vbct/cell_type_annotation
+python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config $D/nhood_enrichment_comparison.json --recompute-missing
+python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config $D/immune_infiltration.json
+```
+
+Outputs are under `figures/spatial_analysis/vbct_min15_area95_selected_resolutions/`
+and `data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/`,
+in `cross_sample_nhood_enrichment/` and `immune_infiltration/`.
+
+## Poster Figures (post-08)
+
+Local helpers for the HCA 2026 poster read the script 08 annotated H5ADs (via
+h5py, read-only) and do not rerun or modify script 08. Full status and poster
+decisions: `context/tasks/hca_poster.md`.
+
+- Scripts: `helper_scripts/poster/` (`plot_cohort_umap_grid_from_config.py`,
+  `plot_cohort_marker_dotplot_from_config.py`).
+- Configs: `config/08_cell_type_annotation/vbct/` (`poster_cohort_umap_grid.json`,
+  `poster_cohort_marker_dotplot.json`, `poster_cohort_marker_dotplot_rdbu_large_font.json`).
+- The dot plot averages per-sample means with equal sample weight and min-max
+  scales each gene; `plot.cmap` and `plot.colorbar_label` are optional.
+
+```bash
+D=config/08_cell_type_annotation/vbct
+python helper_scripts/poster/plot_cohort_umap_grid_from_config.py --config $D/poster_cohort_umap_grid.json
+python helper_scripts/poster/plot_cohort_marker_dotplot_from_config.py --config $D/poster_cohort_marker_dotplot_rdbu_large_font.json
+```
+
+Outputs are under `figures/conference_min15_area95_selected_resolutions_poster/`
+(`cohort_umap_grid/`, `cohort_marker_dotplot/`).
