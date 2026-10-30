@@ -1,0 +1,44 @@
+{
+  "project_root_parent_depth": 4,
+  "spatial_config": "config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json",
+  "result_root": "/home/nnataren/mnt/phoenix_scratch/Banksy_py",
+  "figure_dir": "figures/spatial_analysis/vbct_min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
+  "table_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
+  "recompute_seed": 1234,
+  "recompute_n_perms": 1000,
+  "pseudocount": 1,
+  "primary_graph": "knn6",
+  "graph_settings": [
+    {"name": "knn6", "n_neighs": 6},
+    {"name": "knn15", "n_neighs": 15},
+    {"name": "radius25um", "radius_um": 25},
+    {"name": "radius50um", "radius_um": 50},
+    {"name": "radius100um", "radius_um": 100}
+  ],
+  "tiling": {"graph": "knn6", "tile_size_um": 500, "min_cells_per_type": 20},
+  "samples": {
+    "CK_skin_res": {"response": "res", "tissue": "skin"},
+    "EL_skin_res": {"response": "res", "tissue": "skin"},
+    "CK_bowel_res": {"response": "res", "tissue": "bowel"},
+    "HW_brain_res": {"response": "res", "tissue": "brain"},
+    "MF_skin_non_res": {"response": "non_res", "tissue": "skin"},
+    "MG_gastric_non_res": {"response": "non_res", "tissue": "gastric"},
+    "BE_brain_non_res": {"response": "non_res", "tissue": "brain"},
+    "GR_lung_non_res_roi": {"response": "non_res", "tissue": "lung"}
+  },
+  "focus_pairs": [
+    ["Endothelial cell", "Endothelial cell"],
+    ["Endothelial cell", "Melanoma cell"],
+    ["Endothelial cell", "T cell"],
+    ["Endothelial cell", "Macrophage"],
+    ["Melanoma cell", "T cell"]
+  ],
+  "comparisons": [
+    {"name": "all_samples", "samples": ["CK_skin_res", "EL_skin_res", "CK_bowel_res", "HW_brain_res", "MF_skin_non_res", "MG_gastric_non_res", "BE_brain_non_res", "GR_lung_non_res_roi"]},
+    {"name": "gastrointestinal", "samples": ["CK_bowel_res", "MG_gastric_non_res"]},
+    {"name": "skin", "samples": ["CK_skin_res", "EL_skin_res", "MF_skin_non_res"]},
+    {"name": "brain", "samples": ["HW_brain_res", "BE_brain_non_res"]}
+  ],
+  "figure_formats": ["png", "svg", "pdf"],
+  "figure_dpi": 300
+}

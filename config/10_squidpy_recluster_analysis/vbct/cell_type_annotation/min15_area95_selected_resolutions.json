@@ -11,5 +11,12 @@
   "moran_n_perms": 10,
   "moran_n_jobs": 1,
   "moran_fdr_threshold": 0.1,
-  "top_moran_n": 5
+  "top_moran_n": 5,
+  "figure_formats": [
+    "png",
+    "svg",
+    "pdf"
+  ],
+  "figure_dpi": 300,
+  "rasterize_spatial_points": true
 }

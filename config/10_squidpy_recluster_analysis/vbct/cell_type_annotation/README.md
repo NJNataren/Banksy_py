@@ -72,3 +72,48 @@ the original eight-hour limit. Script 10 now omits that keyword and the active
 wrapper allows 24 hours. After updating the HPC checkout, rerun only failed task
 indices with `sbatch --array=1,4-7%2 hpc/slurm/run_10_cell_type_spatial_analysis.sl`.
 Existing annotated script 08 inputs remain unchanged.
+
+## Cross-sample neighbourhood enrichment comparison
+
+Script 10 now fixes the `nhood_enrichment` permutation seed (1234), so z-scores
+are reproducible; earlier HPC results were unseeded and differ by permutation
+noise only (edge counts are deterministic).
+
+`helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py` reads
+the stored enrichment matrices from script 10 result H5ADs (`result_root` in
+`nhood_enrichment_comparison.json` points at the Phoenix mount) and compares
+samples using log2(observed / expected) neighbour edges, which, unlike Squidpy
+z-scores, does not scale with cell number. Samples without a script 10 result
+(currently CK_bowel_res and MF_skin_non_res, whose HPC tasks timed out in
+co-occurrence) are recomputed locally from labels and coordinates only with
+`--recompute-missing` and cached under the table directory.
+
+```bash
+python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/nhood_enrichment_comparison.json --validate-only
+python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/nhood_enrichment_comparison.json --recompute-missing
+```
+
+Response labels, tissue, focus pairs, and matched-tissue comparisons are set in
+the JSON. Difference panels are descriptive (1–4 samples per group).
+
+Sensitivity options in the same config: `graph_settings` repeats edge counts
+for wider neighbourhoods (`n_neighs` or `radius_um`; coordinates are µm), and
+`tiling` computes focus-pair log2 O/E inside square tiles. Non-primary graphs
+use KD-tree edge counts, verified edge-for-edge against Squidpy's 6-NN counts
+for all eight samples; they have no z-scores. Comparison heatmaps use the
+primary (script 10) graph; difference CSVs cover every graph.
+
+## Immune infiltration distances
+
+`helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py`
+(config `immune_infiltration.json`) measures each T/B/macrophage cell's
+distance to the nearest melanoma cell and reports the share within ≤20 µm,
+20–100 µm, and >100 µm, against all non-tumour cells as a geometry reference.
+It reuses the samples and response labels from `nhood_enrichment_comparison.json`.
+Both helpers import `helper_scripts/spatial_analysis/spatial_common.py`.
+
+```bash
+python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/immune_infiltration.json
+```
+
+Use `--skip-maps` to omit the per-sample spatial maps.

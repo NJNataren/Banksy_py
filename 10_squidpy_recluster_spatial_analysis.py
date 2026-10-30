@@ -7,7 +7,8 @@ Date: 2026-10-26
 Summary: Reuse script 08 annotated clean expression objects and reviewed cell
 types for Squidpy neighbourhood enrichment, centrality, co-occurrence, and
 Moran's I. Legacy script 06 cluster-based configurations remain supported.
-The workflow is compatible with Squidpy 1.6 spatial-scatter plotting.
+Export PNG, SVG, and PDF figures with editable vector text and 300-DPI raster
+layers. The workflow is compatible with Squidpy 1.6 spatial-scatter plotting.
 """
 
 import argparse
@@ -17,6 +18,7 @@ import random
 from pathlib import Path
 from datetime import datetime
 from matplotlib import rc_context
+from matplotlib.collections import PathCollection
 
 import anndata as ad
 import matplotlib as mpl
@@ -139,6 +141,45 @@ def prepare_spatial_coordinates(adata, coord_keys):
     adata.obsm["spatial"] = coords
 
 
+def figure_export_settings(cfg):
+    """Validate export settings before running expensive spatial calculations."""
+    formats = cfg.get("figure_formats", ["png", "svg", "pdf"])
+    if (not isinstance(formats, list) or not formats
+            or any(fmt not in ("png", "svg", "pdf") for fmt in formats)
+            or len(set(formats)) != len(formats)):
+        raise ValueError("figure_formats must be a unique nonempty list of png, svg, pdf")
+    dpi = cfg.get("figure_dpi", 300)
+    if isinstance(dpi, bool) or not isinstance(dpi, (int, float)) or not np.isfinite(dpi) or dpi <= 0:
+        raise ValueError("figure_dpi must be a finite positive number")
+    rasterize = cfg.get("rasterize_spatial_points", True)
+    if not isinstance(rasterize, bool):
+        raise ValueError("rasterize_spatial_points must be a boolean")
+    return formats, dpi, rasterize
+
+
+def save_spatial_figure(fig, output_stem, cfg, spatial_points=False, transparent=True):
+    """Save all requested formats from one figure and close it even on failure.
+
+    Only spatial cell-point collections are rasterized; text, axes, centrality
+    markers, and co-occurrence curves remain vector elements in SVG/PDF.
+    """
+    try:
+        formats, dpi, rasterize = figure_export_settings(cfg)
+        if spatial_points and rasterize:
+            for ax in fig.axes:
+                for collection in ax.collections:
+                    if isinstance(collection, PathCollection):
+                        collection.set_rasterized(True)
+        # SVG keeps text nodes; PDF embeds TrueType fonts instead of Type 3 glyphs.
+        with rc_context({"svg.fonttype": "none", "pdf.fonttype": 42}):
+            for fmt in formats:
+                path = f"{output_stem}.{fmt}"
+                fig.savefig(path, dpi=dpi, bbox_inches="tight", transparent=transparent)
+                print(f"Saved spatial figure: {path}")
+    finally:
+        plt.close(fig)
+
+
 def run_squidpy_for_resolution(
     adata,
     cluster_key,
@@ -149,7 +190,8 @@ def run_squidpy_for_resolution(
     res_str_single,
     cfg,
 ):
-    """Run Squidpy spatial analyses for one reclustering label column."""
+    """Run spatial analyses and export each plot in the configured formats."""
+    figure_export_settings(cfg)
     if cluster_key not in adata.obs.columns:
         raise KeyError(
             f"{cluster_key!r} was not found in adata.obs. "
@@ -178,18 +220,19 @@ def run_squidpy_for_resolution(
     sq.gr.spatial_neighbors(adata, coord_type="generic")
 
     log_time(f"Running neighbourhood enrichment for {cluster_key}")
-    sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
+    # Permutation z-scores vary between runs unless the permutation seed is fixed.
+    sq.gr.nhood_enrichment(adata, cluster_key=cluster_key, seed=seed)
     with rc_context({"figure.figsize": (10, 10)}):
         sq.pl.nhood_enrichment(
             adata,
             cluster_key=cluster_key,
-            show=False,
-            save=(
-                f"neighbourhood_enrichment_{dataset_name}"
-                f"_pc{pc_label}_nc{lambda_label}_r{res_str_single}.png"
-            ),
         )
-    plt.close("all")
+        save_spatial_figure(
+            plt.gcf(), os.path.join(squidpy_path,
+                f"neighbourhood_enrichment_{dataset_name}"
+                f"_pc{pc_label}_nc{lambda_label}_r{res_str_single}"
+            ), cfg,
+        )
 
     log_time(f"Running centrality scores for {cluster_key}")
     sq.gr.centrality_scores(adata, cluster_key=cluster_key)
@@ -205,13 +248,11 @@ def run_squidpy_for_resolution(
     with rc_context({"figure.figsize": (22, 4)}):
         sq.pl.centrality_scores(adata, cluster_key=cluster_key)
         fig = plt.gcf()
-        centrality_png = os.path.join(
+        centrality_stem = os.path.join(
             squidpy_path,
-            f"centrality_scores_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str_single}.png",
+            f"centrality_scores_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str_single}",
         )
-        fig.savefig(centrality_png, dpi=300, bbox_inches="tight")
-        plt.close(fig)
-        print(f"Saved centrality plot to: {centrality_png}")
+        save_spatial_figure(fig, centrality_stem, cfg, transparent=False)
 
     log_time(f"Running co-occurrence for {cluster_key}")
     sq.gr.co_occurrence(adata, cluster_key=cluster_key)
@@ -225,12 +266,13 @@ def run_squidpy_for_resolution(
                 adata,
                 cluster_key=cluster_key,
                 clusters=cluster_number,
-                save=(
-                    f"co_occurrence_cluster_{cluster_number}_{dataset_name}"
-                    f"_pc{pc_label}_nc{lambda_label}_r{res_str_single}.png"
-                ),
             )
-        plt.close("all")
+            save_spatial_figure(
+                plt.gcf(), os.path.join(squidpy_path,
+                    f"co_occurrence_cluster_{cluster_number}_{dataset_name}"
+                    f"_pc{pc_label}_nc{lambda_label}_r{res_str_single}"
+                ), cfg,
+            )
 
     # Moran's I uses `.X`, so this must be the clean normalized/log1p expression
     # matrix from script 06 rather than any BANKSY-expanded spatial object.
@@ -297,12 +339,14 @@ def run_squidpy_for_resolution(
                 img=False,
                 # Squidpy 1.6 forwards unknown kwargs to Matplotlib; `show`
                 # therefore raises on PathCollection instead of controlling display.
-                save=(
-                    f"spatial_scatter_top_moran_I_{gene}_{dataset_name}"
-                    f"_pc{pc_label}_nc{lambda_label}_r{res_str_single}.png"
-                ),
+                return_ax=True,
             )
-        plt.close("all")
+            save_spatial_figure(
+                plt.gcf(), os.path.join(squidpy_path,
+                    f"spatial_scatter_top_moran_I_{gene}_{dataset_name}"
+                    f"_pc{pc_label}_nc{lambda_label}_r{res_str_single}"
+                ), cfg, spatial_points=True,
+            )
 
 
 def resolve_path(root, value):
@@ -502,6 +546,7 @@ def main():
     args = parse_args()
     with open(args.config) as handle:
         cfg = json.load(handle)
+    figure_export_settings(cfg)
     if "annotation_config" in cfg:
         run_annotation_config(cfg, args)
     else:
