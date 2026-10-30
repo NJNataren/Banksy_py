@@ -3,11 +3,13 @@
 
 """
 Title: Plot Spatial Conference Figures From Config
-Date: 2026-08-27
+Date: 2026-10-28
 Summary: Generate presentation-oriented spatial, UMAP, marker, dotplot, and
 cluster abundance figures for selected Xenium AnnData samples. Sample paths,
 cluster columns, marker sets, and optional cluster-to-cell-type labels are
 provided in a JSON config so the same helper can run locally or on the HPC.
+Full-tissue cell-type maps can use dedicated point size and DPI settings without
+changing cluster or marker-expression plots.
 """
 
 import argparse
@@ -1154,7 +1156,12 @@ def plot_cluster_abundance(adata, abundance_dir, sample_name, resolution, dpi, f
 
 
 def run_sample(sample_cfg, cfg):
-    """Generate the configured conference plot families for one sample."""
+    """Generate the configured conference plot families for one sample.
+
+    Args:
+        sample_cfg: Sample-specific paths, labels, and plotting overrides.
+        cfg: Shared plotting configuration and defaults.
+    """
     sample_name = sample_cfg["sample"]
     resolution = sample_cfg.get("resolution", "selected_resolution")
     output_root = get_sample_value(sample_cfg, cfg, "output_dir", "figures/conference")
@@ -1169,7 +1176,11 @@ def run_sample(sample_cfg, cfg):
     crop_dir = figure_type_dir(output_dir, cfg, "crops")
     abundance_dir = figure_type_dir(output_dir, cfg, "cluster_abundance")
     point_size = float(get_sample_value(sample_cfg, cfg, "point_size", 3.0))
+    cell_type_point_size = float(
+        get_sample_value(sample_cfg, cfg, "cell_type_point_size", point_size)
+    )
     dpi = int(get_sample_value(sample_cfg, cfg, "dpi", 300))
+    cell_type_dpi = int(get_sample_value(sample_cfg, cfg, "cell_type_dpi", dpi))
     umap_keys = get_sample_value(sample_cfg, cfg, "umap_keys", DEFAULT_UMAP_KEYS)
     marker_sets = get_sample_value(sample_cfg, cfg, "marker_sets", [])
     full_marker_sets = scale_marker_sets_for_sample(marker_sets, sample_cfg, cfg)
@@ -1264,8 +1275,8 @@ def run_sample(sample_cfg, cfg):
             f"{sample_name} cell-type labels, {resolution}",
             cell_type_dir,
             f"{sample_name}_spatial_cell_type_labels_{resolution}",
-            point_size,
-            dpi,
+            cell_type_point_size,
+            cell_type_dpi,
             force_legend=True,
             figsize=full_cell_type_figsize,
             save_svg=bool(get_sample_value(sample_cfg, cfg, "spatial_save_svg", True)),
@@ -1277,8 +1288,8 @@ def run_sample(sample_cfg, cfg):
                 f"{sample_name} cell-type labels, {resolution}",
                 cell_type_dir,
                 f"{sample_name}_spatial_cell_type_labels_{resolution}_on_data",
-                point_size,
-                dpi,
+                cell_type_point_size,
+                cell_type_dpi,
                 figsize=full_cell_type_figsize,
             )
         if bool(get_sample_value(sample_cfg, cfg, "write_axis_scout_plots", True)):
@@ -1288,8 +1299,8 @@ def run_sample(sample_cfg, cfg):
                 f"{sample_name} cell-type labels, {resolution}, axis scout",
                 cell_type_dir,
                 f"{sample_name}_spatial_cell_type_labels_{resolution}_axis_scout",
-                point_size,
-                dpi,
+                cell_type_point_size,
+                cell_type_dpi,
             )
 
     dotplot_groupby = "conference_cell_type" if has_cell_type_labels else "conference_cluster"

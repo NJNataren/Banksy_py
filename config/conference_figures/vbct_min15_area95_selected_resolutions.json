@@ -247,7 +247,9 @@
       "full_cell_type_figsize": [
         13.8,
         8.925
-      ]
+      ],
+      "cell_type_point_size": 5.0,
+      "cell_type_dpi": 150
     },
     {
       "sample": "CK_bowel_res",
