@@ -43,7 +43,9 @@ the config itself contains all eight samples. See the workflow README for the
 script 08 HPC input-root override and full 08 → 10 sequence.
 
 Figures and CSVs are written under
-`figures/spatial_analysis/vbct_min15_area95_selected_resolutions/<sample>/<branch>_r<resolution>/squidpy/`.
+`data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/<branch>_r<resolution>/squidpy/`
+(moved from `figures/spatial_analysis/vbct_min15_area95_selected_resolutions/`
+on 2026-11-19; earlier runs remain at the old path).
 Spatial H5AD results are written separately under
 `data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/`.
 Re-running a full analysis replaces its generated results using existing script

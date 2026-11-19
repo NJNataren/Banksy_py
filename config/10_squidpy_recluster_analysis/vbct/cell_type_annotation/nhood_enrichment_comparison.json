@@ -2,7 +2,7 @@
   "project_root_parent_depth": 4,
   "spatial_config": "config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json",
   "result_root": "/home/nnataren/mnt/phoenix_scratch/Banksy_py",
-  "figure_dir": "figures/spatial_analysis/vbct_min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
+  "figure_dir": "data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
   "table_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
   "recompute_seed": 1234,
   "recompute_n_perms": 1000,

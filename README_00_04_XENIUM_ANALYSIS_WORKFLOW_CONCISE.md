@@ -358,10 +358,10 @@ sbatch hpc/slurm/run_10_cell_type_spatial_analysis.sl
 ```
 
 Alternatively, existing script 08 annotated objects can be transferred to the
-same relative paths. Script 10 does not create missing annotations. Outputs
-remain under `figures/spatial_analysis/` and the separate processed
-`spatial_analysis/` directory; renaming does not change scientific settings or
-existing results. The older recluster-only wrapper is now
+same relative paths. Script 10 does not create missing annotations. Figures
+and CSVs go under `data/xenium/output/vbct/spatial_analysis/` (moved from
+`figures/spatial_analysis/` on 2026-11-19; earlier runs remain there) and result
+H5ADs under the separate processed `spatial_analysis/` directory. The older recluster-only wrapper is now
 `run_10_squidpy_recluster_spatial_analysis.sl`.
 
 ## Cross-Sample Spatial Comparison (post-10)
@@ -386,8 +386,9 @@ python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py -
 python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config $D/immune_infiltration.json
 ```
 
-Outputs are under `figures/spatial_analysis/vbct_min15_area95_selected_resolutions/`
-and `data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/`,
+Outputs are under `data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/`
+(figures) and `data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/`
+(tables),
 in `cross_sample_nhood_enrichment/` and `immune_infiltration/`.
 
 ## Poster Figures (post-08)
