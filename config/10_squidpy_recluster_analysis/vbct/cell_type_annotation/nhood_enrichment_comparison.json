@@ -36,7 +36,7 @@
   "comparisons": [
     {"name": "all_samples", "samples": ["CK_skin_res", "EL_skin_res", "CK_bowel_res", "HW_brain_res", "MF_skin_non_res", "MG_gastric_non_res", "BE_brain_non_res", "GR_lung_non_res_roi"]},
     {"name": "gastrointestinal", "samples": ["CK_bowel_res", "MG_gastric_non_res"]},
-    {"name": "skin", "samples": ["CK_skin_res", "EL_skin_res", "MF_skin_non_res"]},
+    {"name": "skin", "samples": ["CK_skin_res", "EL_skin_res", "MF_skin_non_res"], "combine_by_response": true},
     {"name": "brain", "samples": ["HW_brain_res", "BE_brain_non_res"]}
   ],
   "figure_formats": ["png", "svg", "pdf"],

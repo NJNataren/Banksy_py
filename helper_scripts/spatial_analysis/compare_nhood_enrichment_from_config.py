@@ -285,8 +285,12 @@ def symmetric_limit(matrices, off_diagonal=True):
     return max(np.ceil(limit * 4) / 4, 0.25)
 
 
-def draw_heatmap(ax, matrix, limit, title, show_y=True):
-    """Draw one annotated diverging heatmap; NaN cells (absent types) stay blank."""
+def draw_heatmap(ax, matrix, limit, title, show_y=True, marks=None):
+    """Draw one annotated diverging heatmap; NaN cells (absent types) stay blank.
+
+    `marks` is an optional boolean frame aligned with `matrix`; marked values get
+    a trailing dagger (used for group means based on fewer samples than the group).
+    """
     image = ax.imshow(matrix.to_numpy(dtype=float), cmap=DIVERGING_CMAP, vmin=-limit, vmax=limit)
     labels = list(matrix.index)
     ax.set_xticks(range(len(labels)), labels, rotation=90, fontsize=8)
@@ -300,7 +304,8 @@ def draw_heatmap(ax, matrix, limit, title, show_y=True):
             value = matrix.iat[i, j]
             if np.isfinite(value):
                 ink = "#ffffff" if abs(value) > 0.6 * limit else TEXT_DARK
-                ax.text(j, i, f"{value:.1f}", ha="center", va="center", fontsize=6.5, color=ink)
+                dagger = "†" if marks is not None and marks.iat[i, j] else ""
+                ax.text(j, i, f"{value:.1f}{dagger}", ha="center", va="center", fontsize=6.5, color=ink)
     return image
 
 
@@ -475,6 +480,21 @@ def comparison_difference(long_df, comparison_samples, present):
     return group_means["res"] - group_means["non_res"]
 
 
+def group_mean_matrix(long_df, group_samples, present):
+    """Mean log2 O/E over samples in one response group, skipping absent cell types.
+
+    Returns the mean and the number of samples contributing to each pair, so
+    pairs averaged over fewer than all group samples can be marked.
+    """
+    stacked = np.stack([metric_matrix(long_df, s["sample"], present).to_numpy(dtype=float)
+                        for s in group_samples])
+    n_samples = np.isfinite(stacked).sum(axis=0)
+    with np.errstate(invalid="ignore"):
+        mean = np.nansum(stacked, axis=0) / n_samples
+    as_frame = lambda values: pd.DataFrame(values, index=present, columns=present)
+    return as_frame(mean), as_frame(n_samples)
+
+
 def comparison_samples(comparison, records):
     """Selected samples of one comparison, responders first; None if a group is missing."""
     by_name = {r["sample"]: r for r in records}
@@ -516,6 +536,8 @@ def plot_comparison(primary_df, comparison, samples, order, figure_dir, cfg):
     fig, axes = plt.subplots(
         nrows, ncols, figsize=(3.6 * ncols + 1.5, 4.2 * nrows), squeeze=False, layout="constrained",
     )
+    # Only the first column shows y labels, so add space to keep panels and titles apart.
+    fig.get_layout_engine().set(w_pad=0.15)
     flat = axes.ravel()
     limit = symmetric_limit(matrices)
     image = None
@@ -533,8 +555,65 @@ def plot_comparison(primary_df, comparison, samples, order, figure_dir, cfg):
     fig.colorbar(diff_image, ax=diff_ax, shrink=0.6).set_label("difference in log2 O/E", fontsize=8)
     for ax in flat[n_panels:]:
         ax.axis("off")
-    fig.suptitle(f"Neighbourhood enrichment comparison: {comparison['name']}", fontsize=12)
+    # Square heatmap cells stop constrained layout reserving title space; place it explicitly.
+    fig.suptitle(f"Neighbourhood enrichment comparison: {comparison['name']}", fontsize=12, y=1.04)
     save_figure(fig, figure_dir / f"nhood_enrichment_comparison_{comparison['name']}", cfg)
+
+
+def plot_combined_comparison(primary_df, comparison, samples, order, figure_dir, table_dir, cfg):
+    """One mean panel per response group plus their difference (primary graph).
+
+    Samples within a group are averaged with equal weight. Cell types absent from
+    some samples are averaged over the samples that have them and marked with †.
+    """
+    present = present_types(primary_df, [s["sample"] for s in samples], order)
+    means, counts, members = {}, {}, {}
+    for group in RESPONSE_ORDER:
+        members[group] = [s for s in samples if s["response"] == group]
+        means[group], counts[group] = group_mean_matrix(primary_df, members[group], present)
+    marks = {group: (counts[group] > 0) & (counts[group] < len(members[group])) for group in RESPONSE_ORDER}
+    difference = means["res"] - means["non_res"]
+    difference_marks = marks["res"] | marks["non_res"]
+
+    rows = []
+    for group in RESPONSE_ORDER:
+        for cell_a in present:
+            for cell_b in present:
+                rows.append({
+                    "comparison": comparison["name"], "group": group,
+                    "cell_type_a": cell_a, "cell_type_b": cell_b,
+                    "mean_log2_obs_exp": means[group].at[cell_a, cell_b],
+                    "n_samples": int(counts[group].at[cell_a, cell_b]),
+                    "n_group_samples": len(members[group]),
+                })
+    csv_path = table_dir / f"nhood_enrichment_combined_{comparison['name']}.csv"
+    pd.DataFrame(rows).to_csv(csv_path, index=False)
+    print(f"Saved combined comparison table: {csv_path}")
+
+    fig, axes = plt.subplots(1, 3, figsize=(12.5, 4.6), squeeze=False, layout="constrained")
+    fig.get_layout_engine().set(w_pad=0.15)
+    axes = axes[0]
+    limit = symmetric_limit([means[group] for group in RESPONSE_ORDER])
+    image = None
+    for index, group in enumerate(RESPONSE_ORDER):
+        names = ", ".join(s["sample"] for s in members[group])
+        heading = f"{group}: mean of {len(members[group])}" if len(members[group]) > 1 else group
+        image = draw_heatmap(axes[index], means[group], limit, f"{heading}\n{names}",
+                             show_y=index == 0, marks=marks[group])
+    fig.colorbar(image, ax=axes[:2].tolist(), shrink=0.6, extend="both").set_label("log2 O/E", fontsize=8)
+    diff_limit = symmetric_limit([difference], off_diagonal=False)
+    diff_image = draw_heatmap(
+        axes[2], difference, diff_limit,
+        f"res − non_res\n{len(members['res'])} vs {len(members['non_res'])}, descriptive only",
+        show_y=False, marks=difference_marks,
+    )
+    fig.colorbar(diff_image, ax=axes[2], shrink=0.6).set_label("difference in log2 O/E", fontsize=8)
+    if any(m.to_numpy().any() for m in (marks["res"], marks["non_res"])):
+        fig.text(0.5, -0.03, "† averaged over fewer samples than the group, because the cell type "
+                 "is absent from some samples", ha="center", fontsize=8, color=TEXT_MUTED)
+    fig.suptitle(f"Neighbourhood enrichment comparison: {comparison['name']} (groups combined)",
+                 fontsize=12, y=1.06)
+    save_figure(fig, figure_dir / f"nhood_enrichment_comparison_{comparison['name']}_combined", cfg)
 
 
 def main():
@@ -631,6 +710,8 @@ def main():
         table.to_csv(csv_path, index=False)
         print(f"Saved comparison table: {csv_path}")
         plot_comparison(primary_df, comparison, samples, order, figure_dir, cfg)
+        if comparison.get("combine_by_response"):
+            plot_combined_comparison(primary_df, comparison, samples, order, figure_dir, table_dir, cfg)
 
 
 if __name__ == "__main__":
