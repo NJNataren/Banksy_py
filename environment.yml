@@ -1,4 +1,4 @@
-name: banksy-test
+name: banksy
 channels:
   - conda-forge
   - defaults

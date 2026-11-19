@@ -17,26 +17,28 @@ The lead human bioinformatician for this project is Nathalie.
 
 ## Repository Shape
 - This is a research analysis fork of `Banksy_py` for spatial transcriptomics workflows, with core BANKSY code in `banksy/` and local analysis helpers in `banksy_utils/`.
-- Xenium analysis notebooks and exported scripts live at the repo root, including `01_xenium_clustering.ipynb` and `01_xenium_clustering.py`.
-- Runtime configuration is stored as JSON under `config/00_QC/` and `config/01_clustering/`, split by study/group and sample size.
-- Slurm entrypoints live at the repo root, for example `run_xenium_clustering_test*.sl` and `run_xenium_QC_array_*.sl`.
+- The Xenium pipeline is a set of numbered scripts at the repo root (`00_` to `10_`, plus lettered sub-steps such as `00a_`, `001b_`, `01a_`, `02a_`). `README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md` is the map of what each step does and where it runs.
+- A few steps also have a notebook version (`00_`, `01_`, and a `05_` local test notebook); the rest are `.py` only.
+- Runtime configuration is stored as JSON under `config/<step>/` (e.g. `config/00_clustering/`, `config/01_QC/`, `config/06_recluster_qc_annotated/`), split by study/group and sample.
+- Slurm entrypoints live in `hpc/slurm/` (`run_<step>_*.sl`); see `hpc/slurm/README.md`.
+- Supporting scripts live in `helper_scripts/`; superseded scripts and notes live in `archive/`.
+- Task handoffs live in `context/tasks/`; load them via the `banksy-context` skill.
 - Data and generated outputs are expected under `data/xenium/`, `figures/`, `logs/`, and `hpc/`; treat these as potentially large or machine-specific.
 
 ## Environment
 - Preferred environment files are `environment.yml` and `requirements.txt`.
-- The conda environment name in `environment.yml` is `banksy-test`; the README refers to a generic `banksy` environment.
+- The conda environment for this work is `banksy` (locally and in the Slurm scripts).
 - Main scientific stack includes `scanpy`, `anndata`, `numpy`, `scipy`, `pandas`, `matplotlib`, `seaborn`, `igraph`, `leidenalg`, and `umap-learn`.
 
 ## Workflow Conventions
-- Notebook work is often mirrored into `.py` exports. When changing analysis logic, check whether both notebook and script need to stay in sync.
-- Clustering scripts are config-driven via `--config path/to/sample.json`.
+- Where a step has both a notebook and a `.py` version, check whether both need to stay in sync when changing analysis logic.
+- Pipeline scripts are config-driven via `--config path/to/sample.json`.
 - Avoid hard-coding sample names or paths when the existing script already reads from config.
 - Existing scripts write directories with `os.makedirs`; preserve this style unless making a broader cleanup.
 - Use `rg`/`rg --files` first for repo search.
 
 ## Git And File Safety
-- The worktree may contain active notebook, script, and output changes. Do not revert or clean untracked files unless explicitly asked.
-- Current active analysis files may include local edits to `01_xenium_clustering.ipynb`, QC notebooks/scripts, `banksy_utils/annotation_utils.py`, and Slurm scripts.
+- The worktree may contain active notebook, script, config, and output changes. Do not revert or clean untracked files unless explicitly asked.
 - Do not execute `git commit`, `git push` or `git pull` without permission.
 
 ## Validation
