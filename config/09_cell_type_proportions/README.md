@@ -7,8 +7,10 @@ python 09_plot_cell_type_proportions.py --config config/09_cell_type_proportions
 ```
 
 Use --validate-only to check inputs without writing files, or --overwrite to
-replace existing outputs. Paths are relative to the project root inferred from
-the config project_root_parent_depth (3 for the supplied config).
+replace existing outputs. Branch, resolution, and the palette come from the
+cohort config named by `"cohort"`; the counts CSV resolves against
+`--input-root` and outputs against `--output-root` (both default to the
+repository root).
 
 The script checks sample/branch/resolution provenance, unique sample/type rows,
 nonnegative integer counts, expected total cells, and the shared palette.
@@ -27,7 +29,8 @@ tissue headings needed to identify facets.
 ## Tissue facets
 
 Use `vbct/min15_area95_selected_resolutions_by_tissue.json` with the same script
-for Skin, Brain, Lung, and Gastrointestinal facets. Per-sample `tissue` and
-`display_label` fields define grouping and labels; `plot.facet_order` defines
+for Skin, Brain, Lung, and Gastrointestinal facets. Per-sample `facet` and
+`display_label` fields in this config define grouping and labels (facets are
+plot groupings, separate from the cohort's `tissue`); `plot.facet_order` defines
 panel order. Panel widths follow sample counts, maintaining equal-width bars.
 Outputs use the separate stem `cell_type_proportions_by_tissue`.

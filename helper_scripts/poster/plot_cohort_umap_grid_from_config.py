@@ -4,6 +4,8 @@
 """
 Title: Poster Grid Of Reviewed Cell-Type UMAPs Across The Cohort
 Date: 2026-10-28
+Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
+(workflow_config.py); --input-root/--output-root default to the repository root.
 Summary: Read only the reviewed cell-type labels and saved UMAP embedding from
 each script 08 annotated H5AD and draw one compact multi-sample grid for the
 poster, using the shared cell-type palette. Panel order, titles, and styling
@@ -14,6 +16,7 @@ no cell type is systematically hidden under another. Inputs are never modified.
 
 import argparse
 import json
+import sys
 import math
 from pathlib import Path
 
@@ -33,6 +36,10 @@ try:
 except ImportError:
     from anndata.experimental import read_elem
 
+# The shared cohort loader lives at the repository root, two levels up.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples  # noqa: E402
+
 
 plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams["font.sans-serif"] = ["Arial", "DejaVu Sans"]
@@ -43,39 +50,25 @@ def parse_args():
     parser = argparse.ArgumentParser(prog="plot cohort cell-type UMAP grid for the poster")
     parser.add_argument("--config", required=True, help="Poster grid JSON config")
     parser.add_argument("--validate-only", action="store_true", help="Check inputs without plotting")
+    add_root_arguments(parser)
     return parser.parse_args()
 
 
-def resolve_path(root, value):
-    """Resolve a configured absolute path or a path relative to its project root."""
-    path = Path(value)
-    return path if path.is_absolute() else root / path
-
-
-def load_inputs(cfg, config_path):
-    """Follow the poster config to script 08's config and palette; return records and palette."""
-    root = config_path.parents[int(cfg.get("project_root_parent_depth", 3))]
-    annotation_path = resolve_path(root, cfg["annotation_config"])
-    annotation = json.loads(annotation_path.read_text())
-    annotation_project = annotation_path.parents[int(annotation.get("project_root_parent_depth", 3))]
-    annotation_root = Path(annotation.get("output_root", annotation_project))
-    palette = json.loads(resolve_path(annotation_project, annotation["palette_json"]).read_text())
-
-    annotated = {sample["sample"]: sample for sample in annotation["samples"]}
-    unknown = [s["sample"] for s in cfg["samples"] if s["sample"] not in annotated]
-    if unknown:
-        raise ValueError(f"Samples absent from script 08 config: {unknown}")
+def load_inputs(cfg, args):
+    """Read the cohort and palette; return output root, records in poster order, and palette."""
+    cohort = load_cohort(cfg["cohort"])
+    palette = json.loads(cohort["palette_path"].read_text())
     records = []
-    for entry in cfg["samples"]:
-        sample = annotated[entry["sample"]]
+    # Poster titles and point sizes come from this config; paths and keys from the cohort.
+    for sample in select_samples(cohort, cfg["samples"]):
         records.append({
-            "sample": entry["sample"],
-            "title": entry["title"],
-            "h5ad": resolve_path(annotation_root, sample["output_h5ad"]),
+            "sample": sample["sample"],
+            "title": sample["title"],
+            "h5ad": resolve_path(args.input_root, sample["annotated_h5ad"]),
             "umap_key": sample["umap_key"],
-            "point_size": entry.get("point_size"),
+            "point_size": sample.get("point_size"),
         })
-    return root, records, palette["cell_type_order"], palette["colors"]
+    return args.output_root, records, palette["cell_type_order"], palette["colors"]
 
 
 def read_labels_and_umap(h5ad_path, umap_key, order):
@@ -147,9 +140,8 @@ def plot_grid(panels, order, colors, plot_cfg, layout):
 def main():
     """Validate inputs and render the poster UMAP grid."""
     args = parse_args()
-    config_path = Path(args.config).resolve()
-    cfg = json.loads(config_path.read_text())
-    root, records, order, colors = load_inputs(cfg, config_path)
+    cfg = json.loads(Path(args.config).resolve().read_text())
+    root, records, order, colors = load_inputs(cfg, args)
 
     panels = []
     for record in records:

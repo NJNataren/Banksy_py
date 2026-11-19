@@ -4,13 +4,15 @@
 """
 Title: Shared Inputs And Styling For Cross-Sample Spatial Helpers
 Date: 2026-10-26
-Summary: Follow the helper -> script 10 -> script 08 config chain, describe
-each sample's inputs, read only cell-type labels and coordinates from H5AD
+Summary: Describe each sample's inputs from the cohort config (via
+workflow_config.py), read only cell-type labels and coordinates from H5AD
 files, and provide the shared response colours and figure export used by the
-cross-sample spatial helpers in this directory.
+cross-sample spatial helpers in this directory. Updated 2026-11-19: the
+helper -> script 10 -> script 08 config chain is replaced by one cohort config.
 """
 
 import json
+import sys
 from pathlib import Path
 
 import h5py
@@ -27,6 +29,12 @@ try:
 except ImportError:
     from anndata.experimental import read_elem
 
+# The shared cohort loader lives at the repository root, two levels up.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from workflow_config import (  # noqa: E402
+    add_root_arguments, load_cohort, resolve_path, select_samples,
+)
+
 
 # Arial when installed (as in script 10); otherwise fall back quietly.
 plt.rcParams["font.family"] = "sans-serif"
@@ -40,64 +48,43 @@ TEXT_MUTED = "#52514e"
 SURFACE = "#fcfcfb"
 
 
-def resolve_path(root, value):
-    """Resolve a configured absolute path or a path relative to its project root."""
-    path = Path(value)
-    return path if path.is_absolute() else root / path
+def load_sample_records(cfg, args):
+    """Describe each sample a cross-sample helper uses, from its cohort config.
 
-
-def load_sample_records(cfg, config_path, selected=None):
-    """Follow the script 10 -> script 08 config chain and describe each sample.
-
-    `cfg` is a cross-sample comparison config with `spatial_config` and a
-    `samples` mapping of response/tissue labels. Returns a context dict (project
-    root, palette order and colours, coordinate keys) and one record per sample.
+    `cfg` names a `cohort` and may list `samples` (names, in plot order). Each
+    record carries response, tissue, branch, resolution, the script 08 object
+    under `--input-root`, and, when `script10_result_dir` is set, the script 10
+    result under `result_root` (the Phoenix mount until script 10 exports
+    tables). Returns a context dict (palette order and colours, coordinate
+    keys, roots) and the records.
     """
-    root = config_path.parents[int(cfg.get("project_root_parent_depth", 4))]
-    spatial_path = resolve_path(root, cfg["spatial_config"])
-    spatial = json.loads(spatial_path.read_text())
-    spatial_root = spatial_path.parents[int(spatial.get("project_root_parent_depth", 4))]
-    annotation_path = resolve_path(spatial_root, spatial["annotation_config"])
-    annotation = json.loads(annotation_path.read_text())
-    annotation_project = annotation_path.parents[int(annotation.get("project_root_parent_depth", 3))]
-    annotation_root = Path(annotation.get("output_root", annotation_project))
-    palette = json.loads(resolve_path(annotation_project, annotation["palette_json"]).read_text())
-    order = palette["cell_type_order"]
-
-    # Script 10 results may live on another machine (e.g. the HPC mount).
-    result_root = Path(cfg.get("result_root", spatial_root))
-    result_dir = resolve_path(result_root, spatial["result_dir"])
-
-    annotated = {sample["sample"]: sample for sample in annotation["samples"]}
-    unknown = set(cfg["samples"]) - set(annotated)
-    if unknown:
-        raise ValueError(f"Samples absent from script 08 config: {sorted(unknown)}")
-    if selected and set(selected) - set(cfg["samples"]):
-        raise ValueError("Requested samples are absent from the comparison config")
-    for meta in cfg["samples"].values():
-        if meta["response"] not in RESPONSE_ORDER:
-            raise ValueError(f"response must be one of {RESPONSE_ORDER}: {meta}")
+    cohort = load_cohort(cfg["cohort"])
+    palette = json.loads(cohort["palette_path"].read_text())
+    input_root, output_root = args.input_root.resolve(), args.output_root.resolve()
+    result_dir = None
+    if "script10_result_dir" in cfg:
+        result_dir = resolve_path(cfg.get("result_root", input_root), cfg["script10_result_dir"])
 
     records = []
-    for name, meta in cfg["samples"].items():
-        if selected and name not in selected:
-            continue
-        sample = annotated[name]
-        source = resolve_path(annotation_root, sample["output_h5ad"])
+    for sample in select_samples(cohort, cfg.get("samples"), args.sample):
+        if sample.get("response") not in RESPONSE_ORDER:
+            raise ValueError(f"{sample['sample']}: cohort response must be one of {RESPONSE_ORDER}")
+        source = resolve_path(input_root, sample["annotated_h5ad"])
         records.append({
-            "sample": name,
-            "response": meta["response"],
-            "tissue": meta.get("tissue", "unknown"),
+            "sample": sample["sample"],
+            "response": sample["response"],
+            "tissue": sample.get("tissue", "unknown"),
             "branch": sample["branch"],
             "resolution": sample["resolution"],
             "annotated_h5ad": source,
-            "result_h5ad": result_dir / name / f"{source.stem}_squidpy.h5ad",
+            "result_h5ad": result_dir / sample["sample"] / f"{source.stem}_squidpy.h5ad" if result_dir else None,
         })
     context = {
-        "root": root,
-        "order": order,
+        "order": palette["cell_type_order"],
         "colors": palette["colors"],
-        "coord_keys": spatial.get("coord_keys", ["x", "y"]),
+        "coord_keys": cohort["coord_keys"],
+        "input_root": input_root,
+        "output_root": output_root,
     }
     return context, records
 

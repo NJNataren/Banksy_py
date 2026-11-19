@@ -4,6 +4,8 @@
 """
 Title: Poster Dot Plot Of Canonical Markers Across The Cohort
 Date: 2026-10-28
+Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
+(workflow_config.py); --input-root/--output-root default to the repository root.
 Summary: Read reviewed cell-type labels and log-normalised expression for a
 short canonical marker list from each script 08 annotated H5AD, and summarise
 every cell type by mean expression and fraction of expressing cells. Samples
@@ -15,6 +17,7 @@ Scanpy's `standard_scale="var"`. Inputs are never modified.
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import h5py
@@ -33,6 +36,10 @@ try:
 except ImportError:
     from anndata.experimental import read_elem
 
+# The shared cohort loader lives at the repository root, two levels up.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples  # noqa: E402
+
 
 plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams["font.sans-serif"] = ["Arial", "DejaVu Sans"]
@@ -43,29 +50,20 @@ def parse_args():
     parser = argparse.ArgumentParser(prog="plot cohort canonical marker dot plot for the poster")
     parser.add_argument("--config", required=True, help="Poster dot plot JSON config")
     parser.add_argument("--validate-only", action="store_true", help="Check inputs and genes without plotting")
+    add_root_arguments(parser)
     return parser.parse_args()
 
 
-def resolve_path(root, value):
-    """Resolve a configured absolute path or a path relative to its project root."""
-    path = Path(value)
-    return path if path.is_absolute() else root / path
-
-
-def load_inputs(cfg, config_path):
-    """Follow the poster config to script 08's config and palette; return sample records."""
-    root = config_path.parents[int(cfg.get("project_root_parent_depth", 3))]
-    annotation_path = resolve_path(root, cfg["annotation_config"])
-    annotation = json.loads(annotation_path.read_text())
-    annotation_project = annotation_path.parents[int(annotation.get("project_root_parent_depth", 3))]
-    annotation_root = Path(annotation.get("output_root", annotation_project))
-    palette = json.loads(resolve_path(annotation_project, annotation["palette_json"]).read_text())
+def load_inputs(cfg, args):
+    """Read the cohort and palette; return output root and one record per cohort sample."""
+    cohort = load_cohort(cfg["cohort"])
+    palette = json.loads(cohort["palette_path"].read_text())
     records = [
         {"sample": s["sample"], "resolution": s["resolution"],
-         "h5ad": resolve_path(annotation_root, s["output_h5ad"])}
-        for s in annotation["samples"]
+         "h5ad": resolve_path(args.input_root, s["annotated_h5ad"])}
+        for s in select_samples(cohort, cfg.get("samples"))
     ]
-    return root, records, palette["cell_type_order"]
+    return args.output_root, records, palette["cell_type_order"]
 
 
 def read_sample(h5ad_path, genes):
@@ -170,9 +168,8 @@ def plot_dotplot(summary, markers, order, plot_cfg):
 def main():
     """Validate inputs, summarise marker expression per cell type, and render the dot plot."""
     args = parse_args()
-    config_path = Path(args.config).resolve()
-    cfg = json.loads(config_path.read_text())
-    root, records, order = load_inputs(cfg, config_path)
+    cfg = json.loads(Path(args.config).resolve().read_text())
+    root, records, order = load_inputs(cfg, args)
     markers = cfg["markers"]
     if set(markers) - set(order):
         raise ValueError(f"Marker cell types absent from palette: {sorted(set(markers) - set(order))}")

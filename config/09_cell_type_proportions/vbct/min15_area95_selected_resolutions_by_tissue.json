@@ -1,7 +1,6 @@
 {
-  "project_root_parent_depth": 3,
+  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
   "counts_csv": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cell_type_counts.csv",
-  "palette_json": "config/08_cell_type_annotation/vbct/shared_cell_type_palette.json",
   "expected_total_cells": 2083396,
   "output_dir": "figures/cell_type_proportions/vbct_min15_area95_selected_resolutions",
   "output_stem": "cell_type_proportions_by_tissue",
@@ -34,58 +33,42 @@
   "samples": [
     {
       "sample": "CK_skin_res",
-      "branch": "min15_area95",
-      "resolution": "1.00",
-      "tissue": "Skin",
+      "facet": "Skin",
       "display_label": "CK · responder"
     },
     {
       "sample": "EL_skin_res",
-      "branch": "min15_area95",
-      "resolution": "0.80",
-      "tissue": "Skin",
+      "facet": "Skin",
       "display_label": "EL · responder"
     },
     {
       "sample": "GR_lung_non_res_roi",
-      "branch": "min15_area95",
-      "resolution": "1.00",
-      "tissue": "Lung",
+      "facet": "Lung",
       "display_label": "GR · non-responder"
     },
     {
       "sample": "BE_brain_non_res",
-      "branch": "min15_area95",
-      "resolution": "0.90",
-      "tissue": "Brain",
+      "facet": "Brain",
       "display_label": "BE · non-responder"
     },
     {
       "sample": "HW_brain_res",
-      "branch": "min15_area95",
-      "resolution": "0.80",
-      "tissue": "Brain",
+      "facet": "Brain",
       "display_label": "HW · responder"
     },
     {
       "sample": "MF_skin_non_res",
-      "branch": "min15_area95",
-      "resolution": "0.50",
-      "tissue": "Skin",
+      "facet": "Skin",
       "display_label": "MF · non-responder"
     },
     {
       "sample": "MG_gastric_non_res",
-      "branch": "min15_area95",
-      "resolution": "0.70",
-      "tissue": "Gastrointestinal",
+      "facet": "Gastrointestinal",
       "display_label": "MG · gastric · non-responder"
     },
     {
       "sample": "CK_bowel_res",
-      "branch": "min15_area95",
-      "resolution": "0.80",
-      "tissue": "Gastrointestinal",
+      "facet": "Gastrointestinal",
       "display_label": "CK · bowel · responder"
     }
   ]

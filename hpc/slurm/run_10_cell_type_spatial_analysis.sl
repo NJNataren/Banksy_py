@@ -14,14 +14,13 @@ cd "$REPO_DIR"
 source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 CONFIG=config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json
-# Derive task order from the annotation config.
+# Derive task order from the samples this config uses (cohort order by default).
 SAMPLE=$(python - "$CONFIG" "${SLURM_ARRAY_TASK_ID:?Run through sbatch}" <<'PYCODE'
-import json
 import sys
-from pathlib import Path
-cfg = json.loads(Path(sys.argv[1]).read_text())
-annotation = json.loads(Path(cfg['annotation_config']).read_text())
-print(annotation['samples'][int(sys.argv[2])]['sample'])
+from workflow_config import load_cohort, load_json, select_samples
+cfg = load_json(sys.argv[1])
+samples = select_samples(load_cohort(cfg['cohort']), cfg.get('samples'))
+print(samples[int(sys.argv[2])]['sample'])
 PYCODE
 )
 echo "Sample: $SAMPLE"

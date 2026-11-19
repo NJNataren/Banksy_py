@@ -11,11 +11,16 @@ legend, and layout without creating files containing millions of vector marks.
 Set `rasterized_points` to `false` only when individual editable points are
 required and the resulting file size is acceptable.
 
-Validate without writing outputs:
+Samples, the reviewed mapping, and the shared palette come from the cohort
+config named by `"cohort"` (`config/cohorts/vbct/min15_area95_selected_resolutions.json`);
+this config keeps only plot and output settings. `--input-root` and
+`--output-root` both default to the repository root. Locally, script 06 inputs
+are only on the Phoenix mount, so validate with:
 
 ```bash
 conda run -n banksy python 08_annotate_cell_types_and_plot_umaps.py \
   --config config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json \
+  --input-root ~/mnt/phoenix_scratch/Banksy_py \
   --validate-only
 ```
 
@@ -27,7 +32,7 @@ to replace existing outputs.
 
 The companion config
 `vbct/min15_area95_selected_resolutions_clean_umaps.json` reads the existing
-annotated H5AD files and produces clean per-sample Scanpy UMAPs with no title,
+annotated H5AD files (`"input_key": "annotated_h5ad"`) and produces clean per-sample Scanpy UMAPs with no title,
 axis labels, or external legend. Cell types are labelled directly on the UMAP
 with 12-point text. It does not rewrite annotated objects or summary tables.
 
@@ -52,9 +57,9 @@ mkdir -p logs
 sbatch hpc/slurm/run_08_cell_type_annotation.sl
 ```
 
-The wrapper requests 8 CPUs, 180 GB RAM, and 8 hours. It overrides both input
-and output roots with the HPC repository, avoiding the local mounted path stored
-in the active config.
+The wrapper requests 8 CPUs, 180 GB RAM, and 8 hours. It passes the HPC
+repository as both input and output root (also the default since 2026-11-19;
+the config no longer stores the mounted path).
 
 This is deliberately one job rather than a Slurm array. Script 08 writes two
 shared count tables and a combined eight-sample UMAP after processing all

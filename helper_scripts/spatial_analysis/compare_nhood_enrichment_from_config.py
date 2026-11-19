@@ -4,6 +4,8 @@
 """
 Title: Compare Squidpy Neighbourhood Enrichment Across Samples
 Date: 2026-10-26
+Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
+(workflow_config.py); --input-root/--output-root default to the repository root.
 Summary: Collect script 10 cell-type neighbourhood enrichment matrices for all
 samples, convert them to a sample-size-independent metric, and plot responder
 versus non-responder comparisons. Squidpy z-scores grow with cell number, so
@@ -30,7 +32,7 @@ from matplotlib.lines import Line2D
 from scipy.spatial import cKDTree
 
 from spatial_common import (
-    RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED,
+    RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED, add_root_arguments,
     load_sample_records, read_elem, read_labels_and_coords, resolve_path,
     sample_title, save_figure, spread_label_positions, tissue_markers,
 )
@@ -60,6 +62,7 @@ def parse_args():
         "--force-recompute", action="store_true",
         help="Ignore cached recomputed matrices (only affects samples without a script 10 result)",
     )
+    add_root_arguments(parser)
     return parser.parse_args()
 
 
@@ -133,7 +136,7 @@ def recompute_enrichment(annotated_h5ad, order, coord_keys, seed, n_perms):
 
 def load_enrichment(record, cfg, args, table_dir, context):
     """Return primary-graph enrichment for one sample from script 10, the cache, or a recompute."""
-    if record["result_h5ad"].is_file():
+    if record["result_h5ad"] and record["result_h5ad"].is_file():
         return (*read_stored_enrichment(record["result_h5ad"]), "stored_script10")
 
     seed, n_perms = int(cfg.get("recompute_seed", 1234)), int(cfg.get("recompute_n_perms", 1000))
@@ -619,10 +622,9 @@ def plot_combined_comparison(primary_df, comparison, samples, order, figure_dir,
 def main():
     """Collect enrichment matrices, write tables, and render comparison figures."""
     args = parse_args()
-    config_path = Path(args.config).resolve()
-    cfg = json.loads(config_path.read_text())
-    context, records = load_sample_records(cfg, config_path, args.sample)
-    order, root = context["order"], context["root"]
+    cfg = json.loads(Path(args.config).resolve().read_text())
+    context, records = load_sample_records(cfg, args)
+    order, root = context["order"], context["output_root"]
     validate_comparison_config(cfg, order)
     graphs, primary = graph_settings(cfg)
     tiling = cfg.get("tiling")
@@ -633,7 +635,7 @@ def main():
 
     if args.validate_only:
         for record in records:
-            if record["result_h5ad"].is_file():
+            if record["result_h5ad"] and record["result_h5ad"].is_file():
                 status = f"stored script 10 result: {record['result_h5ad']}"
             elif record["annotated_h5ad"].is_file():
                 status = f"no script 10 result; recompute from {record['annotated_h5ad']}"

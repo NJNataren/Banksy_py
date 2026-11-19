@@ -1,6 +1,8 @@
 """
 Title: Annotate selected BANKSY clusters and plot shared-colour UMAPs
 Date: 2026-10-26
+Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
+(workflow_config.py); --input-root/--output-root default to the repository root.
 Summary: Validate a reviewed cluster-to-cell-type mapping, attach annotations to
 clean script 06 AnnData objects, and render matching Matplotlib and Scanpy UMAPs.
 The original expression matrix, cell identifiers, cluster columns, and saved
@@ -11,7 +13,6 @@ rasterization are config-driven.
 from __future__ import annotations
 
 import argparse
-import json
 import math
 from pathlib import Path
 
@@ -24,6 +25,8 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 import scanpy as sc
+
+from workflow_config import add_root_arguments, load_cohort, load_json, resolve_path, select_samples
 
 
 # Keep text editable in Inkscape while allowing dense point clouds to be rasterized.
@@ -46,14 +49,9 @@ def parse_args() -> argparse.Namespace:
         action="append",
         help="Process only this sample; repeat to select multiple samples.",
     )
-    parser.add_argument(
-        "--input-root",
-        help="Override the config input root, for example an HPC repository root.",
-    )
-    parser.add_argument(
-        "--output-root",
-        help="Override the config output root. Relative output paths use this root.",
-    )
+    # Both default to the repository root. Locally, script 06 inputs are on the
+    # Phoenix mount, so pass --input-root ~/mnt/phoenix_scratch/Banksy_py.
+    add_root_arguments(parser)
     parser.add_argument(
         "--validate-only",
         action="store_true",
@@ -70,18 +68,6 @@ def parse_args() -> argparse.Namespace:
         help="Replace existing annotated H5AD and figure outputs.",
     )
     return parser.parse_args()
-
-
-def load_json(path: Path) -> dict:
-    """Read a JSON object from disk."""
-    with path.open() as handle:
-        return json.load(handle)
-
-
-def resolve_path(root: Path, value: str) -> Path:
-    """Resolve an absolute path or a path relative to `root`."""
-    path = Path(value)
-    return path if path.is_absolute() else root / path
 
 
 def load_palette(path: Path) -> tuple[list[str], dict[str, str]]:
@@ -121,21 +107,6 @@ def load_mapping(path: Path) -> pd.DataFrame:
     if mapping[list(required)].isna().any().any():
         raise ValueError("Mapping table contains missing values in required columns")
     return mapping
-
-
-def select_samples(cfg: dict, requested: list[str] | None) -> list[dict]:
-    """Return configured samples, optionally restricted by command-line selection."""
-    samples = cfg["samples"]
-    configured = [sample["sample"] for sample in samples]
-    if len(configured) != len(set(configured)):
-        raise ValueError("The run config contains duplicate sample names")
-    if not requested:
-        return samples
-    unknown = sorted(set(requested) - set(configured))
-    if unknown:
-        raise ValueError(f"Requested samples are not configured: {unknown}")
-    requested_set = set(requested)
-    return [sample for sample in samples if sample["sample"] in requested_set]
 
 
 def validate_sample_mapping(
@@ -492,16 +463,22 @@ def write_annotated_object(
 def main() -> None:
     """Validate mappings, annotate objects, and create comparison UMAP figures."""
     args = parse_args()
-    config_path = Path(args.config).resolve()
-    cfg = load_json(config_path)
-    project_root = config_path.parents[int(cfg.get("project_root_parent_depth", 3))]
-    input_root = Path(args.input_root or cfg.get("input_root", project_root)).resolve()
-    output_root = Path(args.output_root or cfg.get("output_root", project_root)).resolve()
-    mapping_path = resolve_path(project_root, cfg["mapping_csv"])
-    palette_path = resolve_path(project_root, cfg["palette_json"])
+    cfg = load_json(Path(args.config).resolve())
+    input_root = args.input_root.resolve()
+    output_root = args.output_root.resolve()
+    cohort = load_cohort(cfg["cohort"])
+    mapping_path = cohort["mapping_path"]
+    if mapping_path is None:
+        raise KeyError(f"{cohort['path']}: script 08 needs mapping_csv")
     mapping = load_mapping(mapping_path)
-    cell_type_order, palette = load_palette(palette_path)
-    samples = select_samples(cfg, args.sample)
+    cell_type_order, palette = load_palette(cohort["palette_path"])
+    samples = select_samples(cohort, cfg.get("samples"), args.sample)
+    # Annotation reads the script 06 object; replot-only configs read the annotated one.
+    input_key = cfg.get("input_key", "recluster_h5ad")
+    if input_key not in ("recluster_h5ad", "annotated_h5ad"):
+        raise ValueError("input_key must be recluster_h5ad or annotated_h5ad")
+    if input_key == "annotated_h5ad" and cfg.get("write_annotated_objects", True):
+        raise ValueError("Replotting annotated objects requires write_annotated_objects: false")
     figure_root = resolve_path(output_root, cfg["figure_dir"])
     table_root = resolve_path(output_root, cfg["summary_dir"])
     plot_cfg = cfg["plot"]
@@ -511,7 +488,7 @@ def main() -> None:
     panel_records = []
     for sample_cfg in samples:
         sample = sample_cfg["sample"]
-        input_path = resolve_path(input_root, sample_cfg["input_h5ad"])
+        input_path = resolve_path(input_root, sample_cfg[input_key])
         if not input_path.exists():
             raise FileNotFoundError(f"{sample}: input object does not exist: {input_path}")
         print(f"Reading {sample}: {input_path}")
@@ -559,7 +536,7 @@ def main() -> None:
                 )
             )
         if cfg.get("write_annotated_objects", True) and not args.no_write_annotated:
-            output_h5ad = resolve_path(output_root, sample_cfg["output_h5ad"])
+            output_h5ad = resolve_path(output_root, sample_cfg["annotated_h5ad"])
             write_annotated_object(
                 adata,
                 output_h5ad,

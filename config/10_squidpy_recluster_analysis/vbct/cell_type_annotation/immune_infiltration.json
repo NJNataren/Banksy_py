@@ -1,16 +1,36 @@
 {
-  "project_root_parent_depth": 4,
-  "comparison_config": "config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/nhood_enrichment_comparison.json",
+  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
   "figure_dir": "data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/immune_infiltration",
   "table_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/immune_infiltration",
   "tumour_cell_type": "Melanoma cell",
-  "query_cell_types": ["T cell", "B cell", "Macrophage"],
-  "distance_bins_um": [20, 100],
+  "query_cell_types": [
+    "T cell",
+    "B cell",
+    "Macrophage"
+  ],
+  "distance_bins_um": [
+    20,
+    100
+  ],
   "max_plot_distance_um": 500,
   "histogram_bin_um": 10,
   "spatial_maps": true,
   "map_cell_type": "T cell",
   "map_point_size": 0.6,
-  "figure_formats": ["png", "svg", "pdf"],
-  "figure_dpi": 300
+  "figure_formats": [
+    "png",
+    "svg",
+    "pdf"
+  ],
+  "figure_dpi": 300,
+  "samples": [
+    "CK_skin_res",
+    "EL_skin_res",
+    "CK_bowel_res",
+    "HW_brain_res",
+    "MF_skin_non_res",
+    "MG_gastric_non_res",
+    "BE_brain_non_res",
+    "GR_lung_non_res_roi"
+  ]
 }

@@ -1,9 +1,10 @@
 # Spatial analysis using reviewed cell types
 
-This configuration references script 08's configuration directly. Sample names,
+This configuration names the cohort config
+(`config/cohorts/vbct/min15_area95_selected_resolutions.json`). Sample names,
 branches, resolutions, original grouping columns, reviewed mapping, annotated
-output paths, and shared palette are taken from that source of truth.
-Script 10 reads the `output_h5ad` objects written by script 08, not its unannotated
+object paths, coordinate keys, and shared palette are taken from it.
+Script 10 reads the `annotated_h5ad` objects written by script 08, not its unannotated
 HPC inputs. It groups spatial analyses by `cell_type` and processes one sample
 at a time. Original annotation objects remain unchanged.
 
@@ -19,8 +20,9 @@ python 10_squidpy_recluster_spatial_analysis.py --config config/10_squidpy_reclu
 
 Without `--sample`, a full run processes all eight sequentially. Use the HPC
 workflow for full spatial calculations. Annotated objects must be available
-there at script 08's relative output paths. `--annotation-root` overrides their
-root directory (including when script 08 previously used --output-root).
+there at the cohort's relative `annotated_h5ad` paths. `--input-root` overrides
+their root and `--output-root` the root for figures and result H5ADs; both
+default to the repository root (`--annotation-root` was replaced on 2026-11-19).
 Run script 08 first with `hpc/slurm/run_08_cell_type_annotation.sl`; it creates
 the annotated H5AD inputs in their configured HPC-relative paths. The adjacent
 `hpc_staging_files.txt` lists the code and configuration files needed for the
@@ -28,7 +30,7 @@ the annotated H5AD inputs in their configured HPC-relative paths. The adjacent
 inputs.
 
 The dedicated `hpc/slurm/run_10_cell_type_spatial_analysis.sl` wrapper uses one
-task per sample (`0-7%2`) and selects samples from script 08's config. Each task
+task per sample (`0-7%2`) and selects samples in cohort order. Each task
 requests 8 CPUs, 180 GB RAM, and 24 hours. Submit it
 yourself after script 08 has completed on HPC (or annotated files are transferred):
 
@@ -95,8 +97,9 @@ python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py -
 python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/nhood_enrichment_comparison.json --recompute-missing
 ```
 
-Response labels, tissue, focus pairs, and matched-tissue comparisons are set in
-the JSON. Difference panels are descriptive (1–4 samples per group).
+Response and tissue labels come from the cohort config; sample order, focus
+pairs, and matched-tissue comparisons are set in this JSON. `script10_result_dir`
+under `result_root` locates the stored script 10 results. Difference panels are descriptive (1–4 samples per group).
 
 Sensitivity options in the same config: `graph_settings` repeats edge counts
 for wider neighbourhoods (`n_neighs` or `radius_um`; coordinates are µm), and
@@ -111,7 +114,8 @@ primary (script 10) graph; difference CSVs cover every graph.
 (config `immune_infiltration.json`) measures each T/B/macrophage cell's
 distance to the nearest melanoma cell and reports the share within ≤20 µm,
 20–100 µm, and >100 µm, against all non-tumour cells as a geometry reference.
-It reuses the samples and response labels from `nhood_enrichment_comparison.json`.
+It reads samples and response labels from the cohort config directly (sample
+order is listed in its own JSON).
 Both helpers import `helper_scripts/spatial_analysis/spatial_common.py`.
 
 ```bash

@@ -4,6 +4,8 @@
 """
 Title: Squidpy Spatial Analysis For BANKSY Reclusters
 Date: 2026-10-26
+Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
+(workflow_config.py); --input-root/--output-root default to the repository root.
 Summary: Reuse script 08 annotated clean expression objects and reviewed cell
 types for Squidpy neighbourhood enrichment, centrality, co-occurrence, and
 Moran's I. Legacy script 06 cluster-based configurations remain supported.
@@ -15,7 +17,6 @@ import argparse
 import json
 import os
 import random
-from pathlib import Path
 from datetime import datetime
 from matplotlib import rc_context
 from matplotlib.collections import PathCollection
@@ -28,6 +29,8 @@ import pandas as pd
 import scanpy as sc
 import seaborn as sns
 import squidpy as sq
+
+from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples
 
 
 sc.logging.print_header()
@@ -54,7 +57,8 @@ def parse_args():
     )
     parser.add_argument("--sample", action="append", help="Select a script 08 sample; repeat as needed")
     parser.add_argument("--validate-only", action="store_true", help="Check annotated inputs without running analyses")
-    parser.add_argument("--annotation-root", help="Override the root containing script 08 annotated outputs")
+    # Cell-type mode only: annotated inputs under --input-root, results under --output-root.
+    add_root_arguments(parser)
     return parser.parse_args()
 
 
@@ -349,42 +353,27 @@ def run_squidpy_for_resolution(
             )
 
 
-def resolve_path(root, value):
-    """Resolve a configured absolute path or a path relative to its project root."""
-    path = Path(value)
-    return path if path.is_absolute() else root / path
-
-
 def run_annotation_config(cfg, args):
-    """Reuse script 08 sample definitions and annotated outputs for cell-type analyses.
+    """Run cell-type analyses on the script 08 annotated objects of one cohort.
 
     Validation reads only backed metadata. Full runs load one sample at a time;
     annotation inputs remain unchanged and spatial results use separate paths.
     """
-    config_path = Path(args.config).resolve()
-    root = config_path.parents[int(cfg.get("project_root_parent_depth", 4))]
-    annotation_path = resolve_path(root, cfg["annotation_config"])
-    annotation = json.loads(annotation_path.read_text())
-    annotation_project = annotation_path.parents[int(annotation.get("project_root_parent_depth", 3))]
-    annotation_root = Path(args.annotation_root or annotation.get("output_root", annotation_project)).resolve()
-    palette = json.loads(resolve_path(annotation_project, annotation["palette_json"]).read_text())
+    cohort = load_cohort(cfg["cohort"])
+    input_root, output_root = args.input_root.resolve(), args.output_root.resolve()
+    palette = json.loads(cohort["palette_path"].read_text())
     order, colors = palette["cell_type_order"], palette["colors"]
     if len(order) != len(set(order)) or set(order) != set(colors):
         raise ValueError("Shared palette has inconsistent labels")
     if not all(mpl.colors.is_color_like(color) for color in colors.values()):
         raise ValueError("Invalid shared palette colour")
-    samples = annotation["samples"]
-    names = [sample["sample"] for sample in samples]
-    if len(names) != len(set(names)):
-        raise ValueError("Duplicate samples in annotation config")
-    if args.sample:
-        if set(args.sample) - set(names):
-            raise ValueError("Requested samples are absent from script 08 config")
-        samples = [sample for sample in samples if sample["sample"] in args.sample]
-    mapping = pd.read_csv(resolve_path(annotation_project, annotation["mapping_csv"]), dtype={"cluster_id": str, "resolution": str})
+    samples = select_samples(cohort, cfg.get("samples"), args.sample)
+    if cohort["mapping_path"] is None:
+        raise KeyError(f"{cohort['path']}: script 10 needs mapping_csv to verify annotations")
+    mapping = pd.read_csv(cohort["mapping_path"], dtype={"cluster_id": str, "resolution": str})
     for sample in samples:
         name = sample["sample"]
-        source = resolve_path(annotation_root, sample["output_h5ad"])
+        source = resolve_path(input_root, sample["annotated_h5ad"])
         adata = ad.read_h5ad(source, backed="r" if args.validate_only else None)
         try:
             groupby = sample["groupby"]
@@ -404,7 +393,7 @@ def run_annotation_config(cfg, args):
             expected = adata.obs[groupby].astype(str).map(rows.set_index("cluster_id")["cell_type"])
             if expected.isna().any() or not (expected.to_numpy() == labels.to_numpy()).all():
                 raise ValueError(f"{name}: annotations disagree with reviewed cluster mapping")
-            prepare_spatial_coordinates(adata, cfg.get("coord_keys", ["x", "y"]))
+            prepare_spatial_coordinates(adata, cohort["coord_keys"])
             if not np.isfinite(adata.obsm["spatial"]).all():
                 raise ValueError(f"{name}: nonfinite spatial coordinates")
             # Absent types must not create empty groups in Squidpy's calculations.
@@ -415,8 +404,8 @@ def run_annotation_config(cfg, args):
             if args.validate_only:
                 continue
             tag = f"{sample['branch']}_r{sample['resolution']}"
-            output = resolve_path(root, cfg["figure_dir"]) / name / tag
-            destination = resolve_path(root, cfg["result_dir"]) / name / f"{source.stem}_squidpy.h5ad"
+            output = resolve_path(output_root, cfg["figure_dir"]) / name / tag
+            destination = resolve_path(output_root, cfg["result_dir"]) / name / f"{source.stem}_squidpy.h5ad"
             if destination.resolve() == source.resolve():
                 raise ValueError("Spatial output must not overwrite the annotated input")
             os.makedirs(destination.parent, exist_ok=True)
@@ -427,7 +416,7 @@ def run_annotation_config(cfg, args):
                 sample["resolution"].replace(".", "p"), run_cfg,
             )
             adata.uns["spatial_analysis_provenance"] = {
-                "annotation_config": str(annotation_path), "input_h5ad": str(source),
+                "cohort_config": str(cohort["path"]), "input_h5ad": str(source),
                 "sample": name, "branch": sample["branch"],
                 "resolution": sample["resolution"], "source_groupby": groupby,
             }
@@ -547,11 +536,11 @@ def main():
     with open(args.config) as handle:
         cfg = json.load(handle)
     figure_export_settings(cfg)
-    if "annotation_config" in cfg:
+    if "cohort" in cfg:
         run_annotation_config(cfg, args)
     else:
-        if args.sample or args.annotation_root:
-            raise ValueError("--sample and --annotation-root require an annotation_config")
+        if args.sample:
+            raise ValueError("--sample requires a cohort config")
         run_legacy_config(cfg, args)
 
 

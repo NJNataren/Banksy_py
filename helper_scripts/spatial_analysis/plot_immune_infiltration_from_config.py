@@ -4,6 +4,8 @@
 """
 Title: Plot Immune Infiltration Distances From Config
 Date: 2026-10-26
+Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
+(workflow_config.py); --input-root/--output-root default to the repository root.
 Summary: For each sample, measure the distance from every immune cell of the
 configured types (e.g. T cells) to its nearest tumour cell, then compare how
 much of each population lies in contact with tumour, at the tumour margin, or
@@ -27,7 +29,7 @@ from matplotlib.patches import Patch
 from scipy.spatial import cKDTree
 
 from spatial_common import (
-    RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED,
+    RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED, add_root_arguments,
     load_sample_records, read_labels_and_coords, resolve_path, save_figure,
 )
 
@@ -48,6 +50,7 @@ def parse_args():
     parser.add_argument("--sample", action="append", help="Restrict to a sample; repeat as needed")
     parser.add_argument("--validate-only", action="store_true", help="Check inputs without computing distances")
     parser.add_argument("--skip-maps", action="store_true", help="Skip per-sample spatial maps")
+    add_root_arguments(parser)
     return parser.parse_args()
 
 
@@ -232,12 +235,9 @@ def plot_spatial_map(record, labels, coords, tumour, map_type, distances, edges,
 def main():
     """Compute distances to tumour, write summary tables, and render figures."""
     args = parse_args()
-    config_path = Path(args.config).resolve()
-    cfg = json.loads(config_path.read_text())
-    root = config_path.parents[int(cfg.get("project_root_parent_depth", 4))]
-    comparison_path = resolve_path(root, cfg["comparison_config"]).resolve()
-    comparison = json.loads(comparison_path.read_text())
-    context, records = load_sample_records(comparison, comparison_path, args.sample)
+    cfg = json.loads(Path(args.config).resolve().read_text())
+    context, records = load_sample_records(cfg, args)
+    root = context["output_root"]
     tumour, queries, edges, map_type = validate_config(cfg, context["order"])
     max_distance = float(cfg.get("max_plot_distance_um", 500))
     histogram_bin = float(cfg.get("histogram_bin_um", 10))

@@ -1,6 +1,8 @@
 """
 Title: Plot reviewed cell-type proportions across samples
 Date: 2026-10-26
+Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
+(workflow_config.py); --input-root/--output-root default to the repository root.
 Summary: Validate an existing cell-type count table against configured samples,
 branches, resolutions, and a shared palette. Export a zero-filled proportion
 table and optionally tissue-faceted 100% stacked bars as PNG, SVG, and PDF
@@ -22,30 +24,27 @@ from matplotlib.ticker import PercentFormatter
 import numpy as np
 import pandas as pd
 
-
-def resolve_path(root: Path, value: str) -> Path:
-    """Resolve configuration paths relative to the project root."""
-    path = Path(value)
-    return path if path.is_absolute() else root / path
+from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples
 
 
-def prepare_proportions(cfg: dict, root: Path) -> tuple[pd.DataFrame, dict]:
+def prepare_proportions(
+    cfg: dict, samples: list[dict], palette_path: Path, input_root: Path
+) -> tuple[pd.DataFrame, dict]:
     """Validate counts and provenance, then fill missing types and normalize.
 
     Each denominator contains all annotated post-filtered cells in one sample.
     Reject unexpected samples or conditions rather than silently pooling them.
     """
-    palette = json.loads(resolve_path(root, cfg["palette_json"]).read_text())
+    palette = json.loads(palette_path.read_text())
     order, colors = palette["cell_type_order"], palette["colors"]
     if not order or len(order) != len(set(order)) or set(order) != set(colors):
         raise ValueError("Palette must contain unique ordered labels and matching colors")
     if not all(matplotlib.colors.is_color_like(color) for color in colors.values()):
         raise ValueError("Palette contains invalid colors")
-    counts = pd.read_csv(resolve_path(root, cfg["counts_csv"]), dtype={"resolution": str})
+    counts = pd.read_csv(resolve_path(input_root, cfg["counts_csv"]), dtype={"resolution": str})
     required = ["sample", "branch", "resolution", "cell_type", "n_cells"]
     if not set(required).issubset(counts.columns) or counts[required].isna().any().any():
         raise ValueError("Count table is missing required columns or values")
-    samples = cfg["samples"]
     names = [sample["sample"] for sample in samples]
     if not names or len(names) != len(set(names)) or set(counts["sample"]) != set(names):
         raise ValueError("Count table must match the unique configured samples exactly")
@@ -82,21 +81,24 @@ def prepare_proportions(cfg: dict, root: Path) -> tuple[pd.DataFrame, dict]:
     return pd.concat(tables, ignore_index=True), palette
 
 
-def get_panels(cfg: dict) -> list[tuple[str, list[dict]]]:
+def get_panels(cfg: dict, samples: list[dict]) -> list[tuple[str, list[dict]]]:
     """Group samples into configured facets, preserving order within each facet."""
     order = cfg["plot"].get("facet_order")
     if order is None:
-        return [("", cfg["samples"])]
-    tissues = [sample.get("tissue") for sample in cfg["samples"]]
-    if not order or len(order) != len(set(order)) or set(tissues) != set(order):
-        raise ValueError("Each sample must have a tissue matching the unique facet_order")
-    return [(tissue, [s for s in cfg["samples"] if s["tissue"] == tissue]) for tissue in order]
+        return [("", samples)]
+    # Facets are plot groupings set in this config (e.g. Gastrointestinal), not cohort tissues.
+    facets = [sample.get("facet") for sample in samples]
+    if not order or len(order) != len(set(order)) or set(facets) != set(order):
+        raise ValueError("Each sample must have a facet matching the unique facet_order")
+    return [(facet, [s for s in samples if s["facet"] == facet]) for facet in order]
 
 
-def plot_proportions(table: pd.DataFrame, palette: dict, cfg: dict, stem: Path) -> None:
+def plot_proportions(
+    table: pd.DataFrame, palette: dict, cfg: dict, samples: list[dict], stem: Path
+) -> None:
     """Render equal-width bars in optional tissue facets with shared scale and legend."""
     settings = cfg["plot"]
-    panels = get_panels(cfg)
+    panels = get_panels(cfg, samples)
     faceted = "facet_order" in settings
     plt.rcParams.update(
         {
@@ -180,22 +182,25 @@ def main() -> None:
     parser.add_argument("--config", required=True, help="JSON run configuration")
     parser.add_argument("--validate-only", action="store_true", help="Check input without writing outputs")
     parser.add_argument("--overwrite", action="store_true", help="Replace existing output files")
+    add_root_arguments(parser)
     args = parser.parse_args()
-    config_path = Path(args.config).resolve()
-    cfg = json.loads(config_path.read_text())
-    root = config_path.parents[cfg.get("project_root_parent_depth", 3)]
-    get_panels(cfg)
-    table, palette = prepare_proportions(cfg, root)
+    cfg = json.loads(Path(args.config).resolve().read_text())
+    cohort = load_cohort(cfg["cohort"])
+    # Sample order, facets, and display labels come from this config; branch and
+    # resolution come from the cohort.
+    samples = select_samples(cohort, cfg.get("samples"))
+    get_panels(cfg, samples)
+    table, palette = prepare_proportions(cfg, samples, cohort["palette_path"], args.input_root)
     print(f"Validated {table['sample'].nunique()} samples; {table['n_cells'].sum():,} cells; all proportions sum to 1")
     if args.validate_only:
         return
-    output = resolve_path(root, cfg["output_dir"])
+    output = resolve_path(args.output_root, cfg["output_dir"])
     stem = output / cfg["output_stem"]
     paths = [stem.with_suffix(f".{extension}") for extension in ("png", "svg", "pdf", "csv")]
     if not args.overwrite and any(path.exists() for path in paths):
         raise FileExistsError("Outputs already exist; use --overwrite to replace them")
     os.makedirs(output, exist_ok=True)
-    plot_proportions(table, palette, cfg, stem)
+    plot_proportions(table, palette, cfg, samples, stem)
     table.to_csv(stem.with_suffix(".csv"), index=False)
     print(f"Wrote PNG, SVG, PDF, and proportion CSV: {stem}")
 
