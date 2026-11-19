@@ -30,7 +30,7 @@ SUPPORT_TIERS = {
 def parse_args() -> argparse.Namespace:
     """Parse repository and Phoenix scratch paths."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument(
         "--scratch-root",
         type=Path,
