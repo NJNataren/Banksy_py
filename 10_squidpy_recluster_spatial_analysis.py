@@ -310,11 +310,14 @@ def run_squidpy_for_resolution(
         adata_moran = adata.copy()
 
     sq.gr.spatial_neighbors(adata_moran, coord_type="generic", delaunay=True)
+    # Seed the permutations so simulated p-values (and the FDR gene list) are
+    # reproducible; Moran's I itself is deterministic. Added 2026-11-20.
     sq.gr.spatial_autocorr(
         adata_moran,
         mode="moran",
         n_perms=moran_n_perms,
         n_jobs=moran_n_jobs,
+        seed=seed,
     )
 
     moran_scores = adata_moran.uns["moranI"].reset_index(names=["Gene"])
