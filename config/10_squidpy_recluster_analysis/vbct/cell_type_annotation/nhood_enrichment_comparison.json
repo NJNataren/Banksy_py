@@ -1,11 +1,8 @@
 {
   "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
-  "result_root": "/home/nnataren/mnt/phoenix_scratch/Banksy_py",
   "script10_result_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions",
   "figure_dir": "data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
   "table_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
-  "recompute_seed": 1234,
-  "recompute_n_perms": 1000,
   "pseudocount": 1,
   "primary_graph": "knn6",
   "graph_settings": [

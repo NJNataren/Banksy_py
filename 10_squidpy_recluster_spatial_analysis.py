@@ -6,6 +6,8 @@ Title: Squidpy Spatial Analysis For BANKSY Reclusters
 Date: 2026-10-26
 Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
 (workflow_config.py); --input-root/--output-root default to the repository root.
+Updated: 2026-11-20 - also writes <stem>_nhood_enrichment.csv beside each result
+H5AD (spatial_tables.py) for the cross-sample comparison helper.
 Summary: Reuse script 08 annotated clean expression objects and reviewed cell
 types for Squidpy neighbourhood enrichment, centrality, co-occurrence, and
 Moran's I. Legacy script 06 cluster-based configurations remain supported.
@@ -30,6 +32,7 @@ import scanpy as sc
 import seaborn as sns
 import squidpy as sq
 
+from spatial_tables import enrichment_from_labels, enrichment_table_path, write_enrichment_table
 from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples
 
 
@@ -422,6 +425,11 @@ def run_annotation_config(cfg, args):
             }
             adata.write_h5ad(destination)
             print(f"Saved spatial results: {destination}")
+            # Small copy of the enrichment so cross-sample helpers need not read this H5AD.
+            table = enrichment_table_path(destination.parent.parent, name, source)
+            write_enrichment_table(table, *enrichment_from_labels(
+                adata.uns["cell_type_nhood_enrichment"], adata.obs["cell_type"]))
+            print(f"Saved neighbourhood enrichment table: {table}")
         finally:
             if adata.isbacked:
                 adata.file.close()

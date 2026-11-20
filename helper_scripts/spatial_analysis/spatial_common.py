@@ -31,6 +31,7 @@ except ImportError:
 
 # The shared cohort loader lives at the repository root, two levels up.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from spatial_tables import enrichment_table_path  # noqa: E402
 from workflow_config import (  # noqa: E402
     add_root_arguments, load_cohort, resolve_path, select_samples,
 )
@@ -54,16 +55,18 @@ def load_sample_records(cfg, args):
     `cfg` names a `cohort` and may list `samples` (names, in plot order). Each
     record carries response, tissue, branch, resolution, the script 08 object
     under `--input-root`, and, when `script10_result_dir` is set, the script 10
-    result under `result_root` (the Phoenix mount until script 10 exports
-    tables). Returns a context dict (palette order and colours, coordinate
-    keys, roots) and the records.
+    neighbourhood enrichment table under `--input-root` (written by script 10
+    or backfilled by script 10a). Returns a context dict (palette order and
+    colours, coordinate keys, roots) and the records.
     """
     cohort = load_cohort(cfg["cohort"])
     palette = json.loads(cohort["palette_path"].read_text())
     input_root, output_root = args.input_root.resolve(), args.output_root.resolve()
+    if "result_root" in cfg:
+        raise ValueError("result_root was removed on 2026-11-20; enrichment tables resolve under --input-root")
     result_dir = None
     if "script10_result_dir" in cfg:
-        result_dir = resolve_path(cfg.get("result_root", input_root), cfg["script10_result_dir"])
+        result_dir = resolve_path(input_root, cfg["script10_result_dir"])
 
     records = []
     for sample in select_samples(cohort, cfg.get("samples"), args.sample):
@@ -77,7 +80,9 @@ def load_sample_records(cfg, args):
             "branch": sample["branch"],
             "resolution": sample["resolution"],
             "annotated_h5ad": source,
-            "result_h5ad": result_dir / sample["sample"] / f"{source.stem}_squidpy.h5ad" if result_dir else None,
+            "enrichment_table": (
+                enrichment_table_path(result_dir, sample["sample"], source) if result_dir else None
+            ),
         })
     context = {
         "order": palette["cell_type_order"],

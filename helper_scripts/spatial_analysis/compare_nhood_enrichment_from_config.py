@@ -10,9 +10,9 @@ Summary: Collect script 10 cell-type neighbourhood enrichment matrices for all
 samples, convert them to a sample-size-independent metric, and plot responder
 versus non-responder comparisons. Squidpy z-scores grow with cell number, so
 the comparable metric is log2(observed / expected) neighbour edges from the
-edge-count matrix. Samples without a script 10 result H5AD can have enrichment
-recomputed from their script 08 annotated object with the same graph settings
-as script 10 and a fixed seed. Optional sensitivity analyses repeat the edge
+edge-count matrix. Enrichment is read from the small per-sample table script 10
+writes (or script 10a backfills), so the result H5ADs are not needed; the
+local recompute fallback was removed on 2026-11-20. Optional sensitivity analyses repeat the edge
 counts for wider neighbourhoods (more neighbours or fixed radii in µm) and
 within spatial tiles, to show whether a pattern depends on graph scale or on
 one region of the section. Inputs are never modified.
@@ -23,7 +23,6 @@ import json
 import os
 from pathlib import Path
 
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -33,9 +32,10 @@ from scipy.spatial import cKDTree
 
 from spatial_common import (
     RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED, add_root_arguments,
-    load_sample_records, read_elem, read_labels_and_coords, resolve_path,
+    load_sample_records, read_labels_and_coords, resolve_path,
     sample_title, save_figure, spread_label_positions, tissue_markers,
 )
+from spatial_tables import read_enrichment_table
 
 
 # Blue = depleted, red = enriched, neutral grey at zero (no hue at the midpoint).
@@ -54,14 +54,6 @@ def parse_args():
     parser.add_argument("--config", required=True, help="Comparison JSON config")
     parser.add_argument("--sample", action="append", help="Restrict to a sample; repeat as needed")
     parser.add_argument("--validate-only", action="store_true", help="Check inputs and report sources without plotting")
-    parser.add_argument(
-        "--recompute-missing", action="store_true",
-        help="Recompute enrichment from script 08 objects for samples without a script 10 result",
-    )
-    parser.add_argument(
-        "--force-recompute", action="store_true",
-        help="Ignore cached recomputed matrices (only affects samples without a script 10 result)",
-    )
     add_root_arguments(parser)
     return parser.parse_args()
 
@@ -100,64 +92,17 @@ def validate_comparison_config(cfg, order):
             raise ValueError(f"Comparison {comparison['name']!r} uses unconfigured samples")
 
 
-def read_stored_enrichment(result_h5ad):
-    """Read script 10's enrichment matrices and cell-type counts without loading `.X`."""
-    with h5py.File(result_h5ad, "r") as handle:
-        enrichment = read_elem(handle["uns/cell_type_nhood_enrichment"])
-        labels = read_elem(handle["obs/cell_type"])
-    categories = list(labels.categories)
-    n_cells = pd.Series(labels).value_counts().reindex(categories, fill_value=0)
-    zscore, count = np.asarray(enrichment["zscore"]), np.asarray(enrichment["count"])
-    if zscore.shape != (len(categories),) * 2 or count.shape != zscore.shape:
-        raise ValueError(f"{result_h5ad}: enrichment shape does not match cell_type categories")
-    return zscore, count, categories, n_cells.to_numpy()
-
-
-def recompute_enrichment(annotated_h5ad, order, coord_keys, seed, n_perms):
-    """Recompute enrichment exactly as script 10 does, from labels and coordinates only.
-
-    Absent cell types are dropped and present types keep palette order, matching
-    script 10's categories. Only `.obs` columns are read, so memory stays small.
-    """
-    import anndata as ad
-    import squidpy as sq
-
-    labels, coords, present = read_labels_and_coords(annotated_h5ad, order, coord_keys)
-    adata = ad.AnnData(
-        obs=pd.DataFrame({"cell_type": pd.Categorical(labels, categories=present)}),
-        obsm={"spatial": coords},
-    )
-    sq.gr.spatial_neighbors(adata, coord_type="generic")
-    sq.gr.nhood_enrichment(adata, cluster_key="cell_type", seed=seed, n_perms=n_perms)
-    enrichment = adata.uns["cell_type_nhood_enrichment"]
-    n_cells = pd.Series(labels).value_counts().reindex(present, fill_value=0).to_numpy()
-    return np.asarray(enrichment["zscore"]), np.asarray(enrichment["count"]), present, n_cells
-
-
-def load_enrichment(record, cfg, args, table_dir, context):
-    """Return primary-graph enrichment for one sample from script 10, the cache, or a recompute."""
-    if record["result_h5ad"] and record["result_h5ad"].is_file():
-        return (*read_stored_enrichment(record["result_h5ad"]), "stored_script10")
-
-    seed, n_perms = int(cfg.get("recompute_seed", 1234)), int(cfg.get("recompute_n_perms", 1000))
-    source = f"recomputed_seed{seed}_perms{n_perms}"
-    cache = table_dir / "recomputed" / f"{record['sample']}_r{record['resolution']}_{source}.npz"
-    if cache.is_file() and not args.force_recompute:
-        cached = np.load(cache, allow_pickle=False)
-        return cached["zscore"], cached["count"], cached["categories"].tolist(), cached["n_cells"], source
-    if not args.recompute_missing:
+def load_enrichment(record):
+    """Return script 10's primary-graph enrichment for one sample from its table."""
+    table = record["enrichment_table"]
+    if table is None:
+        raise KeyError("The comparison config needs script10_result_dir")
+    if not table.is_file():
         raise FileNotFoundError(
-            f"{record['sample']}: no script 10 result at {record['result_h5ad']}; "
-            "rerun with --recompute-missing"
+            f"{record['sample']}: no enrichment table at {table}. Run script 10, or backfill from "
+            "existing results with 10a_export_nhood_enrichment_tables.py"
         )
-    print(f"Recomputing enrichment for {record['sample']} from {record['annotated_h5ad']}")
-    zscore, count, categories, n_cells = recompute_enrichment(
-        record["annotated_h5ad"], context["order"], context["coord_keys"], seed, n_perms,
-    )
-    os.makedirs(cache.parent, exist_ok=True)
-    np.savez(cache, zscore=zscore, count=count, categories=np.array(categories), n_cells=n_cells)
-    print(f"Cached recomputed enrichment: {cache}")
-    return zscore, count, categories, n_cells, source
+    return (*read_enrichment_table(table), "stored_script10")
 
 
 def neighbour_type_counts(coords, codes, n_types, setting):
@@ -635,12 +580,12 @@ def main():
 
     if args.validate_only:
         for record in records:
-            if record["result_h5ad"] and record["result_h5ad"].is_file():
-                status = f"stored script 10 result: {record['result_h5ad']}"
-            elif record["annotated_h5ad"].is_file():
-                status = f"no script 10 result; recompute from {record['annotated_h5ad']}"
-            else:
-                raise FileNotFoundError(f"{record['sample']}: neither script 10 result nor script 08 object found")
+            table = record["enrichment_table"]
+            if table is None or not table.is_file():
+                raise FileNotFoundError(
+                    f"{record['sample']}: missing enrichment table {table}; run script 10 or script 10a"
+                )
+            status = f"script 10 enrichment table: {table}"
             if (len(graphs) > 1 or tiling) and not record["annotated_h5ad"].is_file():
                 raise FileNotFoundError(f"{record['sample']}: sensitivity analyses need {record['annotated_h5ad']}")
             print(f"{record['sample']} ({record['response']}, r{record['resolution']}): {status}")
@@ -651,7 +596,7 @@ def main():
     os.makedirs(figure_dir, exist_ok=True)
     rows, tile_rows = [], []
     for record in records:
-        zscore, count, categories, n_cells, source = load_enrichment(record, cfg, args, table_dir, context)
+        zscore, count, categories, n_cells, source = load_enrichment(record)
         print(f"Loaded {record['sample']}: {len(categories)} cell types ({source})")
         rows.extend(enrichment_to_long(record, primary, zscore, count, categories, n_cells, source, pseudocount))
         if len(graphs) == 1 and not tiling:

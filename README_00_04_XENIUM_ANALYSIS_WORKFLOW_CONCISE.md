@@ -71,11 +71,15 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
    - Runs cell-type spatial interpretation on the annotated clean objects written by script 08. Legacy cluster-based analysis of script 06 objects remains supported.
    - Includes neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots.
    - Cross-sample comparison helpers read its outputs locally; see "Cross-Sample Spatial Comparison (post-10)" below.
+   - Also writes `<stem>_nhood_enrichment.csv` per sample beside each result H5AD.
+
+10a. `10a_export_nhood_enrichment_tables.py`
+   - Local backfill: reads stored script 10 result H5ADs (e.g. on the Phoenix mount, read-only) and writes the same enrichment tables locally, so the comparison helper needs no H5ADs.
 
 ## Where Things Run
 
 - HPC: scripts 00, 00a, 001b, 01, 02, 03, 05, 06, 08, and 10.
-- Local: script 01a clustree QC, script 04 dotplots, script 09 composition plots, and the post-10 cross-sample spatial helpers under `helper_scripts/spatial_analysis/`. Script 08 can also run locally; its annotated outputs must be available wherever script 10 runs.
+- Local: script 01a clustree QC, script 04 dotplots, script 09 composition plots, script 10a enrichment-table backfill, and the post-10 cross-sample spatial helpers under `helper_scripts/spatial_analysis/`. Script 08 can also run locally; its annotated outputs must be available wherever script 10 runs.
 - Slurm array ranges must match the number of JSON configs in the selected leaf config directory.
 - Some wrappers accept `CONFIG_DIR` overrides, especially `hpc/slurm/run_00_xenium_clustering.sl` and `hpc/slurm/run_01_xenium_QC_array_ptmt.sl`.
 - Script 08 uses `hpc/slurm/run_08_cell_type_annotation.sl` as one batch job,
@@ -382,7 +386,9 @@ findings, and pitfalls: `context/tasks/spatial_analysis.md`.
 
 ```bash
 D=config/10_squidpy_recluster_analysis/vbct/cell_type_annotation
-python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config $D/nhood_enrichment_comparison.json --recompute-missing
+# After a new script 10 run: copy enrichment tables locally (reads the mount only).
+python 10a_export_nhood_enrichment_tables.py --config $D/min15_area95_selected_resolutions.json --input-root ~/mnt/phoenix_scratch/Banksy_py
+python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config $D/nhood_enrichment_comparison.json
 python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config $D/immune_infiltration.json
 ```
 
