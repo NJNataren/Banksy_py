@@ -1,7 +1,10 @@
+workflow_config.py
+spatial_tables.py
 08_annotate_cell_types_and_plot_umaps.py
 10_squidpy_recluster_spatial_analysis.py
 hpc/slurm/run_08_cell_type_annotation.sl
 hpc/slurm/run_10_cell_type_spatial_analysis.sl
+config/cohorts/vbct/min15_area95_selected_resolutions.json
 config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json
 config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_cell_type_mapping.csv
 config/08_cell_type_annotation/vbct/shared_cell_type_palette.json

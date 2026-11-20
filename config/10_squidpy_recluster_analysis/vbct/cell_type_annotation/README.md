@@ -99,8 +99,8 @@ trip exactly:
 
 ```bash
 python 10a_export_nhood_enrichment_tables.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json --input-root ~/mnt/phoenix_scratch/Banksy_py
-python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/nhood_enrichment_comparison.json --validate-only
-python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/nhood_enrichment_comparison.json
+python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/spatial_analysis/vbct/nhood_enrichment_comparison.json --validate-only
+python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/spatial_analysis/vbct/nhood_enrichment_comparison.json
 ```
 
 Existing tables are kept unless `--overwrite` is passed to script 10a.
@@ -127,7 +127,7 @@ order is listed in its own JSON).
 Both helpers import `helper_scripts/spatial_analysis/spatial_common.py`.
 
 ```bash
-python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/immune_infiltration.json
+python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config config/spatial_analysis/vbct/immune_infiltration.json
 ```
 
 Use `--skip-maps` to omit the per-sample spatial maps.

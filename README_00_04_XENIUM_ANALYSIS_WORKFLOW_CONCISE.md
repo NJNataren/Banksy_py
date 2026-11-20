@@ -381,15 +381,17 @@ findings, and pitfalls: `context/tasks/spatial_analysis.md`.
   z-scores, which grow with cell number.
 - Scripts: `helper_scripts/spatial_analysis/` (`spatial_common.py`,
   `compare_nhood_enrichment_from_config.py`, `plot_immune_infiltration_from_config.py`).
-- Configs: `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`
-  (`nhood_enrichment_comparison.json`, `immune_infiltration.json`).
+- Configs: `config/spatial_analysis/vbct/` (`nhood_enrichment_comparison.json`,
+  `immune_infiltration.json`); the script 10 config stays in
+  `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`.
 
 ```bash
 D=config/10_squidpy_recluster_analysis/vbct/cell_type_annotation
 # After a new script 10 run: copy enrichment tables locally (reads the mount only).
 python 10a_export_nhood_enrichment_tables.py --config $D/min15_area95_selected_resolutions.json --input-root ~/mnt/phoenix_scratch/Banksy_py
-python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config $D/nhood_enrichment_comparison.json
-python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config $D/immune_infiltration.json
+S=config/spatial_analysis/vbct
+python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config $S/nhood_enrichment_comparison.json
+python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config $S/immune_infiltration.json
 ```
 
 Outputs are under `data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/`
@@ -405,16 +407,18 @@ decisions: `context/tasks/hca_poster.md`.
 
 - Scripts: `helper_scripts/poster/` (`plot_cohort_umap_grid_from_config.py`,
   `plot_cohort_marker_dotplot_from_config.py`).
-- Configs: `config/08_cell_type_annotation/vbct/` (`poster_cohort_umap_grid.json`,
+- Configs: `config/poster/vbct/` (`poster_cohort_umap_grid.json`,
   `poster_cohort_marker_dotplot.json`, `poster_cohort_marker_dotplot_rdbu_large_font.json`).
 - The dot plot averages per-sample means with equal sample weight and min-max
   scales each gene; `plot.cmap` and `plot.colorbar_label` are optional.
 
 ```bash
-D=config/08_cell_type_annotation/vbct
+D=config/poster/vbct
 python helper_scripts/poster/plot_cohort_umap_grid_from_config.py --config $D/poster_cohort_umap_grid.json
 python helper_scripts/poster/plot_cohort_marker_dotplot_from_config.py --config $D/poster_cohort_marker_dotplot_rdbu_large_font.json
 ```
 
-Outputs are under `figures/conference_min15_area95_selected_resolutions_poster/`
-(`cohort_umap_grid/`, `cohort_marker_dotplot/`).
+Outputs are under `data/xenium/output/vbct/poster/min15_area95_selected_resolutions/`
+(`cohort_umap_grid/`, `cohort_marker_dotplot/`); dot plot tables under
+`data/xenium/processed/vbct/poster/min15_area95_selected_resolutions/cohort_marker_dotplot/`.
+Figures from before 2026-11-20 remain in `figures/conference_min15_area95_selected_resolutions_poster/`.

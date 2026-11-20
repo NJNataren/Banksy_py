@@ -7,7 +7,9 @@ Date: 2026-10-26
 Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
 (workflow_config.py); --input-root/--output-root default to the repository root.
 Updated: 2026-11-20 - also writes <stem>_nhood_enrichment.csv beside each result
-H5AD (spatial_tables.py) for the cross-sample comparison helper.
+H5AD (spatial_tables.py) for the cross-sample comparison helper. Cell-type mode
+writes centrality and Moran CSVs to <result_dir>/<sample>/<branch>_r<res>/,
+not the figure folder.
 Summary: Reuse script 08 annotated clean expression objects and reviewed cell
 types for Squidpy neighbourhood enrichment, centrality, co-occurrence, and
 Moran's I. Legacy script 06 cluster-based configurations remain supported.
@@ -196,8 +198,13 @@ def run_squidpy_for_resolution(
     lambda_label,
     res_str_single,
     cfg,
+    table_dir=None,
 ):
-    """Run spatial analyses and export each plot in the configured formats."""
+    """Run spatial analyses and export each plot in the configured formats.
+
+    Figures go to `<output_dir>/squidpy`. CSV tables go to `table_dir` when
+    given (cell-type mode: beside the result H5AD), otherwise beside the figures.
+    """
     figure_export_settings(cfg)
     if cluster_key not in adata.obs.columns:
         raise KeyError(
@@ -219,6 +226,8 @@ def run_squidpy_for_resolution(
     squidpy_path = os.path.join(output_dir, "squidpy")
     ensure_directory(squidpy_path, "Squidpy")
     sc.settings.figdir = squidpy_path
+    table_path = str(table_dir) if table_dir is not None else squidpy_path
+    ensure_directory(table_path, "Squidpy tables")
 
     # All Squidpy analyses use the clean expression object used for BANKSY from
     # script 06. In qc_pass_only mode, failed cells are absent here, so they do not contribute to any
@@ -246,7 +255,7 @@ def run_squidpy_for_resolution(
     centrality_key = f"{cluster_key}_centrality_scores"
     if centrality_key in adata.uns:
         centrality_csv = os.path.join(
-            squidpy_path,
+            table_path,
             f"centrality_scores_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str_single}.csv",
         )
         adata.uns[centrality_key].to_csv(centrality_csv)
@@ -320,11 +329,11 @@ def run_squidpy_for_resolution(
     ]
 
     moran_all_csv = os.path.join(
-        squidpy_path,
+        table_path,
         f"moran_scores_all_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str_single}.csv",
     )
     moran_sig_csv = os.path.join(
-        squidpy_path,
+        table_path,
         f"moran_scores_fdr{moran_fdr_threshold}_{dataset_name}_pc{pc_label}_nc{lambda_label}_r{res_str_single}.csv",
     )
     moran_scores_raw.to_csv(moran_all_csv, index=False)
@@ -417,6 +426,7 @@ def run_annotation_config(cfg, args):
             run_squidpy_for_resolution(
                 adata, "cell_type", str(output), name, "annotated", "cell_type",
                 sample["resolution"].replace(".", "p"), run_cfg,
+                table_dir=destination.parent / tag,
             )
             adata.uns["spatial_analysis_provenance"] = {
                 "cohort_config": str(cohort["path"]), "input_h5ad": str(source),

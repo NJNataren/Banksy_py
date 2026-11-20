@@ -2,7 +2,8 @@
   "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
   "counts_csv": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cell_type_counts.csv",
   "expected_total_cells": 2083396,
-  "output_dir": "figures/cell_type_proportions/vbct_min15_area95_selected_resolutions",
+  "output_dir": "data/xenium/output/vbct/cell_type_proportions/min15_area95_selected_resolutions",
+  "table_dir": "data/xenium/processed/vbct/cell_type_proportions/min15_area95_selected_resolutions",
   "output_stem": "cell_type_proportions",
   "plot": {
     "figsize": [

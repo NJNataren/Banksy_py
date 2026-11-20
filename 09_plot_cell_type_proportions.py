@@ -194,15 +194,20 @@ def main() -> None:
     print(f"Validated {table['sample'].nunique()} samples; {table['n_cells'].sum():,} cells; all proportions sum to 1")
     if args.validate_only:
         return
+    # Figures go to output_dir; the proportion table goes to table_dir.
     output = resolve_path(args.output_root, cfg["output_dir"])
+    table_dir = resolve_path(args.output_root, cfg.get("table_dir", cfg["output_dir"]))
     stem = output / cfg["output_stem"]
-    paths = [stem.with_suffix(f".{extension}") for extension in ("png", "svg", "pdf", "csv")]
+    csv_path = table_dir / f"{cfg['output_stem']}.csv"
+    paths = [stem.with_suffix(f".{extension}") for extension in ("png", "svg", "pdf")] + [csv_path]
     if not args.overwrite and any(path.exists() for path in paths):
         raise FileExistsError("Outputs already exist; use --overwrite to replace them")
     os.makedirs(output, exist_ok=True)
+    os.makedirs(table_dir, exist_ok=True)
     plot_proportions(table, palette, cfg, samples, stem)
-    table.to_csv(stem.with_suffix(".csv"), index=False)
-    print(f"Wrote PNG, SVG, PDF, and proportion CSV: {stem}")
+    table.to_csv(csv_path, index=False)
+    print(f"Wrote PNG, SVG, and PDF: {stem}")
+    print(f"Wrote proportion CSV: {csv_path}")
 
 
 if __name__ == "__main__":

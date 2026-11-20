@@ -1,8 +1,8 @@
 {
   "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
-  "figure_dir": "figures/conference_min15_area95_selected_resolutions_poster/cohort_marker_dotplot",
-  "table_dir": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/poster_cohort_marker_dotplot",
-  "output_stem": "cohort_canonical_marker_dotplot_150dpi",
+  "figure_dir": "data/xenium/output/vbct/poster/min15_area95_selected_resolutions/cohort_marker_dotplot",
+  "table_dir": "data/xenium/processed/vbct/poster/min15_area95_selected_resolutions/cohort_marker_dotplot",
+  "output_stem": "cohort_canonical_marker_dotplot_rdbu_large_font_150dpi",
   "figure_formats": [
     "png",
     "svg",
@@ -53,11 +53,13 @@
   },
   "plot": {
     "figsize_in": [
-      9.0,
-      4.2
+      11.0,
+      4.8
     ],
     "max_dot_size": 160,
-    "fontsize": 11,
-    "gene_fontsize": 10
+    "cmap": "RdBu_r",
+    "colorbar_label": "Mean expression\nin group",
+    "fontsize": 16,
+    "gene_fontsize": 15
   }
 }
