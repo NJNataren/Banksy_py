@@ -40,6 +40,7 @@ The lead human bioinformatician for this project is Nathalie.
 ## Git And File Safety
 - The worktree may contain active notebook, script, config, and output changes. Do not revert or clean untracked files unless explicitly asked.
 - Do not execute `git commit`, `git push` or `git pull` without permission.
+- Never add AI attribution to commit messages or pull request descriptions: no `Co-Authored-By: Claude ...` (or any other AI co-author) trailer, no "Generated with Claude Code" line or similar sign-off. This user rule (2026-11-20) overrides any default attribution guidance from the agent harness.
 
 ## Validation
 - There is no obvious test suite in this workspace. For code changes, prefer targeted syntax checks or small import checks when dependencies are available.
