@@ -2137,6 +2137,6 @@ Alternatively, existing script 08 annotated objects can be transferred to the
 same relative paths. Script 10 does not create missing annotations. Figures go
 under `data/xenium/output/vbct/spatial_analysis/` and tables and result H5ADs
 under `data/xenium/processed/vbct/spatial_analysis/` (figures from runs before
-2026-11-19 remain under `figures/spatial_analysis/`). The legacy recluster-only
+2026-11-19 were archived in `figures/_pre_post08_cleanup_2026-11-20/spatial_analysis/`). The legacy recluster-only
 wrapper was archived on 2026-11-20. After script 10 completes, run script 10a
 locally to refresh the enrichment tables used by the comparison helper.

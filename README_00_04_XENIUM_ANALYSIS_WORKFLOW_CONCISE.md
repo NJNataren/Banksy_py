@@ -380,7 +380,9 @@ config/cohorts/vbct/min15_area95_selected_resolutions.json
   H5ADs go to the same path under `data/xenium/processed/vbct/`. Steps:
   `cell_type_annotation` (08), `cell_type_proportions` (09),
   `spatial_analysis` (10 and its helpers), `poster`. Figures from runs before
-  2026-11-19/20 remain under `figures/` and will be archived after the reruns.
+  2026-11-19/20 were archived on 2026-11-21 in `figures/_pre_post08_cleanup_2026-11-20/` (README
+  there); the poster folder `figures/conference_min15_area95_selected_resolutions_poster/`
+  was left in place.
 - **Enrichment tables:** script 10 writes `<stem>_nhood_enrichment.csv` per
   sample (format in `spatial_tables.py`); the comparison helper reads these, so
   local analysis never needs the result H5ADs. Script 10a backfills them from

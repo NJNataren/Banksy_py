@@ -47,7 +47,7 @@ See the workflow README for the full 08 → 10 sequence.
 Figures are written under
 `data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/<branch>_r<resolution>/squidpy/`
 (moved from `figures/spatial_analysis/vbct_min15_area95_selected_resolutions/`
-on 2026-11-19; earlier runs remain at the old path). Under
+on 2026-11-19; earlier runs archived in `figures/_pre_post08_cleanup_2026-11-20/spatial_analysis/`). Under
 `data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/`
 go the result H5AD, `<stem>_nhood_enrichment.csv`, and (since 2026-11-20) the
 centrality and Moran CSVs in `<branch>_r<resolution>/`.

@@ -20,7 +20,8 @@ bottom-to-top stack and legend order follow the palette. Do not pool QC branches
 
 Outputs are PNG, SVG, and PDF in `data/xenium/output/vbct/cell_type_proportions/min15_area95_selected_resolutions/`
 and the proportion CSV in `data/xenium/processed/vbct/cell_type_proportions/min15_area95_selected_resolutions/`
-(`table_dir`). Before 2026-11-20 both went to `figures/cell_type_proportions/vbct_min15_area95_selected_resolutions/`.
+(`table_dir`). Before 2026-11-20 both went to `figures/cell_type_proportions/...`, now archived in
+`figures/_pre_post08_cleanup_2026-11-20/cell_type_proportions/`.
 The supplied config uses 300 DPI and editable vector text. Source count tables,
 annotated objects, and UMAPs are preserved. Plot typography is configurable;
 the supplied configs use 14-point legend text, 15-point legend titles and axis

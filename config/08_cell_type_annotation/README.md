@@ -45,7 +45,9 @@ conda run -n banksy python 08_annotate_cell_types_and_plot_umaps.py \
 PNG, SVG, and PDF outputs are written to
 `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/clean_scanpy/per_sample_scanpy/`
 (moved from `figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/` on
-2026-11-20; the annotation config's figures moved likewise; earlier figures remain there).
+2026-11-20; the annotation config's figures moved likewise). Earlier figures are in
+`figures/_pre_post08_cleanup_2026-11-20/cell_type_annotation/`; its titled UMAPs and combined panels exist only
+there until script 08 is rerun.
 The original titled UMAPs and combined panel remain unchanged.
 
 ## HPC execution
