@@ -20,6 +20,7 @@ The lead human bioinformatician for this project is Nathalie.
 - The Xenium pipeline is a set of numbered scripts at the repo root (`00_` to `10_`, plus lettered sub-steps such as `00a_`, `001b_`, `01a_`, `02a_`). `README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md` is the map of what each step does and where it runs.
 - A few steps also have a notebook version (`00_`, `01_`, and a `05_` local test notebook); the rest are `.py` only.
 - Runtime configuration is stored as JSON under `config/<step>/` (e.g. `config/00_clustering/`, `config/01_QC/`, `config/06_recluster_qc_annotated/`), split by study/group and sample.
+- Steps after script 08 (08, 09, 10, 10a, `helper_scripts/spatial_analysis/`, `helper_scripts/poster/`) read one cohort config in `config/cohorts/` through `workflow_config.py` (repo root), take `--input-root`/`--output-root` (default: repo root), and write figures to `data/xenium/output/` and tables/H5ADs to `data/xenium/processed/`. `spatial_tables.py` (repo root) defines the script 10 neighbourhood enrichment table. See "After Script 08" in the concise README.
 - Slurm entrypoints live in `hpc/slurm/` (`run_<step>_*.sl`); see `hpc/slurm/README.md`.
 - Supporting scripts live in `helper_scripts/`; superseded scripts and notes live in `archive/`.
 - Task handoffs live in `context/tasks/`; load them via the `banksy-context` skill.

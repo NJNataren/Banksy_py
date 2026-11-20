@@ -47,13 +47,18 @@ Archived cell-type labels from older annotated AnnData objects
    Rerun the BANKSY clustering portion of script 00 from the script 05 QC-annotated clean expression object. The default mode clusters only cells with `qc_keep_for_reclustering == True`; optional `all_cells` mode supports sensitivity analysis. Script 06 saves BANKSY spatial objects, result tables, full-cell cluster tables, clean expression objects with recluster labels/embeddings, marker outputs, BANKSY plots, and cluster-count QC plots.
 
 8. `08_annotate_cell_types_and_plot_umaps.py`
-   - Apply reviewed cluster-to-cell-type mappings to script 06 clean objects and save annotated H5ADs plus shared-colour UMAPs.
+   Apply reviewed cluster-to-cell-type mappings to script 06 clean objects and save annotated H5ADs plus shared-colour UMAPs. Samples, mapping, and palette come from the cohort config (`config/cohorts/`).
 
 9. `09_plot_cell_type_proportions.py`
-   - Optional composition plots from script 08 count tables, including tissue facets. This is not a prerequisite for spatial analysis.
+   Optional composition plots from script 08 count tables, including tissue facets. This is not a prerequisite for spatial analysis.
 
 10. `10_cell_type_spatial_analysis.py`
-   Run downstream cell-type spatial interpretation from script 08 annotated clean expression objects; legacy cluster-based configs can still read script 06 objects. This step includes spatial neighbours, neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots without rerunning BANKSY.
+   Run downstream cell-type spatial interpretation from script 08 annotated clean expression objects, one cohort sample at a time: spatial neighbours, neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots, without rerunning BANKSY. Also writes a per-sample neighbourhood enrichment table for the cross-sample helpers.
+
+10a. `10a_export_nhood_enrichment_tables.py`
+   Local backfill of the script 10 enrichment tables from stored result H5ADs (read-only), so cross-sample helpers never need the H5ADs.
+
+Steps after 08 share one cohort config, the same `--input-root`/`--output-root` options, and one output rule; see "After Script 08" in `README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md` for the diagram and run table.
 
 ## Environment
 
@@ -84,8 +89,12 @@ HPC:   03_export_dotplot_data_from_config.py                               scrip
 HPC:   03_export_dotplot_data_from_clean_script00_config.py                current script 00 clean-object exports
 HPC:   05_apply_qc_filters_for_reclustering.py                              reviewed QC mask annotation before reclustering
 HPC:   06_recluster_qc_annotated_with_banksy.py                               QC-aware BANKSY reclustering
-HPC:   10_cell_type_spatial_analysis.py                               downstream Squidpy analysis of reclusters
+HPC:   08_annotate_cell_types_and_plot_umaps.py                       reviewed cell-type annotation (one batch job)
+HPC:   10_cell_type_spatial_analysis.py                               cell-type Squidpy analysis (array, one sample per task)
 Local: 04_plot_multi_sample_dotplot_from_config_local.py
+Local: 09_plot_cell_type_proportions.py                               composition plots from script 08 counts
+Local: 10a_export_nhood_enrichment_tables.py                          enrichment tables from stored script 10 results
+Local: helper_scripts/spatial_analysis/, helper_scripts/poster/       cross-sample spatial helpers and poster figures
 ```
 
 Scripts 00-03 read or write full AnnData objects or large expression summaries, so they should normally be run on the HPC. Script 00a also reads full AnnData objects, but only runs PCA scree QC and does not rerun BANKSY clustering. Script 04 reads only script 03 CSV summaries and writes PNGs, so it is intended for local plotting and layout tuning after the relevant summary CSVs have been copied back from the HPC.
@@ -839,6 +848,42 @@ All-cell sensitivity reclustering uses the same script with this config key chan
 "recluster_inclusion": "all_cells"
 ```
 
+## Script 08: Reviewed Cell-Type Annotation
+
+### Script
+
+```text
+08_annotate_cell_types_and_plot_umaps.py
+```
+
+### Purpose
+
+Validates a reviewed cluster-to-cell-type mapping against each selected script
+06 clean recluster object, adds `cell_type`, and writes annotated H5ADs, count
+tables, and shared-colour UMAPs. A replot config (`"input_key": "annotated_h5ad"`)
+redraws UMAPs from existing annotated objects without rewriting them.
+
+### Configs and outputs
+
+- Cohort: `config/cohorts/vbct/min15_area95_selected_resolutions.json` (samples,
+  script 06 and annotated object paths, mapping CSV, palette).
+- Step configs: `config/08_cell_type_annotation/vbct/` (annotate and
+  `_clean_umaps` replot); details in `config/08_cell_type_annotation/README.md`.
+- Annotated H5ADs and count tables: `data/xenium/processed/vbct/...`; figures:
+  `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/`.
+- HPC: `sbatch hpc/slurm/run_08_cell_type_annotation.sl` (one batch job). Locally,
+  script 06 inputs are on Phoenix: add `--input-root ~/mnt/phoenix_scratch/Banksy_py`.
+
+## Script 09: Cell-Type Proportions
+
+`09_plot_cell_type_proportions.py` validates script 08's reviewed counts
+against the cohort (branch, resolution, palette) and plots per-sample
+composition, optionally faceted (`facet` per sample, `plot.facet_order`).
+Configs: `config/09_cell_type_proportions/vbct/`; figures to
+`data/xenium/output/vbct/cell_type_proportions/...`, proportion CSV to
+`data/xenium/processed/vbct/cell_type_proportions/...`. Runs locally; details
+in `config/09_cell_type_proportions/README.md`.
+
 ## Script 10: Cell-Type Spatial Analysis
 
 ### Script
@@ -894,6 +939,19 @@ python 10_cell_type_spatial_analysis.py \
 ```
 
 Full runs belong on the HPC (`hpc/slurm/run_10_cell_type_spatial_analysis.sl`).
+
+## Script 10a: Backfill Neighbourhood Enrichment Tables
+
+`10a_export_nhood_enrichment_tables.py` reads only the enrichment and
+`cell_type` from stored script 10 result H5ADs and writes the same
+`<stem>_nhood_enrichment.csv` script 10 now writes, verifying the round trip.
+Run it locally after each HPC script 10 run (`--overwrite` to refresh):
+
+```bash
+python 10a_export_nhood_enrichment_tables.py \
+  --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
+  --input-root ~/mnt/phoenix_scratch/Banksy_py --overwrite
+```
 
 ## Script 02: Create Clean Expression AnnData With BANKSY Labels
 
@@ -2046,6 +2104,8 @@ annotation dependency; the script and config folder were renamed to
 on 2026-11-20. Use those, the cohort config in `config/cohorts/`, and
 `hpc/slurm/run_10_cell_type_spatial_analysis.sl`. No step 07 alias is retained.
 The workflow is **06 → 08 → 10**; step 09 is an optional plotting branch from 08.
+The post-08 diagram, run table, and local commands are in "After Script 08" in
+`README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md`.
 
 For HPC execution, Nathalie runs these commands herself. First generate the
 annotated objects with the script 08 batch wrapper. It supplies the HPC
@@ -2078,4 +2138,5 @@ same relative paths. Script 10 does not create missing annotations. Figures go
 under `data/xenium/output/vbct/spatial_analysis/` and tables and result H5ADs
 under `data/xenium/processed/vbct/spatial_analysis/` (figures from runs before
 2026-11-19 remain under `figures/spatial_analysis/`). The legacy recluster-only
-wrapper was archived on 2026-11-20.
+wrapper was archived on 2026-11-20. After script 10 completes, run script 10a
+locally to refresh the enrichment tables used by the comparison helper.

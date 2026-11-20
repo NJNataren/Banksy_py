@@ -44,12 +44,13 @@ The legacy config-per-task wrapper and cluster-mode configs were archived on
 renamed from `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`.
 See the workflow README for the full 08 → 10 sequence.
 
-Figures and CSVs are written under
+Figures are written under
 `data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/<branch>_r<resolution>/squidpy/`
 (moved from `figures/spatial_analysis/vbct_min15_area95_selected_resolutions/`
-on 2026-11-19; earlier runs remain at the old path).
-Spatial H5AD results are written separately under
-`data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/`.
+on 2026-11-19; earlier runs remain at the old path). Under
+`data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/`
+go the result H5AD, `<stem>_nhood_enrichment.csv`, and (since 2026-11-20) the
+centrality and Moran CSVs in `<branch>_r<resolution>/`.
 Re-running a full analysis replaces its generated results using existing script
 10 behavior. The annotated source objects are not overwritten.
 
@@ -78,57 +79,15 @@ wrapper allows 24 hours. After updating the HPC checkout, rerun only failed task
 indices with `sbatch --array=1,4-7%2 hpc/slurm/run_10_cell_type_spatial_analysis.sl`.
 Existing annotated script 08 inputs remain unchanged.
 
-## Cross-sample neighbourhood enrichment comparison
+## Enrichment tables and cross-sample helpers
 
-Script 10 now fixes the `nhood_enrichment` permutation seed (1234), so z-scores
-are reproducible; earlier HPC results were unseeded and differ by permutation
-noise only (edge counts are deterministic).
+Script 10 seeds neighbourhood enrichment (1234), so z-scores are reproducible;
+earlier HPC results were unseeded and differ by permutation noise only (edge
+counts are deterministic). Since 2026-11-20 it also writes
+`<result_dir>/<sample>/<stem>_nhood_enrichment.csv` (edge counts, z-scores, cell
+counts; format in `spatial_tables.py`) beside each result H5AD. After an HPC run,
+refresh the local copies with `10a_export_nhood_enrichment_tables.py`.
 
-Since 2026-11-20, script 10 also writes a small per-sample table,
-`<result_dir>/<sample>/<stem>_nhood_enrichment.csv` (edge counts, z-scores,
-cell counts; format in `spatial_tables.py`), beside each result H5AD.
-`helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py` reads
-those tables and compares samples using log2(observed / expected) neighbour
-edges, which, unlike Squidpy z-scores, does not scale with cell number. It no
-longer reads the result H5ADs or needs the Phoenix mount, and the local
-recompute fallback (`--recompute-missing`, `result_root`) was removed.
-
-For results written before that change, or after a new HPC script 10 run,
-bring the tables to this repository with the backfill script. It reads only the
-enrichment and `cell_type` from each result H5AD and verifies the table round
-trip exactly:
-
-```bash
-python 10a_export_nhood_enrichment_tables.py --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json --input-root ~/mnt/phoenix_scratch/Banksy_py
-python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/spatial_analysis/vbct/nhood_enrichment_comparison.json --validate-only
-python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/spatial_analysis/vbct/nhood_enrichment_comparison.json
-```
-
-Existing tables are kept unless `--overwrite` is passed to script 10a.
-
-Response and tissue labels come from the cohort config; sample order, focus
-pairs, and matched-tissue comparisons are set in this JSON. `script10_result_dir`
-under `--input-root` locates the enrichment tables. Difference panels are descriptive (1–4 samples per group).
-
-Sensitivity options in the same config: `graph_settings` repeats edge counts
-for wider neighbourhoods (`n_neighs` or `radius_um`; coordinates are µm), and
-`tiling` computes focus-pair log2 O/E inside square tiles. Non-primary graphs
-use KD-tree edge counts, verified edge-for-edge against Squidpy's 6-NN counts
-for all eight samples; they have no z-scores. Comparison heatmaps use the
-primary (script 10) graph; difference CSVs cover every graph.
-
-## Immune infiltration distances
-
-`helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py`
-(config `immune_infiltration.json`) measures each T/B/macrophage cell's
-distance to the nearest melanoma cell and reports the share within ≤20 µm,
-20–100 µm, and >100 µm, against all non-tumour cells as a geometry reference.
-It reads samples and response labels from the cohort config directly (sample
-order is listed in its own JSON).
-Both helpers import `helper_scripts/spatial_analysis/spatial_common.py`.
-
-```bash
-python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config config/spatial_analysis/vbct/immune_infiltration.json
-```
-
-Use `--skip-maps` to omit the per-sample spatial maps.
+The cross-sample helpers that read these tables (neighbourhood enrichment
+comparison, immune infiltration) are documented in
+`config/spatial_analysis/README.md`.

@@ -62,7 +62,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
    - Writes clean-object UMAP cluster plots under `umap_cluster_plot/` and cluster-plus-QC UMAPs under `umap_qc/`.
 
 8. `08_annotate_cell_types_and_plot_umaps.py`
-   - Apply reviewed cluster-to-cell-type mappings to script 06 clean objects and save annotated H5ADs plus shared-colour UMAPs.
+   - Apply reviewed cluster-to-cell-type mappings to script 06 clean objects and save annotated H5ADs plus shared-colour UMAPs. Samples, mapping, and palette come from the cohort config (`config/cohorts/`).
 
 9. `09_plot_cell_type_proportions.py`
    - Optional composition plots from script 08 count tables, including tissue facets. This is not a prerequisite for spatial analysis.
@@ -70,7 +70,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 10. `10_cell_type_spatial_analysis.py`
    - Runs cell-type spatial interpretation on the annotated clean objects written by script 08, one cohort sample at a time. The legacy cluster mode on script 06 objects was archived on 2026-11-20.
    - Includes neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots.
-   - Cross-sample comparison helpers read its outputs locally; see "Cross-Sample Spatial Comparison (post-10)" below.
+   - Cross-sample comparison helpers read its outputs locally; see "After Script 08" below.
    - Also writes `<stem>_nhood_enrichment.csv` per sample beside each result H5AD.
 
 10a. `10a_export_nhood_enrichment_tables.py`
@@ -79,12 +79,14 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 ## Where Things Run
 
 - HPC: scripts 00, 00a, 001b, 01, 02, 03, 05, 06, 08, and 10.
-- Local: script 01a clustree QC, script 04 dotplots, script 09 composition plots, script 10a enrichment-table backfill, and the post-10 cross-sample spatial helpers under `helper_scripts/spatial_analysis/`. Script 08 can also run locally; its annotated outputs must be available wherever script 10 runs.
+- Local: script 01a clustree QC, script 04 dotplots, script 09 composition plots, script 10a enrichment-table backfill, and the post-08 helpers (`helper_scripts/spatial_analysis/`, `helper_scripts/poster/`). Script 08 can also run locally with `--input-root ~/mnt/phoenix_scratch/Banksy_py`; its annotated outputs must be available wherever script 10 runs.
+- The Phoenix mount is needed locally only to read inputs that exist only there (script 06 objects for script 08; script 10 result H5ADs for script 10a). Nothing writes to the mount. Check it with `findmnt -T ~/mnt/phoenix_scratch` (`mountpoint` misreports it from agent sandboxes).
 - Slurm array ranges must match the number of JSON configs in the selected leaf config directory.
 - Some wrappers accept `CONFIG_DIR` overrides, especially `hpc/slurm/run_00_xenium_clustering.sl` and `hpc/slurm/run_01_xenium_QC_array_ptmt.sl`.
 - Script 08 uses `hpc/slurm/run_08_cell_type_annotation.sl` as one batch job,
   rather than an array, because it writes shared count tables and a combined UMAP.
-- Submit script 10 only after script 08 completes successfully.
+- Submit script 10 only after script 08 completes successfully, then run script 10a locally to refresh the enrichment tables.
+- Steps after 08 are summarised in "After Script 08" below.
 
 ## Config Roots
 
@@ -338,96 +340,119 @@ config/01a_clustree/vbct/small_recluster_qc_pass_only.json
 
 
 
-## Cell-Type Spatial Analysis: 08 → 10
+## After Script 08: Cell Types, Spatial Analysis, and Figures
 
-The spatial step was renamed from 07 to 10 on 2026-10-25 to reflect its
-annotation dependency, and the script and config folder to
-`10_cell_type_spatial_analysis.py` and `config/10_cell_type_spatial_analysis/`
-on 2026-11-20 (branch `cleanup/post08-flow`). Use those, the cohort config in
-`config/cohorts/`, and
-`hpc/slurm/run_10_cell_type_spatial_analysis.sl`. No step 07 alias is retained.
-The workflow is **06 → 08 → 10**; step 09 is an optional plotting branch from 08.
+Everything downstream of script 08 reads one cohort config and follows one
+output rule (post-08 cleanup, branch `cleanup/post08-flow`, 2026-11-19/20; plan
+and validation in `context/tasks/post08_flow_cleanup.md`). The workflow is
+**06 → 08 → 10**; 09, 10a, and the helpers branch off it.
 
-For HPC execution, Nathalie runs these commands herself. Generate the annotated
-objects with the script 08 batch wrapper; it supplies the HPC input/output-root
-overrides and does not run on the login node:
+```text
+config/cohorts/vbct/min15_area95_selected_resolutions.json
+  samples, response, tissue, resolution, object paths, palette, mapping
+        |  read directly by every step below (workflow_config.py)
+        v
+06 recluster objects --> 08 annotate (HPC) --> annotated H5ADs --+--> 10 spatial analysis (HPC, one sample per task)
+                           |                                     |      |- figures --> output/.../spatial_analysis/
+                           +--> counts CSV --> 09 proportions    |      +- result H5AD, enrichment table,
+                                               (local)           |         centrality/Moran CSVs --> processed/
+                                                                 |                 |
+                                                                 |      10a backfill (local; reads the mount only)
+                                                                 |                 v
+                                                                 +--> nhood comparison helper (local; reads tables)
+                                                                 +--> infiltration helper (local)
+                                                                 +--> poster helpers (local)
+```
+
+### Shared pieces
+
+- **Cohort config** (`config/cohorts/`, README there): the only place samples,
+  response/tissue labels, branch, selected resolution, script 06 and 08 object
+  paths, cluster and UMAP keys, palette, and reviewed mapping are defined. Step
+  configs point to it with `"cohort"` and may list `samples` to set their own
+  order and add plot-only fields (titles, facets); they cannot redefine a fact.
+- **Roots:** every post-08 step takes `--input-root` and `--output-root`, both
+  defaulting to the repository root; configs hold no machine-specific paths.
+  Pass `--input-root ~/mnt/phoenix_scratch/Banksy_py` only when inputs exist only
+  on Phoenix (script 08 locally, script 10a).
+- **Output rule:** figures go to
+  `data/xenium/output/vbct/<step>/min15_area95_selected_resolutions/`; tables and
+  H5ADs go to the same path under `data/xenium/processed/vbct/`. Steps:
+  `cell_type_annotation` (08), `cell_type_proportions` (09),
+  `spatial_analysis` (10 and its helpers), `poster`. Figures from runs before
+  2026-11-19/20 remain under `figures/` and will be archived after the reruns.
+- **Enrichment tables:** script 10 writes `<stem>_nhood_enrichment.csv` per
+  sample (format in `spatial_tables.py`); the comparison helper reads these, so
+  local analysis never needs the result H5ADs. Script 10a backfills them from
+  stored results.
+- Script 10 seeds neighbourhood enrichment and Moran's I permutations (1234).
+
+### Steps, configs, and where they run
+
+| Step | Script | Config | Runs |
+|---|---|---|---|
+| 08 annotate | `08_annotate_cell_types_and_plot_umaps.py` | `config/08_cell_type_annotation/vbct/` | HPC (`run_08_cell_type_annotation.sl`, one batch job); locally needs `--input-root` on the mount |
+| 09 proportions | `09_plot_cell_type_proportions.py` | `config/09_cell_type_proportions/vbct/` | local |
+| 10 spatial | `10_cell_type_spatial_analysis.py` | `config/10_cell_type_spatial_analysis/vbct/` | HPC (`run_10_cell_type_spatial_analysis.sl`, array 0-7) |
+| 10a backfill | `10a_export_nhood_enrichment_tables.py` | script 10 config | local, after each HPC script 10 run |
+| nhood comparison | `helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py` | `config/spatial_analysis/vbct/` | local |
+| infiltration | `helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py` | `config/spatial_analysis/vbct/` | local |
+| poster | `helper_scripts/poster/*.py` | `config/poster/vbct/` | local |
+
+Conference-figure helpers (`helper_scripts/conference_figures/`) are separate:
+their config keeps its own sample list and output folder under `figures/`.
+
+### HPC (Nathalie runs these)
 
 ```bash
 cd /scratchdata1/users/a1210419/Banksy_py
 mkdir -p logs
 sbatch hpc/slurm/run_08_cell_type_annotation.sl
-```
-
-Once script 08 has completed successfully, validate its outputs and submit:
-
-```bash
+# after script 08 completes:
 python 10_cell_type_spatial_analysis.py \
   --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
   --validate-only
-mkdir -p logs
 sbatch hpc/slurm/run_10_cell_type_spatial_analysis.sl
 ```
 
-Alternatively, existing script 08 annotated objects can be transferred to the
-same relative paths. Script 10 does not create missing annotations. Figures
-and CSVs go under `data/xenium/output/vbct/spatial_analysis/` (moved from
-`figures/spatial_analysis/` on 2026-11-19; earlier runs remain there) and result
-H5ADs under the separate processed `spatial_analysis/` directory. The legacy
-cluster mode, its per-sample configs, and its wrapper
-(`run_10_squidpy_recluster_spatial_analysis.sl`) were archived on 2026-11-20 in
-`archive/2026-11-20_script10_legacy_cluster_mode/`.
+Script 10 does not create missing annotations; annotated objects may instead
+be transferred to the same relative paths.
 
-## Cross-Sample Spatial Comparison (post-10)
-
-Local helpers compare the script 10 cell-type spatial results across the eight
-VBCT `min15_area95` samples (`res` vs `non_res`). They read script 08 annotated
-objects and script 10 results without modifying them. Full status, decisions,
-findings, and pitfalls: `context/tasks/spatial_analysis.md`.
-
-- Script 10 now seeds `nhood_enrichment` (`seed=1234`); update the HPC checkout
-  before the next run.
-- Compare samples with log2(observed / expected) neighbour edges, not Squidpy
-  z-scores, which grow with cell number.
-- Scripts: `helper_scripts/spatial_analysis/` (`spatial_common.py`,
-  `compare_nhood_enrichment_from_config.py`, `plot_immune_infiltration_from_config.py`).
-- Configs: `config/spatial_analysis/vbct/` (`nhood_enrichment_comparison.json`,
-  `immune_infiltration.json`); the script 10 config stays in
-  `config/10_cell_type_spatial_analysis/vbct/`.
+### Local
 
 ```bash
-D=config/10_cell_type_spatial_analysis/vbct
-# After a new script 10 run: copy enrichment tables locally (reads the mount only).
-python 10a_export_nhood_enrichment_tables.py --config $D/min15_area95_selected_resolutions.json --input-root ~/mnt/phoenix_scratch/Banksy_py
+# After a new script 10 run: refresh the enrichment tables (reads the mount only).
+python 10a_export_nhood_enrichment_tables.py \
+  --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
+  --input-root ~/mnt/phoenix_scratch/Banksy_py --overwrite
+
 S=config/spatial_analysis/vbct
 python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config $S/nhood_enrichment_comparison.json
 python helper_scripts/spatial_analysis/plot_immune_infiltration_from_config.py --config $S/immune_infiltration.json
+
+python 09_plot_cell_type_proportions.py --config config/09_cell_type_proportions/vbct/min15_area95_selected_resolutions_by_tissue.json
+
+P=config/poster/vbct
+python helper_scripts/poster/plot_cohort_umap_grid_from_config.py --config $P/poster_cohort_umap_grid.json
+python helper_scripts/poster/plot_cohort_marker_dotplot_from_config.py --config $P/poster_cohort_marker_dotplot_rdbu_large_font.json
 ```
 
-Outputs are under `data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/`
-(figures) and `data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/`
-(tables),
-in `cross_sample_nhood_enrichment/` and `immune_infiltration/`.
+### Analysis notes
 
-## Poster Figures (post-08)
+- Compare samples with log2(observed / expected) neighbour edges, not Squidpy
+  z-scores, which grow with cell number. Full status, decisions, and findings:
+  `context/tasks/spatial_analysis.md`; poster decisions: `context/tasks/hca_poster.md`.
+- The poster dot plot averages per-sample means with equal sample weight and
+  min-max scales each gene; `plot.cmap` and `plot.colorbar_label` are optional.
 
-Local helpers for the HCA 2026 poster read the script 08 annotated H5ADs (via
-h5py, read-only) and do not rerun or modify script 08. Full status and poster
-decisions: `context/tasks/hca_poster.md`.
+### History
 
-- Scripts: `helper_scripts/poster/` (`plot_cohort_umap_grid_from_config.py`,
-  `plot_cohort_marker_dotplot_from_config.py`).
-- Configs: `config/poster/vbct/` (`poster_cohort_umap_grid.json`,
-  `poster_cohort_marker_dotplot.json`, `poster_cohort_marker_dotplot_rdbu_large_font.json`).
-- The dot plot averages per-sample means with equal sample weight and min-max
-  scales each gene; `plot.cmap` and `plot.colorbar_label` are optional.
-
-```bash
-D=config/poster/vbct
-python helper_scripts/poster/plot_cohort_umap_grid_from_config.py --config $D/poster_cohort_umap_grid.json
-python helper_scripts/poster/plot_cohort_marker_dotplot_from_config.py --config $D/poster_cohort_marker_dotplot_rdbu_large_font.json
-```
-
-Outputs are under `data/xenium/output/vbct/poster/min15_area95_selected_resolutions/`
-(`cohort_umap_grid/`, `cohort_marker_dotplot/`); dot plot tables under
-`data/xenium/processed/vbct/poster/min15_area95_selected_resolutions/cohort_marker_dotplot/`.
-Figures from before 2026-11-20 remain in `figures/conference_min15_area95_selected_resolutions_poster/`.
+- 2026-10-25: spatial step renamed from 07 to 10; no 07 alias.
+- 2026-11-19/20 (`cleanup/post08-flow`): cohort config and shared roots;
+  enrichment tables replace reading result H5ADs (the local recompute fallback
+  was removed); one output rule; poster and spatial-helper configs moved to
+  `config/poster/` and `config/spatial_analysis/`; script 10 renamed from
+  `10_squidpy_recluster_spatial_analysis.py` with config folder from
+  `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`; its legacy
+  cluster mode, configs, and wrapper archived in
+  `archive/2026-11-20_script10_legacy_cluster_mode/`; Moran's I seeded.

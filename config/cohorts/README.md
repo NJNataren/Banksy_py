@@ -17,6 +17,7 @@ data paths resolve against each step's `--input-root` or `--output-root`
 (both default to the repository root).
 
 Readers: script 08 (annotate and replot configs), script 09, script 10
-(cell-type mode and `run_10_cell_type_spatial_analysis.sl`), both
+(`10_cell_type_spatial_analysis.py` and `run_10_cell_type_spatial_analysis.sl`),
+script 10a, both
 `helper_scripts/spatial_analysis/` helpers, and both `helper_scripts/poster/`
 helpers. The conference-figure helpers still keep their own sample list.
