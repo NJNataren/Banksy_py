@@ -67,8 +67,8 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
 9. `09_plot_cell_type_proportions.py`
    - Optional composition plots from script 08 count tables, including tissue facets. This is not a prerequisite for spatial analysis.
 
-10. `10_squidpy_recluster_spatial_analysis.py`
-   - Runs cell-type spatial interpretation on the annotated clean objects written by script 08. Legacy cluster-based analysis of script 06 objects remains supported.
+10. `10_cell_type_spatial_analysis.py`
+   - Runs cell-type spatial interpretation on the annotated clean objects written by script 08, one cohort sample at a time. The legacy cluster mode on script 06 objects was archived on 2026-11-20.
    - Includes neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots.
    - Cross-sample comparison helpers read its outputs locally; see "Cross-Sample Spatial Comparison (post-10)" below.
    - Also writes `<stem>_nhood_enrichment.csv` per sample beside each result H5AD.
@@ -99,7 +99,12 @@ config/04_plot_dotplot/active/
 config/04_plot_dotplot/active/vbct_recluster_qc_pass_only/
 config/05_apply_qc_filters/
 config/06_recluster_qc_annotated/
-config/10_squidpy_recluster_analysis/
+config/cohorts/
+config/08_cell_type_annotation/
+config/09_cell_type_proportions/
+config/10_cell_type_spatial_analysis/
+config/spatial_analysis/
+config/poster/
 ```
 
 Useful project split:
@@ -336,8 +341,10 @@ config/01a_clustree/vbct/small_recluster_qc_pass_only.json
 ## Cell-Type Spatial Analysis: 08 → 10
 
 The spatial step was renamed from 07 to 10 on 2026-10-25 to reflect its
-annotation dependency. Use `10_squidpy_recluster_spatial_analysis.py`, configs
-under `config/10_squidpy_recluster_analysis/`, and
+annotation dependency, and the script and config folder to
+`10_cell_type_spatial_analysis.py` and `config/10_cell_type_spatial_analysis/`
+on 2026-11-20 (branch `cleanup/post08-flow`). Use those, the cohort config in
+`config/cohorts/`, and
 `hpc/slurm/run_10_cell_type_spatial_analysis.sl`. No step 07 alias is retained.
 The workflow is **06 → 08 → 10**; step 09 is an optional plotting branch from 08.
 
@@ -354,8 +361,8 @@ sbatch hpc/slurm/run_08_cell_type_annotation.sl
 Once script 08 has completed successfully, validate its outputs and submit:
 
 ```bash
-python 10_squidpy_recluster_spatial_analysis.py \
-  --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json \
+python 10_cell_type_spatial_analysis.py \
+  --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
   --validate-only
 mkdir -p logs
 sbatch hpc/slurm/run_10_cell_type_spatial_analysis.sl
@@ -365,8 +372,10 @@ Alternatively, existing script 08 annotated objects can be transferred to the
 same relative paths. Script 10 does not create missing annotations. Figures
 and CSVs go under `data/xenium/output/vbct/spatial_analysis/` (moved from
 `figures/spatial_analysis/` on 2026-11-19; earlier runs remain there) and result
-H5ADs under the separate processed `spatial_analysis/` directory. The older recluster-only wrapper is now
-`run_10_squidpy_recluster_spatial_analysis.sl`.
+H5ADs under the separate processed `spatial_analysis/` directory. The legacy
+cluster mode, its per-sample configs, and its wrapper
+(`run_10_squidpy_recluster_spatial_analysis.sl`) were archived on 2026-11-20 in
+`archive/2026-11-20_script10_legacy_cluster_mode/`.
 
 ## Cross-Sample Spatial Comparison (post-10)
 
@@ -383,10 +392,10 @@ findings, and pitfalls: `context/tasks/spatial_analysis.md`.
   `compare_nhood_enrichment_from_config.py`, `plot_immune_infiltration_from_config.py`).
 - Configs: `config/spatial_analysis/vbct/` (`nhood_enrichment_comparison.json`,
   `immune_infiltration.json`); the script 10 config stays in
-  `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`.
+  `config/10_cell_type_spatial_analysis/vbct/`.
 
 ```bash
-D=config/10_squidpy_recluster_analysis/vbct/cell_type_annotation
+D=config/10_cell_type_spatial_analysis/vbct
 # After a new script 10 run: copy enrichment tables locally (reads the mount only).
 python 10a_export_nhood_enrichment_tables.py --config $D/min15_area95_selected_resolutions.json --input-root ~/mnt/phoenix_scratch/Banksy_py
 S=config/spatial_analysis/vbct

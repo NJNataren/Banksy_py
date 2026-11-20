@@ -11,7 +11,7 @@ Typical local use reads the results from the Phoenix mount and writes the
 tables into this repository:
 
     python 10a_export_nhood_enrichment_tables.py \
-      --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json \
+      --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
       --input-root ~/mnt/phoenix_scratch/Banksy_py
 
 Inputs: script 10 cell-type config (cohort and `result_dir`); result H5ADs

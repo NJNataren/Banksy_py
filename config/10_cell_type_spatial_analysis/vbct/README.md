@@ -12,10 +12,10 @@ From the Banksy_py project root:
 
 ```bash
 # Read-only metadata validation for all eight annotated objects.
-python 10_squidpy_recluster_spatial_analysis.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json --validate-only
+python 10_cell_type_spatial_analysis.py --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json --validate-only
 
 # Run one sample; repeat --sample to select additional samples.
-python 10_squidpy_recluster_spatial_analysis.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json --sample CK_skin_res
+python 10_cell_type_spatial_analysis.py --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json --sample CK_skin_res
 ```
 
 Without `--sample`, a full run processes all eight sequentially. Use the HPC
@@ -39,10 +39,10 @@ mkdir -p logs
 sbatch hpc/slurm/run_10_cell_type_spatial_analysis.sl
 ```
 
-Do not use the legacy config-per-task wrapper for this batch config. If using
-that legacy wrapper with this directory, only one task is appropriate because
-the config itself contains all eight samples. See the workflow README for the
-script 08 HPC input-root override and full 08 → 10 sequence.
+The legacy config-per-task wrapper and cluster-mode configs were archived on
+2026-11-20 (`archive/2026-11-20_script10_legacy_cluster_mode/`); this folder was
+renamed from `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`.
+See the workflow README for the full 08 → 10 sequence.
 
 Figures and CSVs are written under
 `data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/<branch>_r<resolution>/squidpy/`
@@ -61,8 +61,9 @@ present types retain canonical palette order and colours.
 The scientific analyses are unchanged and all four still run. Moran settings
 retain the earlier lightweight values: 25% subsampling, 10 permutations, FDR 0.10,
 and five gene plots. These settings have not been upgraded for final inference.
-All present cell types receive co-occurrence plots. Legacy single-sample cluster
-configs still work and now also accept --validate-only.
+Since 2026-11-20 the Moran permutations are seeded (1234), so simulated p-values
+and the FDR gene list are reproducible; runs before then were unseeded.
+All present cell types receive co-occurrence plots.
 
 Validation completed on all eight objects (2,083,396 cells). A CK dispatch check
 verified grouping, palette, output separation, and provenance with scientific
@@ -98,7 +99,7 @@ enrichment and `cell_type` from each result H5AD and verifies the table round
 trip exactly:
 
 ```bash
-python 10a_export_nhood_enrichment_tables.py --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json --input-root ~/mnt/phoenix_scratch/Banksy_py
+python 10a_export_nhood_enrichment_tables.py --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json --input-root ~/mnt/phoenix_scratch/Banksy_py
 python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/spatial_analysis/vbct/nhood_enrichment_comparison.json --validate-only
 python helper_scripts/spatial_analysis/compare_nhood_enrichment_from_config.py --config config/spatial_analysis/vbct/nhood_enrichment_comparison.json
 ```

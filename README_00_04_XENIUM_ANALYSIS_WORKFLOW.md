@@ -52,7 +52,7 @@ Archived cell-type labels from older annotated AnnData objects
 9. `09_plot_cell_type_proportions.py`
    - Optional composition plots from script 08 count tables, including tissue facets. This is not a prerequisite for spatial analysis.
 
-10. `10_squidpy_recluster_spatial_analysis.py`
+10. `10_cell_type_spatial_analysis.py`
    Run downstream cell-type spatial interpretation from script 08 annotated clean expression objects; legacy cluster-based configs can still read script 06 objects. This step includes spatial neighbours, neighbourhood enrichment, centrality, co-occurrence, Moran's I, and top Moran gene spatial plots without rerunning BANKSY.
 
 ## Environment
@@ -84,7 +84,7 @@ HPC:   03_export_dotplot_data_from_config.py                               scrip
 HPC:   03_export_dotplot_data_from_clean_script00_config.py                current script 00 clean-object exports
 HPC:   05_apply_qc_filters_for_reclustering.py                              reviewed QC mask annotation before reclustering
 HPC:   06_recluster_qc_annotated_with_banksy.py                               QC-aware BANKSY reclustering
-HPC:   10_squidpy_recluster_spatial_analysis.py                               downstream Squidpy analysis of reclusters
+HPC:   10_cell_type_spatial_analysis.py                               downstream Squidpy analysis of reclusters
 Local: 04_plot_multi_sample_dotplot_from_config_local.py
 ```
 
@@ -839,98 +839,61 @@ All-cell sensitivity reclustering uses the same script with this config key chan
 "recluster_inclusion": "all_cells"
 ```
 
-## Script 10: Squidpy Spatial Analysis Of Reclusters
+## Script 10: Cell-Type Spatial Analysis
 
 ### Script
 
 ```text
-10_squidpy_recluster_spatial_analysis.py
+10_cell_type_spatial_analysis.py
 ```
+
+Renamed from `10_squidpy_recluster_spatial_analysis.py` on 2026-11-20 (branch
+`cleanup/post08-flow`). The legacy cluster mode on script 06 objects, its
+per-sample configs, and its wrapper were archived in
+`archive/2026-11-20_script10_legacy_cluster_mode/`.
 
 ### Purpose
 
-The active cell-type workflow runs script 10 on annotated clean expression objects written by script 08. It reuses script 08’s config, reviewed mapping, and palette. Annotation must finish before spatial analysis. Script 09 is optional. The legacy cluster-based mode described below can still read script 06 objects directly, without rerunning BANKSY.
-
-In `qc_pass_only` mode, script 10 reads the clean object containing only cells used for BANKSY; failed cells therefore do not affect spatial neighbour graphs or Moran's I. In `all_cells` mode, script 10 reads the all-cell reclustered object and the QC status columns remain available in `.obs` for review.
+Runs Squidpy neighbourhood enrichment, centrality, co-occurrence, and Moran's I
+on the annotated clean expression objects written by script 08, grouped by
+reviewed `cell_type`, one cohort sample at a time. Annotation must finish first;
+script 09 is optional. The objects hold only `qc_pass_only` cells, so QC-failed
+cells do not affect neighbour graphs or Moran's I. Enrichment and Moran's I
+permutations are seeded (1234).
 
 ### Main Config Inputs
 
-Config root:
-
 ```text
-config/10_squidpy_recluster_analysis/
+config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json
 ```
 
-Legacy cluster-based config example:
-
-```json
-{
-  "project": "ptmt_pc55",
-  "dataset_name": "10331_run_1_1644",
-  "input_label": "filtered_qc_v1",
-  "recluster_inclusion": "qc_pass_only",
-  "pc_label": "55",
-  "lambda_label": "0.20",
-  "res_label": ["0.50", "0.60", "0.70", "0.80", "0.90", "1.00", "1.10", "1.2", "1.3", "1.4", "1.5"],
-  "analysis_res_label": "0.70",
-  "nbr_weight_decay": "scaled_gaussian",
-  "coord_keys": ["x", "y", "xy"],
-  "max_cooccurrence_clusters": 20,
-  "moran_subsample_fraction": 0.5,
-  "moran_n_perms": 100,
-  "moran_n_jobs": 1,
-  "top_moran_n": 10
-}
-```
-
-`analysis_res_label` can be one resolution, a list of resolutions, or:
-
-```json
-"analysis_res_label": "all"
-```
-
-Use `all` cautiously because co-occurrence can produce many plots.
-
-### Main Input
-
-Default input from script 06:
-
-```text
-data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>.h5ad
-```
+The config names the cohort (`config/cohorts/vbct/min15_area95_selected_resolutions.json`:
+samples, annotated object paths, mapping, palette, coordinate keys) and sets
+`figure_dir`, `result_dir`, Moran settings, and figure formats.
+`--input-root` and `--output-root` default to the repository root.
 
 ### Main Outputs
 
-Outputs are written under:
-
 ```text
-data/xenium/output/<project>/<dataset_name>/reclustering_<run_label>/squidpy/
+data/xenium/output/vbct/spatial_analysis/<branch_set>/<sample>/<branch>_r<res>/squidpy/   figures
+data/xenium/processed/vbct/spatial_analysis/<branch_set>/<sample>/
+  <stem>_squidpy.h5ad                  result object
+  <stem>_nhood_enrichment.csv          enrichment table for cross-sample helpers
+  <branch>_r<res>/centrality_scores_*.csv, moran_scores_*.csv
 ```
 
-Important outputs include:
-
-```text
-neighbourhood_enrichment_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.png
-centrality_scores_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.csv
-centrality_scores_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.png
-co_occurrence_cluster_<cluster>_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.png
-moran_scores_all_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.csv
-moran_scores_fdr<threshold>_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.csv
-spatial_scatter_top_moran_I_<gene>_<dataset_name>_pc<pc_label>_nc<lambda_label>_r<resolution>.png
-```
-
-Script 10 also writes a Squidpy-annotated copy of the clean script 06 object:
-
-```text
-data/xenium/processed/<project>/<dataset_name>/adata_expression_clean_<dataset_name>_recluster_<run_label>_cells_used_for_banksy_with_clusters_<resolutions>_squidpy.h5ad
-```
+`10a_export_nhood_enrichment_tables.py` backfills the enrichment tables from
+existing result H5ADs.
 
 ### Example Run
 
 ```bash
-conda run -n banksy python 10_squidpy_recluster_spatial_analysis.py \
-  --config config/10_squidpy_recluster_analysis/ptmt_pc55/10331_run_1_1644.json
+python 10_cell_type_spatial_analysis.py \
+  --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
+  --sample CK_skin_res
 ```
+
+Full runs belong on the HPC (`hpc/slurm/run_10_cell_type_spatial_analysis.sl`).
 
 ## Script 02: Create Clean Expression AnnData With BANKSY Labels
 
@@ -2078,8 +2041,9 @@ The key policy is to preserve provenance: script 05 does not hard-filter cells, 
 ## Cell-Type Spatial Analysis: 08 → 10
 
 The spatial step was renamed from 07 to 10 on 2026-10-25 to reflect its
-annotation dependency. Use `10_squidpy_recluster_spatial_analysis.py`, configs
-under `config/10_squidpy_recluster_analysis/`, and
+annotation dependency; the script and config folder were renamed to
+`10_cell_type_spatial_analysis.py` and `config/10_cell_type_spatial_analysis/`
+on 2026-11-20. Use those, the cohort config in `config/cohorts/`, and
 `hpc/slurm/run_10_cell_type_spatial_analysis.sl`. No step 07 alias is retained.
 The workflow is **06 → 08 → 10**; step 09 is an optional plotting branch from 08.
 
@@ -2102,16 +2066,16 @@ when intentionally replacing a partial or completed run.
 Once script 08 has completed successfully, validate its outputs and submit:
 
 ```bash
-python 10_squidpy_recluster_spatial_analysis.py \
-  --config config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/min15_area95_selected_resolutions.json \
+python 10_cell_type_spatial_analysis.py \
+  --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
   --validate-only
 mkdir -p logs
 sbatch hpc/slurm/run_10_cell_type_spatial_analysis.sl
 ```
 
 Alternatively, existing script 08 annotated objects can be transferred to the
-same relative paths. Script 10 does not create missing annotations. Outputs
-remain under `figures/spatial_analysis/` and the separate processed
-`spatial_analysis/` directory; renaming does not change scientific settings or
-existing results. The older recluster-only wrapper is now
-`run_10_squidpy_recluster_spatial_analysis.sl`.
+same relative paths. Script 10 does not create missing annotations. Figures go
+under `data/xenium/output/vbct/spatial_analysis/` and tables and result H5ADs
+under `data/xenium/processed/vbct/spatial_analysis/` (figures from runs before
+2026-11-19 remain under `figures/spatial_analysis/`). The legacy recluster-only
+wrapper was archived on 2026-11-20.

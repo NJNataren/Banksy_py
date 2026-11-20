@@ -2,18 +2,18 @@
 # coding: utf-8
 
 """
-Title: Squidpy Spatial Analysis For BANKSY Reclusters
-Date: 2026-10-26
+Title: Squidpy Spatial Analysis Of Reviewed Cell Types
+Date: 2026-10-26 (renamed from 10_squidpy_recluster_spatial_analysis.py 2026-11-20)
 Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
 (workflow_config.py); --input-root/--output-root default to the repository root.
 Updated: 2026-11-20 - also writes <stem>_nhood_enrichment.csv beside each result
 H5AD (spatial_tables.py) for the cross-sample comparison helper. Cell-type mode
 writes centrality and Moran CSVs to <result_dir>/<sample>/<branch>_r<res>/,
-not the figure folder.
+not the figure folder. Moran's I permutations are seeded. The legacy script 06
+cluster mode was archived (archive/2026-11-20_script10_legacy_cluster_mode/).
 Summary: Reuse script 08 annotated clean expression objects and reviewed cell
 types for Squidpy neighbourhood enrichment, centrality, co-occurrence, and
-Moran's I. Legacy script 06 cluster-based configurations remain supported.
-Export PNG, SVG, and PDF figures with editable vector text and 300-DPI raster
+Moran's I, one cohort sample at a time. Export PNG, SVG, and PDF figures with editable vector text and 300-DPI raster
 layers. The workflow is compatible with Squidpy 1.6 spatial-scatter plotting.
 """
 
@@ -50,19 +50,19 @@ random.seed(seed)
 
 
 def parse_args():
-    """Parse command-line arguments for the Squidpy recluster analysis."""
+    """Parse command-line arguments for the cell-type spatial analysis."""
     parser = argparse.ArgumentParser(
-        prog="run Squidpy spatial analyses on script 06 BANKSY reclusters"
+        prog="run Squidpy spatial analyses on script 08 reviewed cell types"
     )
     parser.add_argument(
         "--config",
         type=str,
         required=True,
-        help="JSON config with project, dataset_name, input_label, and reclustering settings.",
+        help="Script 10 JSON config naming a cohort, output folders, and analysis settings.",
     )
     parser.add_argument("--sample", action="append", help="Select a script 08 sample; repeat as needed")
     parser.add_argument("--validate-only", action="store_true", help="Check annotated inputs without running analyses")
-    # Cell-type mode only: annotated inputs under --input-root, results under --output-root.
+    # Annotated inputs resolve under --input-root; figures and results under --output-root.
     add_root_arguments(parser)
     return parser.parse_args()
 
@@ -76,67 +76,6 @@ def ensure_directory(path, label):
     """Create `path` and log the resolved location."""
     os.makedirs(path, exist_ok=True)
     print(f"{label} directory ready: {os.path.abspath(path)}")
-
-
-
-
-def make_cluster_palette(n_colors):
-    """Create enough distinct categorical colours for cluster plots."""
-    base_cmaps = ["tab20", "tab20b", "tab20c"]
-    colors = []
-
-    for cmap_name in base_cmaps:
-        cmap = plt.get_cmap(cmap_name)
-        colors.extend([mpl.colors.to_hex(cmap(i)) for i in range(cmap.N)])
-
-    if n_colors > len(colors):
-        extra_cmap = plt.get_cmap("nipy_spectral")
-        extra_count = n_colors - len(colors)
-        colors.extend(
-            [
-                mpl.colors.to_hex(extra_cmap(i / max(extra_count - 1, 1)))
-                for i in range(extra_count)
-            ]
-        )
-
-    return colors[:n_colors]
-
-
-def make_banksy_label_col(nbr_weight_decay, pc_label, lambda_label, resolution):
-    """Build the native BANKSY cluster-label column name for one resolution."""
-    return (
-        f"labels_{nbr_weight_decay}"
-        f"_pc{pc_label}"
-        f"_nc{lambda_label}"
-        f"_r{resolution:.2f}"
-    )
-
-
-def make_recluster_label_col(
-    nbr_weight_decay,
-    pc_label,
-    lambda_label,
-    resolution,
-    input_label,
-):
-    """Build the provenance-safe reclustered label column name from script 06."""
-    banksy_col = make_banksy_label_col(
-        nbr_weight_decay,
-        pc_label,
-        lambda_label,
-        resolution,
-    )
-    return f"{banksy_col}_recluster_{input_label}"
-
-
-def resolve_analysis_resolutions(cfg, res_label_list):
-    """Return the reclustering resolutions that should receive Squidpy analyses."""
-    analysis_res_label = cfg.get("analysis_res_label", res_label_list[-1])
-    if analysis_res_label == "all":
-        return [float(res) for res in res_label_list]
-    if isinstance(analysis_res_label, list):
-        return [float(res) for res in analysis_res_label]
-    return [float(analysis_res_label)]
 
 
 def prepare_spatial_coordinates(adata, coord_keys):
@@ -198,12 +137,12 @@ def run_squidpy_for_resolution(
     lambda_label,
     res_str_single,
     cfg,
-    table_dir=None,
+    table_dir,
 ):
     """Run spatial analyses and export each plot in the configured formats.
 
-    Figures go to `<output_dir>/squidpy`. CSV tables go to `table_dir` when
-    given (cell-type mode: beside the result H5AD), otherwise beside the figures.
+    Figures go to `<output_dir>/squidpy`; CSV tables go to `table_dir`
+    (beside the result H5AD).
     """
     figure_export_settings(cfg)
     if cluster_key not in adata.obs.columns:
@@ -215,23 +154,21 @@ def run_squidpy_for_resolution(
     if not isinstance(adata.obs[cluster_key].dtype, pd.CategoricalDtype):
         adata.obs[cluster_key] = adata.obs[cluster_key].astype("category")
 
-    # Squidpy plotting looks for this colour vector in `.uns`. Supplying it
-    # explicitly avoids noisy palette warnings and keeps plots consistent.
+    # Squidpy plotting reads this colour vector; the caller sets it from the
+    # shared palette so every sample uses the same cell-type colours.
     color_key = f"{cluster_key}_colors"
     if color_key not in adata.uns:
-        adata.uns[color_key] = make_cluster_palette(
-            len(adata.obs[cluster_key].cat.categories)
-        )
+        raise KeyError(f"Missing {color_key!r}; set it from the shared palette")
 
     squidpy_path = os.path.join(output_dir, "squidpy")
     ensure_directory(squidpy_path, "Squidpy")
     sc.settings.figdir = squidpy_path
-    table_path = str(table_dir) if table_dir is not None else squidpy_path
+    table_path = str(table_dir)
     ensure_directory(table_path, "Squidpy tables")
 
-    # All Squidpy analyses use the clean expression object used for BANKSY from
-    # script 06. In qc_pass_only mode, failed cells are absent here, so they do not contribute to any
-    # spatial graph, neighbourhood summary, or expression autocorrelation.
+    # All Squidpy analyses use the script 08 annotated clean expression object,
+    # which holds only qc_pass_only cells, so QC-failed cells do not contribute
+    # to any spatial graph, neighbourhood summary, or expression autocorrelation.
     log_time(f"Running Squidpy spatial graph for {cluster_key}")
     sq.gr.spatial_neighbors(adata, coord_type="generic")
 
@@ -291,7 +228,7 @@ def run_squidpy_for_resolution(
             )
 
     # Moran's I uses `.X`, so this must be the clean normalized/log1p expression
-    # matrix from script 06 rather than any BANKSY-expanded spatial object.
+    # matrix (carried from script 06 into script 08), never a BANKSY-expanded object.
     log_time("Running Moran's I on clean log-normalized expression")
     moran_fraction = float(cfg.get("moran_subsample_fraction", 0.5))
     moran_n_perms = int(cfg.get("moran_n_perms", 100))
@@ -449,120 +386,18 @@ def run_annotation_config(cfg, args):
         del adata
 
 
-def run_legacy_config(cfg, args):
-    """Preserve the existing single-sample BANKSY-cluster workflow."""
-    project = cfg["project"]
-    dataset_name = cfg["dataset_name"]
-    input_label = cfg.get("input_label", cfg.get("output_label", "filtered_qc_v1"))
-    recluster_inclusion = cfg.get("recluster_inclusion", "qc_pass_only")
-    if recluster_inclusion not in ["qc_pass_only", "all_cells"]:
-        raise ValueError(
-            "recluster_inclusion must be either 'qc_pass_only' or 'all_cells'. "
-            f"Received: {recluster_inclusion!r}"
-        )
-    run_label = cfg.get("run_label", f"{input_label}_{recluster_inclusion}")
-    pc_label = cfg["pc_label"]
-    lambda_label = cfg["lambda_label"]
-    res_label = cfg["res_label"]
-    res_label_list = res_label if isinstance(res_label, list) else [res_label]
-    res_str = "_".join(res_label_list)
-    nbr_weight_decay = cfg["nbr_weight_decay"]
-    coord_keys = tuple(cfg.get("coord_keys", ["x", "y", "xy"]))
-
-    base_dir = cfg.get("base_dir", "data/xenium")
-    processed_path = os.path.join(base_dir, "processed", project, dataset_name)
-    output_path = cfg.get(
-        "output_path",
-        os.path.join(
-            base_dir,
-            "output",
-            project,
-            dataset_name,
-            f"reclustering_{run_label}",
-        ),
-    )
-    if not args.validate_only:
-        ensure_directory(output_path, "Output reclustering sample")
-
-    input_h5ad = cfg.get(
-        "input_h5ad",
-        os.path.join(
-            processed_path,
-            f"adata_expression_clean_{dataset_name}_recluster_{run_label}"
-            f"_cells_used_for_banksy_with_clusters_{res_str}.h5ad",
-        ),
-    )
-    if not os.path.isfile(input_h5ad):
-        raise FileNotFoundError(f"Script 06 reclustered-cell AnnData does not exist: {input_h5ad}")
-
-    output_h5ad = cfg.get(
-        "output_h5ad",
-        os.path.join(
-            processed_path,
-            f"adata_expression_clean_{dataset_name}_recluster_{run_label}"
-            f"_cells_used_for_banksy_with_clusters_{res_str}_squidpy.h5ad",
-        ),
-    )
-
-    # -----------------------------------------------------------------------------
-    # Load clean passing-cell object and run selected Squidpy resolutions
-    # -----------------------------------------------------------------------------
-
-    log_time(f"Reading script 06 reclustered-cell clean AnnData from: {input_h5ad}")
-    adata = ad.read_h5ad(input_h5ad, backed="r" if args.validate_only else None)
-    if args.validate_only:
-        try:
-            prepare_spatial_coordinates(adata, coord_keys)
-            for res in resolve_analysis_resolutions(cfg, res_label_list):
-                key = make_recluster_label_col(nbr_weight_decay, pc_label, lambda_label, res, run_label)
-                if key not in adata.obs:
-                    raise KeyError(key)
-            print(f"Validated {dataset_name}: {adata.n_obs:,} cells")
-        finally:
-            adata.file.close()
-        return
-    prepare_spatial_coordinates(adata, coord_keys)
-
-    analysis_resolutions = resolve_analysis_resolutions(cfg, res_label_list)
-    print(f"Running Squidpy analyses for resolutions: {analysis_resolutions}")
-
-    for res in analysis_resolutions:
-        res_str_single = str(res).replace(".", "p")
-        cluster_key = make_recluster_label_col(
-            nbr_weight_decay,
-            pc_label,
-            lambda_label,
-            res,
-            run_label,
-        )
-        run_squidpy_for_resolution(
-            adata=adata,
-            cluster_key=cluster_key,
-            output_dir=output_path,
-            dataset_name=dataset_name,
-            pc_label=pc_label,
-            lambda_label=lambda_label,
-            res_str_single=res_str_single,
-            cfg=cfg,
-        )
-
-    adata.write_h5ad(output_h5ad)
-    print(f"Wrote Squidpy-annotated reclustered-cell AnnData to: {output_h5ad}")
-    log_time(f"Finished Squidpy recluster spatial analysis for {dataset_name}.")
-
-
 def main():
-    """Dispatch shared script 08 inputs or legacy cluster-based configurations."""
+    """Run cell-type spatial analyses for the cohort named in the config."""
     args = parse_args()
     with open(args.config) as handle:
         cfg = json.load(handle)
     figure_export_settings(cfg)
-    if "cohort" in cfg:
-        run_annotation_config(cfg, args)
-    else:
-        if args.sample:
-            raise ValueError("--sample requires a cohort config")
-        run_legacy_config(cfg, args)
+    if "cohort" not in cfg:
+        raise KeyError(
+            "Config needs a cohort. Legacy cluster-mode configs were archived in "
+            "archive/2026-11-20_script10_legacy_cluster_mode/"
+        )
+    run_annotation_config(cfg, args)
 
 
 if __name__ == "__main__":
