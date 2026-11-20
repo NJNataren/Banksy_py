@@ -23,6 +23,7 @@ The lead human bioinformatician for this project is Nathalie.
 - Steps after script 08 (08, 09, 10, 10a, `helper_scripts/spatial_analysis/`, `helper_scripts/poster/`) read one cohort config in `config/cohorts/` through `workflow_config.py` (repo root), take `--input-root`/`--output-root` (default: repo root), and write figures to `data/xenium/output/` and tables/H5ADs to `data/xenium/processed/`. `spatial_tables.py` (repo root) defines the script 10 neighbourhood enrichment table. See "After Script 08" in the concise README.
 - Slurm entrypoints live in `hpc/slurm/` (`run_<step>_*.sl`); see `hpc/slurm/README.md`.
 - Supporting scripts live in `helper_scripts/`; superseded scripts and notes live in `archive/`.
+- Read-only diagnostics for agents and humans live in `tools/`; see "Agent Tools" below.
 - Task handoffs live in `context/tasks/`; load them via the `banksy-context` skill.
 - Data and generated outputs are expected under `data/xenium/`, `figures/`, `logs/`, and `hpc/`; treat these as potentially large or machine-specific.
 
@@ -37,6 +38,19 @@ The lead human bioinformatician for this project is Nathalie.
 - Avoid hard-coding sample names or paths when the existing script already reads from config.
 - Existing scripts write directories with `os.makedirs`; preserve this style unless making a broader cleanup.
 - Use `rg`/`rg --files` first for repo search.
+
+## Agent Tools
+Read-only scripts in `tools/` (run with the `banksy` environment). They never write files or connect to the HPC. Prefer their output over memory or handoff notes.
+- Before using an `.h5ad` for marker expression, dotplots or any expression summary, run `python tools/inspect_h5ad.py <file> --panel-size <n>`. Proceed only if the verdict is CLEAN EXPRESSION; a BANKSY-EXPANDED verdict means the wrong matrix. Use `--obs-values <column>` instead of writing inspection snippets.
+- Before relying on recorded run status ("script 08 completed", "outputs transferred"), run `python tools/pipeline_status.py --config-dir <script 06 config dir>`. It derives expected outputs from configs and reports ok / MISSING / stale. Use `--root <mounted checkout>` to check the HPC copy through an active mount; if the mount is inactive it says so; report that and do not reconnect.
+- `python tools/check_doc_citations.py [files]` reports cited paths in docs that no longer exist. A hook runs it automatically after edits to `context/` docs, `AGENTS.md` and `README_*.md`. Treat DEAD/ARCHIVED citations in a handoff as stale instructions: locate the current file before acting.
+- `pipeline_status.py` copies the output filename rules from scripts 05, 06 and 10; update it when those scripts change how they name outputs.
+
+## Scientific Parameters — user rule (2026-11-20)
+- Do not change scientific parameters without asking Nathalie first, even to make a run faster or to get a job to finish. This includes permutation counts, subsampling fractions, random seeds, statistical thresholds (FDR, p-value, minimum counts), QC cutoffs, clustering resolutions, PCs, lambda, neighbourhood sizes, and graph settings, whether set in code defaults or configs.
+- When a change is approved, check everything that depends on that parameter before running: filters, FDR or significance cutoffs, gene or cluster selection, plot selection, and any downstream step that reads the output. Report what changed and sanity-check the result (e.g. how many genes or cells pass, and whether that is plausible).
+- Record the change, the reason, and the checks in the relevant task file.
+- Background: script 10's Moran's I permutations were cut from 100 to 10 for speed without revisiting the FDR filter built on them, which made its "significant genes" output an artefact (see `context/tasks/morans_i_significance.md`).
 
 ## Git And File Safety
 - The worktree may contain active notebook, script, config, and output changes. Do not revert or clean untracked files unless explicitly asked.
