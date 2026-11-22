@@ -16,7 +16,6 @@ __pycache__/
 AGENTS.md
 DEVELOPER_NOTES.md
 PROJECT_CONTEXT.md
-/context
 
 #slurm logs
 logs/

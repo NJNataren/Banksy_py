@@ -1,0 +1,651 @@
+# Task: Shared Cell-Type Annotation and Colours Across Samples
+
+## Goal
+
+Identify clusters representing the same biological cell type, group them under
+shared cell-type labels, and apply one consistent colour palette across samples.
+Use these annotations to begin comparing cell populations, expression, and
+spatial distributions across VBCT samples.
+
+## Path Update (2026-11-20, post-08 cleanup)
+
+Paths below are historical. On branch `cleanup/post08-flow` (see
+`post08_flow_cleanup.md`; merge to `main` pending an HPC test):
+
+- Samples, mapping CSV, and palette are defined once in
+  `config/cohorts/vbct/min15_area95_selected_resolutions.json`; the script 08
+  and 09 configs point to it. Script 08 takes `--input-root`/`--output-root`
+  (default: repo root); locally it needs `--input-root ~/mnt/phoenix_scratch/Banksy_py`.
+- Script 08 figures: `figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/`
+  -> `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/`.
+- Script 09 figures: `figures/cell_type_proportions/...` ->
+  `data/xenium/output/vbct/cell_type_proportions/min15_area95_selected_resolutions/`;
+  proportion CSV -> `data/xenium/processed/vbct/cell_type_proportions/...` (`table_dir`).
+  The tissue-facet field is now `facet`.
+- Script 10: `10_squidpy_recluster_spatial_analysis.py` -> `10_cell_type_spatial_analysis.py`;
+  config folder `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`
+  -> `config/10_cell_type_spatial_analysis/vbct/`; `--annotation-root` ->
+  `--input-root`; figures under `data/xenium/output/vbct/spatial_analysis/...`.
+- Local copies of the old `figures/spatial_analysis/`, `figures/cell_type_annotation/`, and `figures/cell_type_proportions/` folders were moved to `figures/_pre_post08_cleanup_2026-11-20/` on 2026-11-21 (README there); copies on Phoenix are untouched. Script 08's titled UMAPs, combined panels, `per_sample_comparison/`,
+  and `cell_type_composition/` exist only in the archive until script 08 is
+  rerun; `clean_scanpy/` and script 09 were regenerated in the new locations.
+
+## Current Status
+
+Planning stage, 2026-10-24. No annotation mappings, merged cell-type objects, or
+shared palette have been created for this task. The workflow below is the
+proposed approach; biological labels require review before application.
+
+Related context:
+
+- `README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md`: pipeline and object conventions.
+- `context/tasks/dotplot.md`: marker-expression plots and filter-sensitivity comparisons.
+
+GR and MG have filter-sensitivity plots at resolution `1.00`, including a
+prefiltered baseline and four QC branches. MG also has a five-condition plot at
+resolution `0.70`. These are candidate review inputs, not final selections of
+branch or resolution for annotation. Check current files before relying on them.
+
+## Decisions to Agree Before Annotation
+
+1. Start with MG and GR, or include all VBCT samples?
+2. Annotate one selected QC branch per sample, or all four branches plus the
+   prefiltered baseline?
+3. Which resolution should be used for each sample and branch? A shared numeric
+   resolution does not guarantee equivalent biological granularity.
+4. What broad cell types and finer subtypes or states should the shared
+   vocabulary include?
+5. Which plots and comparisons should be produced first after annotation?
+
+Do not assume these decisions have been made from the existing dotplot settings.
+
+## Biological Annotation and Review
+
+Review clean biological marker expression together with spatial context and
+available prior annotations. Record the evidence supporting each proposed label,
+including ambiguous or conflicting markers. Existing annotations are supporting
+context and must be checked against the actual clustering being annotated.
+
+Clusters are identified within a particular sample, analysis branch, and
+resolution. Numeric cluster IDs do not establish biological equivalence across
+samples, branches, or resolutions. Never transfer annotations by matching cluster
+numbers alone.
+
+Maintain a shared vocabulary with separate broad cell-type and finer subtype or
+state labels. This allows broad comparisons while preserving potentially
+meaningful differences within a cell type. Do not force uncertain populations
+into a known type; retain explicit unknown, ambiguous, or mixed labels for review.
+Distinguish an unreviewed cluster from a reviewed but unresolved population.
+
+## Group Clusters Through Cell-Level Annotation
+
+The proposed meaning of "merge" is to assign the same cell-type label to cells
+from multiple biologically matching clusters within an object. Preserve the
+original cluster columns and cell identifiers. This step does not require
+rerunning BANKSY or physically combining all sample objects.
+
+Attach reviewed annotation columns to clean expression AnnData objects while
+retaining sample, branch, resolution, and original-cluster provenance. Keep
+existing expression values unchanged and write annotated outputs separately from
+the source objects.
+
+Possible annotation columns, subject to agreement:
+
+- `cell_type`: shared broad biological identity.
+- `cell_subtype`: finer identity or state, where supported.
+- `annotation_status`: proposed, reviewed, or unresolved.
+
+A broad cell type can include multiple original clusters while those clusters
+remain available for subtype review and sensitivity comparisons.
+
+## Mapping File Proposal
+
+Use a reviewable table with one row per original cluster in each selected
+sample/branch/grouping. Suggested fields:
+
+| Field | Purpose |
+|---|---|
+| `sample` | Biological sample identifier |
+| `branch` | Prefiltered baseline or specific QC branch |
+| `resolution` | BANKSY resolution associated with the source labels |
+| `adata_path` | Source clean expression object |
+| `groupby` | Exact original `.obs` cluster column |
+| `cluster_id` | Original cluster ID within this grouping |
+| `cell_type` | Proposed or reviewed shared broad label |
+| `cell_subtype` | Optional supported subtype or state |
+| `annotation_status` | Review state |
+| `evidence` | Markers, spatial observations, and relevant references |
+| `notes` | Uncertainty and decisions requiring follow-up |
+
+Choose the final table location and schema when implementation begins. Check for
+duplicate or conflicting mappings and report unmapped clusters explicitly.
+Apply only mappings matching the actual source object and grouping column.
+
+## Shared Colour Palette
+
+Maintain one project-level mapping from canonical cell-type labels to fixed
+colours. Reuse it across every sample and condition, even when some cell types
+are absent. Do not assign colours independently from category order in each plot.
+
+Apply the palette to categorical cell-type displays, including spatial plots,
+UMAPs, and annotation legends. Reserve distinguishable colours for unresolved
+categories. Agree on subtype colours separately if subtype plots are needed.
+
+For expression dotplots, retain the continuous colour scale for expression;
+show cell-type colours through row annotations or labels rather than replacing
+expression values with categorical colours.
+
+## Summaries and Comparisons After Grouping
+
+Recalculate cell-type expression summaries from the constituent cells in the
+clean expression object. Do not average cluster-level means or percentages
+equally: differently sized clusters would contribute incorrectly. Use clean
+expression `.raw` or another explicitly verified expression source, never
+BANKSY-expanded `adata_spatial.X`.
+
+Keep summaries separate by biological sample and analysis condition. Specify the
+cell inclusion rules and denominator for cell-type proportions. Treat QC branches
+as alternative analyses of the same biological sample, not independent samples.
+
+Use shared gene selection and plot settings for comparisons. Consistent labels
+and colours aid comparison but do not alone resolve differences in sampling,
+normalisation, tissue context, or annotation confidence.
+
+## Proposed Outputs
+
+- A reviewed cluster-to-cell-type mapping table with supporting evidence.
+- A shared cell-type vocabulary and colour palette.
+- Clean expression objects with added cell-type annotations and preserved
+  original cluster labels.
+- Spatial plots and UMAPs coloured consistently by cell type.
+- Cell-type expression dotplots and per-sample cell counts/proportions, according
+  to the agreed comparison scope.
+
+Resolve output paths and naming before generating these artifacts. Preserve
+source objects and distinguish outputs by sample, branch, and grouping.
+
+## Validation
+
+- Every selected source cluster has a mapping or an explicit unresolved status.
+- Each source cluster maps to at most one broad cell type within its grouping.
+- Adding annotations preserves cell IDs, cell counts, original labels, and
+  expression values.
+- Counts summed over cell types reconcile with the selected cell population;
+  exclusions and denominators are recorded.
+- The same cell-type label has the same colour in every plot and legend.
+- No cross-sample or cross-branch mapping relies only on numeric cluster IDs.
+- Expression summaries use the intended clean expression source and cells.
+
+## Next Step
+
+Agree on the starting samples, QC branch scope, and resolutions. Then review the
+relevant marker-expression and spatial plots and prepare proposed cluster labels
+for biological review before merging annotations or generating comparisons.
+
+To load this task in a new chat:
+
+> Use $banksy-context for cell_type_annotation.md.
+
+
+## Session Update: Selected-Resolution Filter Review (2026-10-24)
+
+The user selected all eight VBCT samples for initial marker/spatial review:
+CK_skin_res 1.00, EL_skin_res 0.80, GR_lung_non_res_roi 1.00,
+BE_brain_non_res 0.90, HW_brain_res 0.80, MF_skin_non_res 0.50,
+MG_gastric_non_res 0.70, and CK_bowel_res 0.80. Compare the prefiltered baseline
+and all four QC branches for each sample before selecting annotation mappings.
+This resolves initial review scope; it does not approve a final filtering branch
+or biological labels.
+
+Eight paired configs reside under `selected_resolutions/` within both
+`config/03_export_summary/active/vbct_filter_sensitivity/` and
+`config/04_plot_dotplot/active/vbct_filter_sensitivity/`. They follow the GR
+1.00 template, including gene review/highlighting and five-condition z-scoring.
+The plotting directory README documents HPC and local commands.
+
+All 16 configs were validated. GR 1.00 and MG 0.70 existing summaries passed
+resolution/grouping/provenance checks and their plots were rendered. The other
+six lack complete local branch inputs and summaries; export on HPC and transfer
+their CSVs before rendering. Current HPC availability remains unverified.
+HW, MF, and CK bowel baselines reuse clean normalized expression plus original
+cluster-label CSVs from the existing helper workflow. MF baseline and recluster
+labels use 30 and 20 PCs respectively. No cell-type annotations or shared palette
+have been applied.
+
+
+## Local Export Completed (2026-10-24)
+
+The five remaining available samples were exported and plotted locally using
+HPC inputs under `/home/nnataren/mnt/phoenix_scratch/Banksy_py`:
+CK_skin_res 1.00, BE_brain_non_res 0.90, EL_skin_res 0.80,
+HW_brain_res 0.80, and CK_bowel_res 0.80. The sequential batch completed
+successfully. Local input configs are under
+`config/03_export_summary/local_helpers/vbct_filter_sensitivity/selected_resolutions/`.
+All five summary CSVs passed condition, resolution, grouping, provenance,
+304-gene coverage, duplicate-row, expression-percentage, and cell-count checks.
+All five PNG files passed image-integrity checks; visual layout inspection was
+blocked by the image tool's sandbox startup error.
+
+Together with GR 1.00 and MG 0.70, seven samples now have local summaries and
+plots in the standard `filter_sensitivity` output directories. MF 0.50 remains
+pending because its new clustering results are not yet ready. This supersedes
+the earlier statement that the five samples require HPC export and transfer.
+No biological annotations were applied. Execution logs are under
+`logs/local_filter_sensitivity/`.
+
+
+## Additional EL Resolution 1.50 Review
+
+Generated `figures/dotplots/filter_sensitivity/EL_skin_res_r1.50_filter_sensitivity_zscore_dotplot.png`
+from four filtered branches at resolution 1.50 using the existing exporter and
+plotting settings. The prefiltered object has no 1.50 labels (its original
+clustering stops at 1.10), so the baseline is omitted rather than mixing
+resolutions. Branch cluster counts are min10_area99: 32, min10_area95: 33,
+min15_area99: 32, min15_area95: 29. The summary includes all 304 genes;
+the plot applies the existing manual gene review and four-condition z-scoring.
+Summary provenance/resolution/value checks and PNG integrity checks passed.
+Configs are in the parent `vbct_filter_sensitivity/` directories for active
+script 03, local-helper script 03, and active script 04, named with
+`EL_skin_res_r1.50`. The selected-resolution eight-sample batch is unchanged.
+
+
+## Selected-Resolution Cell-Type Annotation and Scanpy UMAPs (2026-10-25)
+
+Implemented `08_annotate_cell_types_and_plot_umaps.py` with a reviewed 127-row
+cluster mapping, a shared eight-cell-type palette, and the min15/area95 selected
+resolution config under `config/08_cell_type_annotation/vbct/`. All eight source
+objects were annotated successfully (2,083,396 cells total), with one categorical
+`cell_type` column and consistent `cell_type_colors`; per-cluster and per-cell-type
+count tables reconcile with the source objects.
+
+The active figure workflow now uses Scanpy only and writes PNG, SVG, and PDF at 300 DPI.
+Dense UMAP points are rasterized in SVG/PDF while titles and on-data labels remain
+editable text for Inkscape. The completed output contains eight per-sample figures
+under `figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/per_sample_scanpy/`
+and one combined panel in the parent directory, for 27 files total. All PNGs,
+SVGs, and PDFs passed format/integrity checks; every SVG contains editable text
+and an embedded raster point layer. Previously generated Matplotlib comparison
+PNGs remain as reference outputs.
+
+
+## Handoff: Cell-Type UMAPs Complete; Proportion Plot Next (2026-10-25)
+
+### Work completed in this session
+
+The user supplied reviewed cluster-to-cell-type labels for all eight VBCT samples.
+Label spelling was normalised to the canonical broad cell types in
+`config/08_cell_type_annotation/vbct/shared_cell_type_palette.json`; for example,
+`Melanoma`, `Melanoma cells`, and `Melanoma cell` are represented as
+`Melanoma cell`. The canonical cell-type order and colours are:
+
+1. Melanoma cell — `#AA4499`
+2. Macrophage — `#EE7733`
+3. T cell — `#4477AA`
+4. B cell — `#66CCEE`
+5. Fibroblast — `#228833`
+6. Endothelial cell — `#CC3311`
+7. Epithelial cell — `#CCBB44`
+8. Pericyte — `#777777`
+
+The chosen source branch is the clean, post-filtered min15/area95 population:
+minimum 15 transcripts and grouped cell-area 95th-percentile filtering. The
+selected BANKSY resolutions, in the intended sample order, are:
+
+- CK_skin_res: 1.00
+- EL_skin_res: 0.80
+- GR_lung_non_res_roi: 1.00
+- BE_brain_non_res: 0.90
+- HW_brain_res: 0.80
+- MF_skin_non_res: 0.50
+- MG_gastric_non_res: 0.70
+- CK_bowel_res: 0.80
+
+`08_annotate_cell_types_and_plot_umaps.py` applies the reviewed mapping, validates
+complete and unique cluster coverage, writes categorical `cell_type` metadata and
+the shared `cell_type_colors`, produces reconciled count summaries, and renders
+the saved BANKSY UMAP embeddings through Scanpy. Its active run configuration is
+`config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json` and
+the reviewed mapping is
+`config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_cell_type_mapping.csv`.
+The mapping contains 127 source clusters across 2,083,396 cells. All eight
+annotated H5AD objects were written successfully to the sample-specific
+`data/xenium/processed/vbct/<sample>/cell_type_annotation/` paths recorded in the
+run config. The latest plotting rerun used `--no-write-annotated`, so it replaced
+figures without unnecessarily rewriting those validated H5AD objects.
+
+The user preferred the Scanpy rendering over the direct Matplotlib comparison.
+The active Scanpy outputs are under
+`figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/`:
+
+- eight per-sample UMAPs in `per_sample_scanpy/`;
+- one combined eight-panel figure named `combined_scanpy_cell_type_umaps`;
+- PNG, SVG, and PDF for every figure, giving 27 active files.
+
+The config now defaults to 300 DPI for poster use. Individual PNGs are
+3287 × 2148 pixels and the combined PNG is 4160 × 5802 pixels. SVG/PDF exports
+use hybrid rasterisation: the dense cell point layers are embedded at 300 DPI,
+while titles and on-data cell-type labels remain editable vector text in
+Inkscape. All 27 files passed format and integrity checks, PNG DPI checks, and
+SVG checks for both editable text and embedded point layers. Scanpy emitted only
+known deprecation/colour-mapping warnings. Older Matplotlib comparison PNGs were
+left in place as reference outputs and are no longer the active figure style.
+
+The reconciled summary tables are:
+
+- `data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cluster_to_cell_type_counts.csv`
+- `data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cell_type_counts.csv`
+
+### Next step: stacked cell-proportion bar plot
+
+Create a 100% stacked bar plot showing broad cell-type proportions for all eight
+samples. Use `reviewed_cell_type_counts.csv` directly; it already contains
+`sample`, `branch`, `resolution`, `cell_type`, and `n_cells`, so the annotated
+H5AD files do not need to be loaded again. For each sample, calculate
+`proportion = n_cells / sum(n_cells)` and verify that proportions sum to 1. Fill
+cell types absent from a sample with zero before plotting.
+
+Preserve the sample order and selected resolutions listed above. Preserve the
+cell-type stacking order and exact colours from `shared_cell_type_palette.json`
+so the bar plot matches the UMAPs. A sensible x-axis label is the sample name,
+with its selected resolution either on a second line or in the caption. Label
+the y-axis `Cell proportion` and format it as 0–100%. Use one shared legend and
+avoid labels inside very small segments unless specifically requested.
+
+Implement this as a reusable, config-driven script rather than an ad hoc notebook,
+following the existing numbered workflow (the next script can be
+`09_plot_cell_type_proportions.py`). Write PNG, SVG, and PDF at 300 DPI to a new
+cell-type-composition subdirectory without overwriting the UMAPs. Keep SVG/PDF
+text editable for Inkscape. Validate the input total of 2,083,396 cells, eight
+unique samples, per-sample proportion sums, the expected cell-type vocabulary,
+output file integrity, and 300-DPI PNG metadata.
+
+
+## Cell-Proportion Plot Implemented (2026-10-25)
+
+Implemented the separate, config-driven `09_plot_cell_type_proportions.py` with
+`config/09_cell_type_proportions/vbct/min15_area95_selected_resolutions.json`.
+This completes the stacked-bar next step above. The script reads the reviewed
+count table, preserves sample/resolution order and the exact shared palette,
+fills absent cell types with zero, and uses each sample's annotated post-filtered
+cell total as its denominator. No H5AD objects are loaded or changed.
+
+Outputs are `cell_type_proportions.{png,svg,pdf,csv}` under
+`figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/cell_type_composition/`.
+Checks passed for eight samples, 2,083,396 cells, 64 zero-filled sample/type rows,
+per-sample proportions summing to one, syntax validity, PNG integrity and 300-DPI
+metadata (4500 x 2400 pixels), editable SVG text, and PDF header/end markers.
+Visual layout inspection remains pending because the image viewer failed to
+initialize its filesystem sandbox; the PDF was not visually rendered.
+Usage is documented in `config/09_cell_type_proportions/README.md`.
+
+
+## Dedicated Proportion Figure Directory and Rerun (2026-10-25)
+
+At the user’s request, script 09 was rerun with its own top-level figure directory:
+`figures/cell_type_proportions/vbct_min15_area95_selected_resolutions/`.
+This supersedes the previous nested UMAP-directory output path. PNG, SVG, PDF,
+and CSV were generated successfully. Checks passed for PNG integrity, 4500 x
+2400 dimensions and 300 DPI, editable SVG text, PDF signatures, 64 sample/type
+rows, eight samples, 2,083,396 cells, and per-sample proportions summing to one.
+Earlier outputs remain in their original location.
+
+
+## Tissue-Faceted Proportions (2026-10-25)
+
+Implemented user-approved Skin, Brain, Lung, and Gastrointestinal facets in
+script 09. The new config is
+`config/09_cell_type_proportions/vbct/min15_area95_selected_resolutions_by_tissue.json`.
+Facets have 3, 2, 1, and 2 bars with proportional panel widths and equal bar widths.
+Gastric and bowel remain distinct samples within Gastrointestinal. Labels show
+patient and response; gastrointestinal labels retain the anatomical site.
+Shared scale, palette, legend, and per-sample denominators are preserved.
+Outputs use `cell_type_proportions_by_tissue.{png,svg,pdf,csv}` in the dedicated
+`figures/cell_type_proportions/vbct_min15_area95_selected_resolutions/` directory.
+Original outputs are retained. Counts/proportions exactly match the original CSV.
+Checks passed for panel membership, equal bar widths, axis-label canvas bounds,
+PNG integrity (5100 x 2400 at 300 DPI), SVG text, and PDF signatures.
+
+
+## Script 10 Aligned With Script 08 (2026-10-25)
+
+Script 10 now accepts a configuration referencing script 08's selected-resolution
+configuration. The entrypoint is now
+`config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json`
+(moved there from the original script 10 config root on 2026-11-20).
+It reads script 08's annotated output H5ADs, uses `cell_type`, and reuses the
+reviewed mapping and shared palette. Sample/branch/resolution definitions are not
+duplicated. Legacy cluster configs remain supported. CLI options include
+`--sample`, `--annotation-root`, and read-only `--validate-only`.
+
+All eight annotated inputs passed backed metadata validation (2,083,396 cells),
+including mapping agreement and finite coordinates. A CK dispatch smoke test
+passed with scientific analyses and output H5AD writes mocked. Full spatial
+analyses were not run. Moran settings retain 25% subsampling and 10 permutations;
+review these before final inference. All present types receive co-occurrence
+plots. New figures/tables go under `figures/spatial_analysis/`; spatial H5ADs go
+under `data/xenium/processed/vbct/spatial_analysis/`, preserving annotation inputs.
+Usage and HPC batch considerations are in the new config directory README.
+
+
+## Spatial Launch Requested; SSH Blocked (2026-10-25)
+
+User authorized launch. Phoenix SSH authentication failed (Permission denied);
+no jobs were submitted. Prepared `hpc/slurm/run_10_cell_type_spatial_analysis.sl`
+with one task per sample in script 08 order (0-7%2; 180G; 8 hours).
+The script 10 cell_type_annotation config directory now contains
+`hpc_staging_files.txt`, listing code/configs and eight annotated H5ADs
+(about 2.0 GiB). Checked mounted CK annotation directory was absent.
+Superseded by the user’s HPC access rule below: do not retry SSH or submit jobs
+from the agent. Nathalie handles any remote connection and job submission.
+
+
+## HPC Access Rule (2026-10-25)
+
+The user prohibits direct SSH connections to Phoenix/HPC, including connection
+tests and remote job execution. Existing local HPC mounts may be inspected;
+do not establish or reconnect mounts or use SSH-backed transfer tools. Prepare
+scripts and commands for Nathalie to run herself. This supersedes prior launch
+and SSH-retry instructions. The persistent rule is recorded in both workspace
+and analysis-project AGENTS.md files.
+
+
+## Spatial Step Renamed to 10 (2026-10-25)
+
+At the user’s request, renamed the spatial script, config root, and both HPC
+wrappers from 07 to 10; references and relevant READMEs were updated.
+The active dependency is 06 → 08 → 10, with 09 optional after annotation.
+Use `10_squidpy_recluster_spatial_analysis.py`,
+`config/10_squidpy_recluster_analysis/`, and
+`hpc/slurm/run_10_cell_type_spatial_analysis.sl`. No old-name alias is retained.
+Superseded 2026-11-20: script 10 is now `10_cell_type_spatial_analysis.py` with
+its config in `config/10_cell_type_spatial_analysis/` (see `post08_flow_cleanup.md`).
+Existing annotated data and scientific settings are unchanged. HPC commands
+remain user-run only; no HPC connection or job submission was attempted.
+
+
+## Script 08 HPC Wrapper Added (2026-10-25)
+
+Added `hpc/slurm/run_08_cell_type_annotation.sl` so annotation is performed in a
+Slurm allocation rather than on an HPC login node. It runs all eight configured
+samples sequentially in one job (8 CPUs, 180 GB, 8 hours), with the HPC project
+directory passed as both input and output root. A Slurm array is intentionally
+not used because script 08 writes shared count tables and a combined UMAP after
+processing every sample. The wrapper refuses to replace existing outputs by
+default; `OVERWRITE=1` is an explicit recovery/rerun option. Relevant workflow,
+config, and Slurm READMEs were updated. No HPC connection or submission was made.
+
+
+## Script 10 First HPC Run and Corrections (2026-10-26)
+
+Read-only inspection of mounted logs for array job 16021129 confirmed that tasks
+0, 2, and 3 completed (CK skin, GR lung, and BE brain). Tasks 1, 4, and 6 (EL
+skin, HW brain, and MG gastric) completed the analyses through Moran score export
+but failed when `sq.pl.spatial_scatter()` forwarded unsupported `show=False` to
+Matplotlib under Squidpy 1.6.5. Tasks 5 and 7 (MF skin and CK bowel) timed out
+during co-occurrence at the original eight-hour limit.
+
+Removed the incompatible `show` argument, updated the pandas categorical dtype
+check, removed a duplicated docstring line, and increased the active script 10
+wrapper to 24 hours per task. The targeted rerun is array indices `1,4-7%2` after
+the updated commit reaches HPC. Completed indices 0, 2, and 3 do not need to be
+rerun. No HPC connection, file modification, monitoring, or submission occurred.
+
+## Clean UMAPs and Larger Figure Typography (2026-10-26)
+
+Added
+`config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_clean_umaps.json`
+for presentation-ready per-sample Scanpy UMAPs. This config reads the eight
+existing annotated H5ADs and disables H5AD and summary-table writes. The figures
+have no sample title, figure title, axis labels, or external legend; broad cell
+types are labelled directly on the embedding with 12-point text. The original
+titled figures remain unchanged. The 24 generated PNG, SVG, and PDF files are in
+`figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/clean_scanpy/per_sample_scanpy/`.
+
+Script 08 now exposes title, legend, axis-label, combined-figure, and
+summary-table controls while preserving the previous defaults. Script 09 now
+reads its typography sizes from configuration. Both proportion configs were
+updated with larger text and canvases, and both figure variants were regenerated
+under `figures/cell_type_proportions/vbct_min15_area95_selected_resolutions/`.
+The standard plot is 5100 x 2700 pixels and the tissue-faceted plot is
+5700 x 2700 pixels, both at 300 DPI. Their overall titles and captions are
+removed; the shared legends and tissue facet headings are retained. Input totals
+remain eight samples and 2,083,396 cells, and the regenerated CSV values match
+the previous results.
+
+## Consolidated Session Handoff (2026-10-26)
+
+### Current workflow and HPC boundary
+
+The active order is 06 reclustering -> 08 reviewed annotation -> 10 Squidpy
+spatial analysis. Script 09 is an optional summary-figure step after script 08.
+The persistent user rule remains absolute: never connect to Phoenix or another
+HPC with SSH, submit or monitor jobs remotely, use SSH-backed transfer tools, or
+reconnect a mount. Existing local HPC mounts may only be inspected read-only.
+Nathalie runs all HPC commands.
+
+### Script 10 fixes and rerun state
+
+Read-only log inspection for Slurm array job 16021129 established:
+
+- completed: index 0 CK_skin_res, index 2 GR_lung_non_res_roi, and index 3
+  BE_brain_non_res;
+- reached Moran export but failed at top-Moran plotting: index 1 EL_skin_res,
+  index 4 HW_brain_res, and index 6 MG_gastric_non_res;
+- timed out during co-occurrence: index 5 MF_skin_non_res and index 7
+  CK_bowel_res.
+
+The plotting failure came from passing `show=False` to
+`sq.pl.spatial_scatter()`; Squidpy 1.6.5 forwarded that keyword to Matplotlib,
+which rejected it. The argument was removed from
+`10_squidpy_recluster_spatial_analysis.py` (since renamed `10_cell_type_spatial_analysis.py`). The script also now uses
+`isinstance(dtype, pd.CategoricalDtype)` and no longer has a duplicated
+docstring line. The Slurm wrapper
+`hpc/slurm/run_10_cell_type_spatial_analysis.sl` now requests 24 hours instead
+of 8 hours. Local syntax and a small Squidpy 1.6.5 plotting smoke test passed.
+
+After the updated commit is available on the HPC, the outstanding tasks can be
+rerun from the HPC repository root with:
+
+```bash
+sbatch --array=1,4-7%2 hpc/slurm/run_10_cell_type_spatial_analysis.sl
+```
+
+Script 10 plots and result CSVs are written to:
+
+```text
+figures/spatial_analysis/vbct_min15_area95_selected_resolutions/
+  <sample>/min15_area95_r<resolution>/squidpy/
+```
+
+This includes neighbourhood-enrichment, centrality, per-cell-type
+co-occurrence, and top-Moran spatial-expression PNGs, plus centrality and Moran
+CSVs. Spatially augmented H5AD files are written separately to:
+
+```text
+data/xenium/processed/vbct/spatial_analysis/
+  min15_area95_selected_resolutions/<sample>/
+```
+
+### Clean Scanpy UMAPs
+
+`08_annotate_cell_types_and_plot_umaps.py` now has config-driven controls for
+sample titles, figure titles, external legends, axis labels, combined panels,
+and summary-table writes. All new controls default to the previous behaviour, so
+the reviewed annotation workflow remains compatible.
+
+The new config
+`config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_clean_umaps.json`
+reads the existing script 08 annotated H5ADs, does not rewrite H5ADs or summary
+tables, and produces eight clean per-sample Scanpy UMAPs. They have no titles,
+axis labels, or external legends. Cell-type names are placed directly on the
+embedding at 12 points, increased from 8 points. PNG, SVG, and PDF were generated
+for every sample here:
+
+```text
+figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/
+  clean_scanpy/per_sample_scanpy/
+```
+
+The original titled per-sample and combined UMAP figures were retained.
+
+### Clean cell-type composition figures
+
+`09_plot_cell_type_proportions.py` now reads base, title, facet, legend,
+caption, axis-label, and tick-label sizes from configuration. The supplied
+configs use 14-point legend text, a 15-point legend title and y-axis label,
+13-point tick labels, and 16-point tissue headings. Overall titles and captions
+are disabled for these clean exports, while the shared cell-type legend remains.
+The tissue plot retains Skin, Brain, Lung, and Gastrointestinal headings.
+
+Both standard and tissue-faceted variants were regenerated as PNG, SVG, PDF,
+and CSV under:
+
+```text
+figures/cell_type_proportions/vbct_min15_area95_selected_resolutions/
+```
+
+The standard PNG is 5100 x 2700 and the tissue-faceted PNG is 5700 x 2700, both
+at 300 DPI. All eight samples and 2,083,396 cells were retained; per-sample
+proportions sum to one and the regenerated values match the earlier results.
+
+### Validation and repository state
+
+Python compilation, JSON parsing, Git whitespace checks, output counts, PNG
+integrity and DPI, PDF signatures, and SVG text-presence/absence checks passed.
+The local image-viewer sandbox was unavailable, so the new figures have not had
+a final visual inspection inside Codex.
+
+Files changed for the clean UMAP/composition work are:
+
+- `08_annotate_cell_types_and_plot_umaps.py`
+- `09_plot_cell_type_proportions.py`
+- `config/08_cell_type_annotation/README.md`
+- `config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_clean_umaps.json`
+- `config/09_cell_type_proportions/README.md`
+- both active JSON configs under `config/09_cell_type_proportions/vbct/`
+
+The worktree also contains conference-figure helper/config changes that were
+already present and were deliberately left untouched. Review and stage changes
+selectively before committing.
+
+## Next Session Priority: Script 10 Vector Exports (2026-10-26)
+
+The next session will update script 10 spatial-analysis plotting so its plots are
+exported as SVG and PDF as well as PNG, with raster components rendered at
+300 DPI. Preserve editable vector text and layout elements where the plotting
+libraries allow it, while rasterizing dense point layers when needed to keep
+files practical. Apply this consistently to the script 10 neighbourhood
+enrichment, centrality, co-occurrence, and top-Moran spatial-expression plots
+under:
+
+```text
+figures/spatial_analysis/vbct_min15_area95_selected_resolutions/
+  <sample>/min15_area95_r<resolution>/squidpy/
+```
+
+Before rerunning the complete HPC analysis, verify locally that all three formats
+are produced with stable filenames, PDFs are valid, SVG text remains editable,
+and embedded raster layers use 300 DPI. Update the script 10 config/README and
+HPC handoff instructions as part of that work. The Phoenix no-SSH rule continues
+to apply; Nathalie will run any required HPC jobs.
+

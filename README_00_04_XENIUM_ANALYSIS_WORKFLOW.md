@@ -419,12 +419,9 @@ The wrapper exits cleanly when an array task ID is greater than the number of JS
 01_QC_xenium_spatial_clean_clustered.py
 ```
 
-Related raw-QC helper variants currently use the same `01_QC` numbering:
-
-```text
-01_QC_xenium_spatial.py
-01_QC_xenium_spatial_PTMT_v2.py
-```
+The older raw-QC helper variants that shared the `01_QC` numbering
+(`01_QC_xenium_spatial.py`, `01_QC_xenium_spatial_PTMT_v2.py`) were archived to
+`archive/2026-11-18/`.
 
 ### Purpose
 
@@ -492,7 +489,7 @@ For a single sample, run directly inside the `banksy` environment:
 
 ```bash
 conda run -n banksy python 01_QC_xenium_spatial_clean_clustered.py \
-  --config config/01_clustering/vbct/small/CK_skin_res.json
+  --config config/01_QC/vbct/CK_skin_res.json
 ```
 
 For PTMT array jobs, `hpc/slurm/run_01_xenium_QC_array_ptmt.sl` defaults to `CONFIG_DIR=config/01_QC/ptmt` and accepts an override. For the PTMT PC55 QC configs, run:
@@ -503,12 +500,10 @@ sbatch --array=0-7%2 \
   hpc/slurm/run_01_xenium_QC_array_ptmt.sl
 ```
 
-The older raw-QC array wrappers now call the numbered raw-QC helper variants:
-
-```text
-hpc/slurm/run_01_xenium_QC_array_vbct.sl -> 01_QC_xenium_spatial.py
-hpc/slurm/run_01_xenium_QC_array_ptmt.sl -> 01_QC_xenium_spatial_PTMT_v2.py
-```
+Both array wrappers (`hpc/slurm/run_01_xenium_QC_array_vbct.sl` and
+`hpc/slurm/run_01_xenium_QC_array_ptmt.sl`) call
+`01_QC_xenium_spatial_clean_clustered.py`. The raw-QC variants they previously
+called are archived in `archive/2026-11-18/`.
 
 
 ## Script 05: Apply Reviewed QC Masks For Reclustering
@@ -839,7 +834,7 @@ Default QC-pass-only reclustering:
 
 ```bash
 conda run -n banksy python 06_recluster_qc_annotated_with_banksy.py \
-  --config config/06_recluster_qc_annotated/ptmt_pc55/10331_run_1_1644.json
+  --config config/06_recluster_qc_annotated/vbct/grouped_area95_min_transcript_gte15/CK_skin_res.json
 ```
 
 All-cell sensitivity reclustering uses the same script with this config key changed:
@@ -1338,7 +1333,7 @@ All genes grouped by archived labels:
 
 ```bash
 conda run -n banksy python 03_export_dotplot_data_from_config.py \
-  --config config/03_export_summary/archive/vbct_small_legacy_script02/all_genes_archive_labels/CK_skin_res_all_genes_archive_cell_type_labels.json
+  --config config/03_export_summary/archive/vbct_archive_labels/all_genes_archive_labels/CK_skin_res_all_genes_archive_cell_type_labels.json
 ```
 
 ### How To Run On The HPC
@@ -1379,7 +1374,7 @@ Archived-label all genes:
 
 ```bash
 sbatch --array=0-7 \
-  --export=CONFIG_DIR=config/03_export_summary/archive/vbct_small_legacy_script02/all_genes_archive_labels \
+  --export=CONFIG_DIR=config/03_export_summary/archive/vbct_archive_labels/all_genes_archive_labels \
   hpc/slurm/run_03_xenium_dotplot_export_from_config.sl
 ```
 
@@ -1919,8 +1914,6 @@ Syntax check:
 ```bash
 python -m py_compile 00_xenium_clustering_clean_adata.py \
   01_QC_xenium_spatial_clean_clustered.py \
-  01_QC_xenium_spatial.py \
-  01_QC_xenium_spatial_PTMT_v2.py \
   02_create_expression_adata_with_banksy_clusters.py \
   03_export_dotplot_data_from_config.py \
   03_export_dotplot_data_from_clean_script00_config.py \
@@ -2009,7 +2002,6 @@ See `config/04_plot_dotplot/README.md` for the active layout. Current PTMT PC55 
 
 ```text
 config/04_plot_dotplot/active/ptmt_pc55_clean_script00/multi_sample/ptmt_pc55_panel_multi_sample_local.json
-config/04_plot_dotplot/active/ptmt_pc55_clean_script00/multi_sample/ptmt_pc55_panel_run_1_local.json
 config/04_plot_dotplot/active/ptmt_pc55_clean_script00/per_sample_panel_all_res/run_1/*.json
 config/04_plot_dotplot/active/ptmt_pc55_clean_script00/per_sample_all_genes_all_res/*.json
 ```

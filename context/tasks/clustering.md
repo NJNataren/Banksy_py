@@ -13,13 +13,13 @@ Maintain and extend the config-driven Xenium clustering workflow for BANKSY-base
   - `01_QC_xenium_spatial_clean_clustered.py`: QC/inspection of the clean clustered AnnData object.
 - The older `01_xenium_clustering.py` and `01_xenium_clustering.ipynb` are no longer the active implementation in this working tree.
 - Both active scripts can read one JSON config via `--config`; recent notebook-friendly updates also allow no-config local CK testing fallbacks.
-- Clustering configs live under `config/01_clustering/`, split by study/group and sample.
+- Clustering configs live under `config/00_clustering/`, split by study/group and sample.
 - Processed and output paths are now explicitly project-scoped in configs and scripts, for example `data/xenium/processed/vbct/<dataset_name>/` and `data/xenium/output/ptmt/<dataset_name>/`.
 - The previous helper-function approach for inferring/scoping project paths was removed; configs should state the project/path intent directly.
-- PTMT configs currently live under `config/01_clustering/ptmt/` and include `raw_subdir` so samples can read raw files from run-specific folders such as `ptmt/Run_1`, `ptmt/Run_2`, and `ptmt/Run_3`.
+- PTMT configs currently live under `config/00_clustering/ptmt/` and include `raw_subdir` so samples can read raw files from run-specific folders such as `ptmt/Run_1`, `ptmt/Run_2`, and `ptmt/Run_3`.
 - Main clustering Slurm entrypoints include `run_00_xenium_clustering.sl` and `run_00_xenium_clustering_large.sl`.
 - `run_00_xenium_clustering.sl` now anchors execution to the HPC repository path before running Python, then prints working-directory and required-directory diagnostics.
-- If running all current PTMT configs, update/check the Slurm array range against the number of JSON files in `config/01_clustering/ptmt/`.
+- If running all current PTMT configs, update/check the Slurm array range against the number of JSON files in `config/00_clustering/ptmt/`.
 
 ## Session Handoff
 
@@ -31,7 +31,7 @@ Recent work focused on making the clean AnnData object the central handoff betwe
 - `01_QC_xenium_spatial_clean_clustered.py` was locally tested on `CK_skin_res` using the clean clustered object and completed successfully.
 - Notebook versions were generated for local interactive analysis: `00_xenium_clustering_clean_adata.ipynb` and `01_QC_xenium_spatial_clean_clustered.ipynb`.
 - Both active scripts were syntax-checked with `python -m py_compile`.
-- Current git status at the end of the session included modified `00_xenium_clustering_clean_adata.py`, modified `run_00_xenium_clustering.sl`, deleted `config/01_clustering/vbct/large/MF_skin_non_res_roi.json`, and untracked `config/01_clustering/vbct/large/MF_skin_non_res.json`.
+- Current git status at the end of the session included modified `00_xenium_clustering_clean_adata.py`, modified `run_00_xenium_clustering.sl`, deleted `config/00_clustering/vbct/large/MF_skin_non_res_roi.json`, and untracked `config/00_clustering/vbct/large/MF_skin_non_res.json`.
 - The `MF_skin_non_res_roi.json` to `MF_skin_non_res.json` change appears to be an intentional user rename; do not revert it.
 
 ## Key Files
@@ -40,8 +40,8 @@ Recent work focused on making the clean AnnData object the central handoff betwe
 - `00_xenium_clustering_clean_adata.ipynb`
 - `01_QC_xenium_spatial_clean_clustered.py`
 - `01_QC_xenium_spatial_clean_clustered.ipynb`
-- `config/01_clustering/`
-- `config/01_clustering/ptmt/`
+- `config/00_clustering/`
+- `config/00_clustering/ptmt/`
 - `run_00_xenium_clustering.sl`
 - `run_00_xenium_clustering_large.sl`
 - `run_01_xenium_QC_array_ptmt.sl`
@@ -167,7 +167,7 @@ Useful commands that passed during this session:
 ```bash
 python -m py_compile 00_xenium_clustering_clean_adata.py
 python -m py_compile 01_QC_xenium_spatial_clean_clustered.py
-MPLBACKEND=Agg python 01_QC_xenium_spatial_clean_clustered.py --config config/01_clustering/vbct/small/CK_skin_res.json
+MPLBACKEND=Agg python 01_QC_xenium_spatial_clean_clustered.py --config config/01_QC/vbct/CK_skin_res.json
 bash -n run_00_xenium_clustering.sl
 ```
 
@@ -187,7 +187,7 @@ A larger sample failed during `write_h5ad()` in `00_xenium_clustering_clean_adat
 error message = 'No such file or directory', flags = 13, o_flags = 242
 ```
 
-The failure occurred while creating a spatial AnnData `.h5ad`, not while reading the config. `config/01_clustering/vbct/large/CK_bowel_res.json` appears complete and includes the expected fields: `project`, `raw_subdir`, `dataset_name`, `pc_label`, `lambda_label`, `res_label`, `nbr_weight_decay`, `coord_keys`, and `new_labels`.
+The failure occurred while creating a spatial AnnData `.h5ad`, not while reading the config. `config/00_clustering/vbct/large/CK_bowel_res.json` appears complete and includes the expected fields: `project`, `raw_subdir`, `dataset_name`, `pc_label`, `lambda_label`, `res_label`, `nbr_weight_decay`, `coord_keys`, and `new_labels`.
 
 Most likely explanation: the Slurm job was running from the wrong working directory or hitting an HPC filesystem/mount/path issue. The script uses relative paths under `data/xenium`, so the working directory matters.
 
