@@ -1,7 +1,7 @@
 {
-  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
-  "figure_dir": "data/xenium/output/vbct/poster/min15_area95_selected_resolutions/cohort_marker_dotplot",
-  "table_dir": "data/xenium/processed/vbct/poster/min15_area95_selected_resolutions/cohort_marker_dotplot",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "label_level": "tier_1",
+  "output_subdir": "cohort_marker_dotplot",
   "output_stem": "cohort_canonical_marker_dotplot_rdbu_large_font_150dpi",
   "figure_formats": [
     "png",

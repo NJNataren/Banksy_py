@@ -47,7 +47,7 @@ Archived cell-type labels from older annotated AnnData objects
    Rerun the BANKSY clustering portion of script 00 from the script 05 QC-annotated clean expression object. The default mode clusters only cells with `qc_keep_for_reclustering == True`; optional `all_cells` mode supports sensitivity analysis. Script 06 saves BANKSY spatial objects, result tables, full-cell cluster tables, clean expression objects with recluster labels/embeddings, marker outputs, BANKSY plots, and cluster-count QC plots.
 
 8. `08_annotate_cell_types_and_plot_umaps.py`
-   Apply reviewed cluster-to-cell-type mappings to script 06 clean objects and save annotated H5ADs plus shared-colour UMAPs. Samples, mapping, and palette come from the cohort config (`config/cohorts/`).
+   Apply a versioned annotation set (`config/annotations/`) to script 06 clean objects and save stamped annotated H5ADs (`cell_type_tier_1`, optional `cell_type_tier_2`) plus per-tier UMAPs. Samples come from the set's cohort config (`config/cohorts/`).
 
 9. `09_plot_cell_type_proportions.py`
    Optional composition plots from script 08 count tables, including tissue facets. This is not a prerequisite for spatial analysis.
@@ -58,7 +58,7 @@ Archived cell-type labels from older annotated AnnData objects
 10a. `10a_export_nhood_enrichment_tables.py`
    Local backfill of the script 10 enrichment tables from stored result H5ADs (read-only), so cross-sample helpers never need the H5ADs.
 
-Steps after 08 share one cohort config, the same `--input-root`/`--output-root` options, and one output rule; see "After Script 08" in `README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md` for the diagram and run table.
+Steps from 08 on share one annotation set (naming one cohort config), the same `--input-root`/`--output-root` options, and one output rule; see "After Script 08" in `README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md` for the diagram and run table.
 
 ## Environment
 
@@ -853,30 +853,36 @@ All-cell sensitivity reclustering uses the same script with this config key chan
 
 ### Purpose
 
-Validates a reviewed cluster-to-cell-type mapping against each selected script
-06 clean recluster object, adds `cell_type`, and writes annotated H5ADs, count
-tables, and shared-colour UMAPs. A replot config (`"input_key": "annotated_h5ad"`)
+Validates a versioned annotation set (cluster-to-label mapping with tiers;
+`config/annotations/README.md`) against each selected script 06 clean recluster
+object, adds one label column per tier (`cell_type_tier_1`, optional
+`cell_type_tier_2`) plus a provenance stamp, and writes annotated H5ADs, count
+tables, a change table against the parent set, and per-tier UMAPs. A replot config (`"input_key": "annotated_h5ad"`)
 redraws UMAPs from existing annotated objects without rewriting them.
 
 ### Configs and outputs
 
 - Cohort: `config/cohorts/vbct/min15_area95_selected_resolutions.json` (samples,
-  script 06 and annotated object paths, mapping CSV, palette).
+  script 06 objects, cluster and UMAP keys).
+- Annotation sets: `config/annotations/vbct/min15_area95_selected_resolutions/<version>/`
+  (mapping, palette, CHANGES.md; managed with `xenium_workflow/annotation_sets.py`).
 - Step configs: `config/08_cell_type_annotation/vbct/` (annotate and
   `_clean_umaps` replot); details in `config/08_cell_type_annotation/README.md`.
-- Annotated H5ADs and count tables: `data/xenium/processed/vbct/...`; figures:
-  `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/`.
-- HPC: `sbatch hpc/slurm/run_08_cell_type_annotation.sl` (one batch job). Locally,
+- Annotated H5ADs and tables:
+  `data/xenium/processed/vbct/cell_type_annotation/<cohort>/<version>/`; figures:
+  `data/xenium/output/vbct/cell_type_annotation/<cohort>/<version>/<tier>/`.
+- HPC: `sbatch hpc/slurm/run_08_cell_type_annotation.sl` (one batch job;
+  `ANNOTATION=<set dir>` selects another version). Locally,
   script 06 inputs are on Phoenix: add `--input-root ~/mnt/phoenix_scratch/Banksy_py`.
 
 ## Script 09: Cell-Type Proportions
 
-`09_plot_cell_type_proportions.py` validates script 08's reviewed counts
-against the cohort (branch, resolution, palette) and plots per-sample
+`09_plot_cell_type_proportions.py` validates script 08's per-tier counts for one
+annotation set against its cohort (branch, resolution) and palette and plots per-sample
 composition, optionally faceted (`facet` per sample, `plot.facet_order`).
 Configs: `config/09_cell_type_proportions/vbct/`; figures to
-`data/xenium/output/vbct/cell_type_proportions/...`, proportion CSV to
-`data/xenium/processed/vbct/cell_type_proportions/...`. Runs locally; details
+`data/xenium/output/vbct/cell_type_proportions/<cohort>/<version>/<tier>/`, proportion CSV to
+the same path under `data/xenium/processed/`. Runs locally; details
 in `config/09_cell_type_proportions/README.md`.
 
 ## Script 10: Cell-Type Spatial Analysis
@@ -895,8 +901,9 @@ per-sample configs, and its wrapper were archived in
 ### Purpose
 
 Runs Squidpy neighbourhood enrichment, centrality, co-occurrence, and Moran's I
-on the annotated clean expression objects written by script 08, grouped by
-reviewed `cell_type`, one cohort sample at a time. Annotation must finish first;
+on the annotated clean expression objects written by script 08, grouped by one
+label tier of a released annotation set (`label_level`, e.g. `cell_type_tier_1`),
+one cohort sample at a time. Annotation must finish first;
 script 09 is optional. The objects hold only `qc_pass_only` cells, so QC-failed
 cells do not affect neighbour graphs or Moran's I. Enrichment and Moran's I
 permutations are seeded (1234).
@@ -907,16 +914,17 @@ permutations are seeded (1234).
 config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json
 ```
 
-The config names the cohort (`config/cohorts/vbct/min15_area95_selected_resolutions.json`:
-samples, annotated object paths, mapping, palette, coordinate keys) and sets
-`figure_dir`, `result_dir`, Moran settings, and figure formats.
+The config names an annotation set (`"annotation"`, which names the cohort) and
+a tier (`"label_level"`), and sets Moran settings and figure formats; output
+folders are derived from the set (`xenium_workflow/annotation_sets.py`). `--annotation`,
+`--label-level` and `--allow-draft` override it.
 `--input-root` and `--output-root` default to the repository root.
 
 ### Main Outputs
 
 ```text
-data/xenium/output/vbct/spatial_analysis/<branch_set>/<sample>/<branch>_r<res>/squidpy/   figures
-data/xenium/processed/vbct/spatial_analysis/<branch_set>/<sample>/
+data/xenium/output/vbct/spatial_analysis/<cohort>/<version>/<tier>/<sample>/<branch>_r<res>/squidpy/   figures
+data/xenium/processed/vbct/spatial_analysis/<cohort>/<version>/<tier>/<sample>/
   <stem>_squidpy.h5ad                  result object
   <stem>_nhood_enrichment.csv          enrichment table for cross-sample helpers
   <branch>_r<res>/centrality_scores_*.csv, moran_scores_*.csv
@@ -937,8 +945,8 @@ Full runs belong on the HPC (`hpc/slurm/run_10_cell_type_spatial_analysis.sl`).
 
 ## Script 10a: Backfill Neighbourhood Enrichment Tables
 
-`10a_export_nhood_enrichment_tables.py` reads only the enrichment and
-`cell_type` from stored script 10 result H5ADs and writes the same
+`10a_export_nhood_enrichment_tables.py` reads only the enrichment and the
+tier's label column from stored script 10 result H5ADs and writes the same
 `<stem>_nhood_enrichment.csv` script 10 now writes, verifying the round trip.
 Run it locally after each HPC script 10 run (`--overwrite` to refresh):
 
@@ -2093,7 +2101,7 @@ The key policy is to preserve provenance: script 05 does not hard-filter cells, 
 The spatial step was renamed from 07 to 10 on 2026-10-25 to reflect its
 annotation dependency; the script and config folder were renamed to
 `10_cell_type_spatial_analysis.py` and `config/10_cell_type_spatial_analysis/`
-on 2026-11-20. Use those, the cohort config in `config/cohorts/`, and
+on 2026-11-20. Use those, the annotation sets in `config/annotations/`, and
 `hpc/slurm/run_10_cell_type_spatial_analysis.sl`. No step 07 alias is retained.
 The workflow is **06 → 08 → 10**; step 09 is an optional plotting branch from 08.
 The post-08 diagram, run table, and local commands are in "After Script 08" in

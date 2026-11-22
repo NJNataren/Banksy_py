@@ -9,6 +9,10 @@ spatial distributions across VBCT samples.
 
 ## Path Update (2026-11-20, post-08 cleanup)
 
+Superseded again on 2026-11-22: mapping, palette, and annotated-object paths
+now live in versioned annotation sets; see "Design: Versioned Annotation Sets"
+and "Session Update: Annotation Sets Implemented" at the end of this file.
+
 Paths below are historical. On branch `cleanup/post08-flow` (see
 `post08_flow_cleanup.md`; merge to `main` pending an HPC test):
 
@@ -345,8 +349,8 @@ H5AD files do not need to be loaded again. For each sample, calculate
 cell types absent from a sample with zero before plotting.
 
 Preserve the sample order and selected resolutions listed above. Preserve the
-cell-type stacking order and exact colours from `shared_cell_type_palette.json`
-so the bar plot matches the UMAPs. A sensible x-axis label is the sample name,
+cell-type stacking order and exact colours from the shared palette (superseded:
+`shared_cell_type_palette.json` moved to `config/annotations/vbct/min15_area95_selected_resolutions/v1/palette.json` on 2026-11-22) so the bar plot matches the UMAPs. A sensible x-axis label is the sample name,
 with its selected resolution either on a second line or in the caption. Label
 the y-axis `Cell proportion` and format it as 0–100%. Use one shared legend and
 avoid labels inside very small segments unless specifically requested.
@@ -649,3 +653,220 @@ and embedded raster layers use 300 DPI. Update the script 10 config/README and
 HPC handoff instructions as part of that work. The Phoenix no-SSH rule continues
 to apply; Nathalie will run any required HPC jobs.
 
+
+## Design: Versioned Annotation Sets (2026-11-22)
+
+Agreed with Nathalie in discussion on 2026-11-22. Implementation is on branch
+`feature/annotation-sets`. This section supersedes the single-mapping layout
+recorded above. The poster run is not special: it becomes annotation `v1`.
+
+### Concept
+
+Clustering facts and labels change at different rates, so they are split:
+
+- **Cohort** (`config/cohorts/<project>/<cohort>.json`) holds the clustering facts: samples,
+  response, tissue, branch, resolution, script 06 object, `groupby`, `umap_key`, and
+  coordinate keys. It no longer holds the mapping, the palette or the annotated paths.
+- An **annotation set** (`config/annotations/<project>/<cohort>/<version>/`) holds the labels.
+  One cohort can have several sets. Versions are plain `v1`, `v2`, ..., and each
+  folder's `CHANGES.md` records what the version represents and why.
+
+```text
+config/annotations/vbct/min15_area95_selected_resolutions/
+  v1/
+    annotation.json   # version, cohort, parent, status, date, release hash
+    mapping.csv       # one row per source cluster
+    palette.json      # per-tier order, colours, tier hierarchy
+    CHANGES.md        # what this version is and why (human-written)
+  v2/ ...             # parent: v1
+```
+
+Script 08 remains the annotation step; no new numbered script.
+
+### Tiers
+
+- `cell_type_tier_1` is the broad type (the current 8 types). `cell_type_tier_2` is an
+  optional finer level. Further tiers follow the same pattern.
+- Mapping columns are `cell_type_tier_1` and optionally `cell_type_tier_2`. Several
+  clusters sharing a label is how clusters are merged, at any tier.
+- **Hierarchy.** `palette.json` declares each tier-2 label's tier-1 parent. Script 08
+  rejects any mapping row whose tier-2 label has a different parent, so tier-1 results
+  stay comparable across versions.
+- **Blank tier 2.** The cell inherits its tier-1 label and colour, and
+  `obs["cell_type_tier_2_inherited"]` is True, so it is not mistaken for a real split.
+  (Implemented as this flag rather than an `annotation_status` value;
+  `annotation_status` in the mapping is `reviewed` or `proposed`.)
+- **H5AD.** Script 08 writes one obs column per tier (`cell_type_tier_1`,
+  `cell_type_tier_2`), each with `uns["<column>_colors"]`.
+- **Downstream.** Steps choose `label_level: tier_1 | tier_2` (default `tier_1`). The
+  level is part of the output path, so the two levels never overwrite each other.
+- The old `cell_type` column is retired. There is no alias, to avoid duplicate label
+  columns.
+
+### Draft and released status
+
+- **Draft.** A draft set can be edited and rerun freely (`--overwrite`).
+- **Releasing.** `python -m xenium_workflow.annotation_sets release <set dir>` validates the set, then
+  records a SHA-256 of `mapping.csv` and `palette.json` in `annotation.json`.
+- **Edits after release.** Script 08 refuses to run a released set whose files no longer
+  match the hash. Changes therefore always mean a new version
+  (`python -m xenium_workflow.annotation_sets new <parent dir>` copies the parent as the next draft).
+- **Script 10 needs a released set.** It is the expensive HPC step. Pass `--allow-draft`
+  only for local smoke tests.
+
+### Provenance and change records
+
+- **In the H5AD.** `uns["cell_type_annotation"]` records the annotation version, cohort,
+  parent, status, hash, tiers, mapping path, `groupby`, resolution and UMAP key. Script
+  10 and the helpers check the stamp against the set they were asked to use.
+- **Change table.** When a set has a parent on the same clustering, script 08 writes
+  `changes_vs_<parent>.csv`. It has one row per source cluster whose label changed at
+  any tier, with old and new labels and `n_cells`. `xenium_workflow/annotation_sets.py diff` prints the
+  same comparison without H5ADs (no cell counts).
+- **Run manifest.** Script 08 also writes a run manifest (JSON): inputs, outputs,
+  set hash, and cell totals.
+
+### Derived paths
+
+Step configs no longer contain output folders. They name an annotation set and a
+level, and both can be overridden on the command line (`--annotation`,
+`--label-level`), so v2 reuses the same step configs.
+
+```text
+annotated H5AD   data/xenium/processed/<project>/cell_type_annotation/<cohort>/<version>/<sample>/
+                   adata_expression_clean_<sample>_<branch>_cell_type_annotated_<version>_r<res>.h5ad
+08 tables        data/xenium/processed/<project>/cell_type_annotation/<cohort>/<version>/
+08 figures       data/xenium/output/<project>/cell_type_annotation/<cohort>/<version>/<level>/[<subdir>/]
+other steps      data/xenium/{output,processed}/<project>/<step>/<cohort>/<version>/<level>/[<subdir>/]
+```
+
+Steps: `cell_type_proportions` (09), `spatial_analysis` (10 and its helpers), and
+`poster`. An optional `output_subdir` in a step config separates helper outputs, for
+example `immune_infiltration`.
+
+### Validation in script 08
+
+- Every source cluster is mapped exactly once, and every label is in its tier palette.
+- The tier hierarchy is consistent.
+- Cell IDs, shape and expression are unchanged.
+- Per-tier counts sum to `n_obs`.
+- A released set matches its hash.
+- Tier-1 colours shared with the parent are unchanged; differences are reported.
+
+### Migration
+
+1. Build `v1` from the current mapping (`cell_type` -> `cell_type_tier_1`) and palette.
+   Its `CHANGES.md` notes it was the labelling used for the HCA poster. Release it.
+2. Rerun script 08 for v1 on the HPC to write stamped objects under the new paths.
+3. Script 10 is not rerun just for migration. Its next run (pending the Moran's I
+   review, `morans_i_significance.md`) reads v1 under the new layout.
+4. Archive the unversioned annotation, proportion, spatial and poster outputs in one
+   dated folder with a README, locally and on the HPC (Nathalie runs the HPC moves).
+
+### Open points
+
+- Moran's I does not depend on labels, so a tier-2 script 10 run repeats it. Revisit
+  this when tier 2 is first used.
+- Conference-figure helpers keep their own sample list and are out of scope.
+
+
+## Session Update: Annotation Sets Implemented (2026-11-22)
+
+Implemented the design above on branch `feature/annotation-sets` (not
+committed; created from `main` at `bf83ff1`). Usage is documented in
+`config/annotations/README.md`.
+
+### What changed
+
+- New `xenium_workflow/annotation_sets.py` (written at the repository root; moved into the package the same day). It loads and validates sets
+  (palette tiers and hierarchy, mapping coverage against the cohort, release hash)
+  and derives every output path. Its command line provides `new`, `check`, `diff`
+  and `release`.
+- `xenium_workflow/cohorts.py`: cohorts hold clustering facts only. It rejects the retired
+  `palette_json`, `mapping_csv` and `annotated_h5ad` keys.
+- v1 was created at `config/annotations/vbct/min15_area95_selected_resolutions/v1/`
+  from the old mapping and palette (`git mv`; column `cell_type` became
+  `cell_type_tier_1`; the 127 rows are otherwise byte-identical). It was released
+  on 2026-11-22 with SHA-256 `f60c669e...540ef`.
+- Script 08 writes the tier columns, stamp, per-tier UMAPs, `cluster_annotation_counts.csv`,
+  `cell_type_counts_<tier>.csv`, `changes_vs_<parent>.csv` and the run manifest.
+- Scripts 09, 10 and 10a, both spatial helpers and both poster helpers now take the
+  set and level from `annotation` and `label_level` in the step config, with
+  `--annotation` and `--label-level` overrides. They check the stamp and derive
+  their paths. Scripts 09 and 10 and the helpers need a released set
+  (`--allow-draft` overrides this).
+- Step configs dropped `cohort` and all output folders. The helpers use
+  `output_subdir`.
+- Slurm wrappers accept `ANNOTATION=`, and script 10 also accepts `LABEL_LEVEL=` and `CONFIG=`.
+- `tools/pipeline_status.py` checks the highest released set by default
+  (`--annotation`, `--label-level`).
+- Docs updated: concise and full workflow READMEs; the cohorts, 08, 09, 10,
+  spatial_analysis and poster config READMEs; `hpc/slurm/README.md`.
+- No scientific parameters changed. Script 10's Moran settings are untouched.
+  The only change is in Squidpy figure filenames: `nccell_type` became
+  `nctier_1`, for example.
+
+### Verification (local, outputs written to the session scratchpad, not the repo)
+
+- **GR v1 script 08.** Run on the local GR script 06 object (clean expression,
+  24,040 cells). Labels, `.X`, cell order and colours are identical to the old
+  annotated object, and the stamp is present.
+- **GR v1 script 10.** Completed in about 1 minute. Its enrichment table is
+  bit-identical to the existing GR table. Script 10a reproduces it exactly.
+- **Scripts 09 and helpers.** Script 09 (both configs, all 8 samples, built from
+  the existing count table) matches the existing proportion CSVs. The
+  infiltration and enrichment-comparison helpers' GR rows match existing outputs.
+  Both poster helpers run.
+- **Throwaway v2.** Built with `new`, it contained two GR melanoma tier-2 splits
+  and one Pericyte-to-Fibroblast merge.
+  - `diff` and `changes_vs_v1.csv` listed exactly those 3 clusters (5,391 cells).
+  - Tier counts reconciled (12,753 melanoma; 3,551 fibroblast; 18,856 inherited).
+  - The tier-2 UMAP rendered correctly, and script 10 ran at tier 2.
+  - v2 was then deleted.
+- **Refusals confirmed.**
+  - An object stamped by a different set.
+  - Editing a released set (v1 was restored afterwards and checks OK).
+  - A tier-2 label under the wrong parent.
+  - Releasing with TODOs left in `CHANGES.md`.
+  - Retired step-config keys.
+  - Script 10 on a draft set without `--allow-draft`.
+- Script 08 `--validate-only` passed on GR and MG, the only script 06 objects
+  available locally. The Phoenix mount was not active, so the other six were not
+  checked locally.
+
+### Not done / next steps (for Nathalie)
+
+1. Review the branch diff and commit if happy. Nothing has been committed.
+2. Push the branch to the HPC checkout. Then, from the HPC repository root, regenerate v1:
+   `sbatch hpc/slurm/run_08_cell_type_annotation.sl`. This writes the stamped v1
+   objects under `data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/v1/`.
+3. Script 10 is not rerun just for migration. Its next run (after the Moran's I
+   review in `morans_i_significance.md`) reads v1. Until then, the old unversioned
+   script 10 results cannot be read by the updated helpers, which expect v1 paths
+   and stamps.
+4. After step 2, archive the old unversioned outputs in one dated folder with a
+   README, locally and on the HPC (Nathalie runs the HPC moves). This was not done
+   yet because the old outputs are the only complete script 08/10 results until v1
+   is regenerated.
+5. For the second labelling: `python -m xenium_workflow.annotation_sets new <v1 dir>`, edit
+   `v2/mapping.csv`, `palette.json` and `CHANGES.md`, run script 08 with
+   `ANNOTATION=<v2 dir>`, review, then `release`.
+
+
+## Session Update: Shared Modules Moved Into a Package (2026-11-22)
+
+At Nathalie's request, the three unnumbered shared modules at the repository
+root moved into the new package `xenium_workflow/`, so the root holds only
+pipeline steps:
+
+- `workflow_config.py` -> `xenium_workflow/cohorts.py` (renamed; `REPO_ROOT` now
+  resolves one level up)
+- `annotation_sets.py` -> `xenium_workflow/annotation_sets.py`; its command line is
+  now `python -m xenium_workflow.annotation_sets new|check|diff|release`
+- `spatial_tables.py` -> `xenium_workflow/spatial_tables.py`
+
+Imports were updated in scripts 08, 09, 10 and 10a, both spatial helpers and both poster helpers,
+`tools/pipeline_status.py`, and the script 10 Slurm wrapper. Current docs
+(`AGENTS.md`, both workflow READMEs, config READMEs) were updated. Older task
+handoffs keep the old names as history. `banksy_utils/` was deliberately not
+used, to keep upstream BANKSY code separate from pipeline plumbing.

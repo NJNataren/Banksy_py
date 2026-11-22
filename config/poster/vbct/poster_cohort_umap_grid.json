@@ -1,6 +1,7 @@
 {
-  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
-  "figure_dir": "data/xenium/output/vbct/poster/min15_area95_selected_resolutions/cohort_umap_grid",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "label_level": "tier_1",
+  "output_subdir": "cohort_umap_grid",
   "figure_formats": [
     "png",
     "svg",

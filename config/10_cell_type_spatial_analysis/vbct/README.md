@@ -1,12 +1,14 @@
 # Spatial analysis using reviewed cell types
 
-This configuration names the cohort config
-(`config/cohorts/vbct/min15_area95_selected_resolutions.json`). Sample names,
-branches, resolutions, original grouping columns, reviewed mapping, annotated
-object paths, coordinate keys, and shared palette are taken from it.
-Script 10 reads the `annotated_h5ad` objects written by script 08, not its unannotated
-HPC inputs. It groups spatial analyses by `cell_type` and processes one sample
-at a time. Original annotation objects remain unchanged.
+Since 2026-11-22 this configuration names an annotation set (`"annotation"`)
+and a tier (`"label_level"`, default `tier_1`); see `config/annotations/README.md`.
+Sample names, branches, resolutions, grouping columns, the mapping, annotated
+object paths, coordinate keys, and palette come from the set and its cohort.
+Script 10 reads the set's script 08 objects, checks their annotation stamp,
+groups spatial analyses by the tier's column (e.g. `cell_type_tier_1`), and
+processes one sample at a time. It needs a released set (`--allow-draft` for
+local tests); `--annotation` and `--label-level` override the config.
+Original annotation objects remain unchanged.
 
 From the Banksy_py project root:
 
@@ -20,7 +22,7 @@ python 10_cell_type_spatial_analysis.py --config config/10_cell_type_spatial_ana
 
 Without `--sample`, a full run processes all eight sequentially. Use the HPC
 workflow for full spatial calculations. Annotated objects must be available
-there at the cohort's relative `annotated_h5ad` paths. `--input-root` overrides
+there at the set's derived paths (written by script 08 on the HPC). `--input-root` overrides
 their root and `--output-root` the root for figures and result H5ADs; both
 default to the repository root (`--annotation-root` was replaced on 2026-11-19).
 Run script 08 first with `hpc/slurm/run_08_cell_type_annotation.sl`; it creates
@@ -37,7 +39,13 @@ yourself after script 08 has completed on HPC (or annotated files are transferre
 ```bash
 mkdir -p logs
 sbatch hpc/slurm/run_10_cell_type_spatial_analysis.sl
+# another version or tier with the same config:
+sbatch --export=ALL,ANNOTATION=config/annotations/vbct/min15_area95_selected_resolutions/<version>,LABEL_LEVEL=tier_2 \
+  hpc/slurm/run_10_cell_type_spatial_analysis.sl
 ```
+
+A tier-2 run repeats Moran's I, which does not depend on labels (open point in
+`context/tasks/cell_type_annotation.md`).
 
 The legacy config-per-task wrapper and cluster-mode configs were archived on
 2026-11-20 (`archive/2026-11-20_script10_legacy_cluster_mode/`); this folder was
@@ -45,17 +53,18 @@ renamed from `config/10_squidpy_recluster_analysis/vbct/cell_type_annotation/`.
 See the workflow README for the full 08 → 10 sequence.
 
 Figures are written under
-`data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/<branch>_r<resolution>/squidpy/`
-(moved from `figures/spatial_analysis/vbct_min15_area95_selected_resolutions/`
-on 2026-11-19; earlier runs archived in `figures/_pre_post08_cleanup_2026-11-20/spatial_analysis/`). Under
-`data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/`
-go the result H5AD, `<stem>_nhood_enrichment.csv`, and (since 2026-11-20) the
-centrality and Moran CSVs in `<branch>_r<resolution>/`.
+`data/xenium/output/<project>/spatial_analysis/<cohort>/<version>/<tier>/<sample>/<branch>_r<resolution>/squidpy/`.
+Under `data/xenium/processed/<project>/spatial_analysis/<cohort>/<version>/<tier>/<sample>/`
+go the result H5AD, `<stem>_nhood_enrichment.csv`, and the centrality and Moran
+CSVs in `<branch>_r<resolution>/`. Unversioned folders
+(`.../spatial_analysis/min15_area95_selected_resolutions/<sample>/`) hold results
+from before 2026-11-22 (v1 labels, `cell_type` column); earlier figures are in
+`figures/_pre_post08_cleanup_2026-11-20/spatial_analysis/`.
 Re-running a full analysis replaces its generated results using existing script
 10 behavior. The annotated source objects are not overwritten.
 
-Validation checks unique cell IDs, cell-type vocabulary, finite coordinates,
-and agreement with the reviewed mapping for the exact original cluster column,
+Validation checks the annotation stamp, unique cell IDs, the tier's vocabulary,
+finite coordinates, and agreement with the set's mapping for the exact original cluster column,
 branch, and resolution. Absent cell types are excluded from calculations while
 present types retain canonical palette order and colours.
 
@@ -84,8 +93,8 @@ Existing annotated script 08 inputs remain unchanged.
 Script 10 seeds neighbourhood enrichment (1234), so z-scores are reproducible;
 earlier HPC results were unseeded and differ by permutation noise only (edge
 counts are deterministic). Since 2026-11-20 it also writes
-`<result_dir>/<sample>/<stem>_nhood_enrichment.csv` (edge counts, z-scores, cell
-counts; format in `spatial_tables.py`) beside each result H5AD. After an HPC run,
+`<result folder>/<sample>/<stem>_nhood_enrichment.csv` (edge counts, z-scores, cell
+counts; format in `xenium_workflow/spatial_tables.py`) beside each result H5AD. After an HPC run,
 refresh the local copies with `10a_export_nhood_enrichment_tables.py`.
 
 The cross-sample helpers that read these tables (neighbourhood enrichment

@@ -7,10 +7,13 @@ python 09_plot_cell_type_proportions.py --config config/09_cell_type_proportions
 ```
 
 Use --validate-only to check inputs without writing files, or --overwrite to
-replace existing outputs. Branch, resolution, and the palette come from the
-cohort config named by `"cohort"`; the counts CSV resolves against
-`--input-root` and outputs against `--output-root` (both default to the
-repository root).
+replace existing outputs. Since 2026-11-22 the config names an annotation set
+(`"annotation"`) and tier (`"label_level"`, default `tier_1`); `--annotation`
+and `--label-level` override them, and `--allow-draft` permits a draft set. The
+input is script 08's `cell_type_counts_<tier>.csv` for that set (under
+`--input-root`); branch and resolution come from the set's cohort and the
+palette from the set (see `config/annotations/README.md`).
+`expected_total_cells` is an optional extra check.
 
 The script checks sample/branch/resolution provenance, unique sample/type rows,
 nonnegative integer counts, expected total cells, and the shared palette.
@@ -18,9 +21,11 @@ Missing types are filled with zero; each denominator is the total annotated
 post-filtered population of that sample. Sample order follows the config;
 bottom-to-top stack and legend order follow the palette. Do not pool QC branches.
 
-Outputs are PNG, SVG, and PDF in `data/xenium/output/vbct/cell_type_proportions/min15_area95_selected_resolutions/`
-and the proportion CSV in `data/xenium/processed/vbct/cell_type_proportions/min15_area95_selected_resolutions/`
-(`table_dir`). Before 2026-11-20 both went to `figures/cell_type_proportions/...`, now archived in
+Outputs are PNG, SVG, and PDF in
+`data/xenium/output/<project>/cell_type_proportions/<cohort>/<version>/<tier>/` and the
+proportion CSV in the same path under `data/xenium/processed/`. Unversioned
+outputs in `.../cell_type_proportions/min15_area95_selected_resolutions/` predate
+2026-11-22 (v1 labels); earlier ones are in
 `figures/_pre_post08_cleanup_2026-11-20/cell_type_proportions/`.
 The supplied config uses 300 DPI and editable vector text. Source count tables,
 annotated objects, and UMAPs are preserved. Plot typography is configurable;

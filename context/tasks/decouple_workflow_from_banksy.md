@@ -176,7 +176,7 @@ Notes for migration:
   the other (see `spatial_analysis.md`).
 - Post-08 cleanup (2026-11-20, branch `cleanup/post08-flow`) added two
   BANKSY-free shared modules at the repo root that map straight onto the
-  package: `workflow_config.py` (cohort loading, sample selection, input/output
+  package: `workflow_config.py` (renamed to `xenium_workflow/cohorts.py` 2026-11-22; cohort loading, sample selection, input/output
   roots) -> `config/` and `io/paths.py`; `spatial_tables.py` (script 10
   enrichment table format) -> `io/`. `spatial_common.py` now imports both; its
   `resolve_path` duplicate is gone. Script 10 still has its own
@@ -194,7 +194,7 @@ lines) import from `banksy/` or `banksy_utils/`:
 - `01_QC_xenium_spatial_clean_clustered.py`
 - `06_recluster_qc_annotated_with_banksy.py`
 
-Scripts 02–10, `workflow_config.py`, `spatial_tables.py` and `helper_scripts/`
+Scripts 02–10, `workflow_config.py` (moved to `xenium_workflow/` 2026-11-22), `spatial_tables.py` and `helper_scripts/`
 have no BANKSY imports. (`banksy_tutorials/` also imports BANKSY but is not
 workflow code.)
 
@@ -274,3 +274,14 @@ avoid long-lived conflicts with `config/` changes on main.
 - Existing QC filtering/reclustering behavior is reproduced for at least one validated sample branch.
 - BANKSY version or commit is pinned in the environment for reproducibility.
 - The old repo-local workflow remains available until the new package path is validated.
+
+
+## Update: First Shared Package (2026-11-22)
+
+`workflow_config.py`, `spatial_tables.py` and the new `annotation_sets.py` moved
+from the repository root into a small package `xenium_workflow/` (`cohorts.py`,
+`spatial_tables.py`, `annotation_sets.py`); see `cell_type_annotation.md`. It has
+no BANKSY imports and no `pyproject.toml`. Scripts import it from the
+repository root. It is a natural seed for the planned workflow package
+(proposed name `xenium_banksy_workflow`): `cohorts.py` and
+`annotation_sets.py` map to `config/`, and `spatial_tables.py` maps to `io/`.

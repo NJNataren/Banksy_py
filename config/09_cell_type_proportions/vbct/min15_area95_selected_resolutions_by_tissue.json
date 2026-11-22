@@ -1,9 +1,7 @@
 {
-  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
-  "counts_csv": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cell_type_counts.csv",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "label_level": "tier_1",
   "expected_total_cells": 2083396,
-  "output_dir": "data/xenium/output/vbct/cell_type_proportions/min15_area95_selected_resolutions",
-  "table_dir": "data/xenium/processed/vbct/cell_type_proportions/min15_area95_selected_resolutions",
   "output_stem": "cell_type_proportions_by_tissue",
   "plot": {
     "figsize": [

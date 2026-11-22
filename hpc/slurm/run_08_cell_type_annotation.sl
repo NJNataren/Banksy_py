@@ -20,12 +20,18 @@ source /hpcfs/users/a1210419/miniforge3/etc/profile.d/conda.sh
 conda activate banksy
 
 EXTRA_ARGS=()
+# Optional: ANNOTATION=config/annotations/<project>/<cohort>/vN overrides the
+# config's annotation set, so one config serves every version.
+if [[ -n "${ANNOTATION:-}" ]]; then
+    EXTRA_ARGS+=(--annotation "$ANNOTATION")
+fi
 if [[ "${OVERWRITE:-0}" == "1" ]]; then
     EXTRA_ARGS+=(--overwrite)
 fi
 
 echo "Repository: $REPO_DIR"
 echo "Config: $CONFIG"
+echo "Annotation override: ${ANNOTATION:-none (config value)}"
 echo "Overwrite existing outputs: ${OVERWRITE:-0}"
 echo "Started: $(date)"
 

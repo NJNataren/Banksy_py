@@ -1,19 +1,35 @@
 """
 Title: Annotate selected BANKSY clusters and plot shared-colour UMAPs
 Date: 2026-10-26
-Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
-(workflow_config.py); --input-root/--output-root default to the repository root.
-Summary: Validate a reviewed cluster-to-cell-type mapping, attach annotations to
-clean script 06 AnnData objects, and render matching Matplotlib and Scanpy UMAPs.
-The original expression matrix, cell identifiers, cluster columns, and saved
-embeddings are preserved. Figure formats, typography, titles, legends, and point
-rasterization are config-driven.
+Updated: 2026-11-19 - samples come from a cohort config (xenium_workflow/cohorts.py);
+--input-root/--output-root default to the repository root.
+Updated: 2026-11-22 - labels come from a versioned annotation set
+(annotation_sets.py, config/annotations/): one obs column per tier
+(`cell_type_tier_1`, `cell_type_tier_2`, ...), provenance stamp in
+`uns['cell_type_annotation']`, derived output paths, a change table against the
+parent set, and a run manifest. The old `cell_type` column is retired.
+Summary: Validate an annotation set's cluster-to-label mapping against clean
+script 06 AnnData objects, attach one label column per tier, and render Scanpy
+UMAPs per tier with the set's fixed colours. The expression matrix, cell
+identifiers, cluster columns, and saved embeddings are preserved. Figure
+formats, typography, titles, legends, and point rasterization are config-driven.
+
+Inputs: step config (`annotation`, plot settings); script 06 clean objects
+(`recluster_h5ad` in the cohort) under --input-root, or, for replot configs
+(`input_key: annotated_h5ad`), this set's annotated objects.
+Outputs (under --output-root, paths from xenium_workflow/annotation_sets.py):
+  processed/.../cell_type_annotation/<cohort>/<version>/<sample>/...annotated_<version>_r<res>.h5ad
+  processed/.../cell_type_annotation/<cohort>/<version>/cluster_annotation_counts.csv,
+      cell_type_counts_<tier>.csv, changes_vs_<parent>.csv, run_manifest.json
+  output/.../cell_type_annotation/<cohort>/<version>/<tier>/[<output_subdir>/] UMAP figures
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import math
+from datetime import datetime
 from pathlib import Path
 
 import anndata as ad
@@ -26,7 +42,12 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 
-from workflow_config import add_root_arguments, load_cohort, load_json, resolve_path, select_samples
+from xenium_workflow.annotation_sets import (
+    add_annotation_arguments, annotated_h5ad_path, check_stamp, cluster_changes, inherited_column,
+    label_column, level_title, level_vocabulary, load_annotation, load_mapping, mapping_for_sample,
+    resolve_step, sibling_dir, stamp, step_dir,
+)
+from xenium_workflow.cohorts import REPO_ROOT, add_root_arguments, load_json, resolve_path, select_samples
 
 
 # Keep text editable in Inkscape while allowing dense point clouds to be rasterized.
@@ -34,13 +55,15 @@ plt.rcParams["svg.fonttype"] = "none"
 plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
 
+STEP = "cell_type_annotation"
+
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description=(
-            "Apply reviewed cell-type mappings to clean BANKSY recluster objects "
-            "and render Scanpy cell-type UMAPs."
+            "Apply an annotation set's cluster mapping to clean BANKSY recluster objects "
+            "and render Scanpy UMAPs per label tier."
         )
     )
     parser.add_argument("--config", required=True, help="Path to the JSON run config.")
@@ -49,6 +72,8 @@ def parse_args() -> argparse.Namespace:
         action="append",
         help="Process only this sample; repeat to select multiple samples.",
     )
+    # Script 08 writes every tier; --label-level is not used here (see plot_levels).
+    add_annotation_arguments(parser, label_level=False)
     # Both default to the repository root. Locally, script 06 inputs are on the
     # Phoenix mount, so pass --input-root ~/mnt/phoenix_scratch/Banksy_py.
     add_root_arguments(parser)
@@ -70,57 +95,10 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_palette(path: Path) -> tuple[list[str], dict[str, str]]:
-    """Load and validate an ordered shared cell-type palette."""
-    payload = load_json(path)
-    order = payload["cell_type_order"]
-    colors = payload["colors"]
-    if len(order) != len(set(order)):
-        raise ValueError("cell_type_order contains duplicate labels")
-    if set(order) != set(colors):
-        raise ValueError("Palette labels and cell_type_order do not match exactly")
-    for label, color in colors.items():
-        if not matplotlib.colors.is_color_like(color):
-            raise ValueError(f"Invalid colour for {label!r}: {color!r}")
-    return order, colors
-
-
-def load_mapping(path: Path) -> pd.DataFrame:
-    """Load the reviewed cluster annotation table with cluster IDs as strings."""
-    mapping = pd.read_csv(path, dtype={"sample": str, "resolution": str, "cluster_id": str})
-    required = {
-        "sample",
-        "branch",
-        "resolution",
-        "groupby",
-        "cluster_id",
-        "cell_type",
-        "annotation_status",
-    }
-    missing = required - set(mapping.columns)
-    if missing:
-        raise KeyError(f"Mapping table is missing columns: {sorted(missing)}")
-    duplicate = mapping.duplicated(["sample", "branch", "resolution", "groupby", "cluster_id"])
-    if duplicate.any():
-        rows = mapping.loc[duplicate, sorted(required)].to_dict("records")
-        raise ValueError(f"Duplicate cluster mappings found: {rows}")
-    if mapping[list(required)].isna().any().any():
-        raise ValueError("Mapping table contains missing values in required columns")
-    return mapping
-
-
-def validate_sample_mapping(
-    adata: ad.AnnData,
-    sample_cfg: dict,
-    mapping: pd.DataFrame,
-    cell_type_order: list[str],
-) -> pd.DataFrame:
-    """Validate one mapping against the selected object and cluster grouping."""
+def validate_sample_mapping(adata: ad.AnnData, sample_cfg: dict, sample_mapping: pd.DataFrame) -> None:
+    """Check that the mapping covers exactly the object's clusters and the UMAP is usable."""
     sample = sample_cfg["sample"]
     groupby = sample_cfg["groupby"]
-    resolution = str(sample_cfg["resolution"])
-    branch = sample_cfg["branch"]
-
     if groupby not in adata.obs:
         raise KeyError(f"{sample}: missing cluster column {groupby!r}")
     embedding_key = sample_cfg["umap_key"]
@@ -131,104 +109,72 @@ def validate_sample_mapping(
         raise ValueError(f"{sample}: expected a two-dimensional UMAP; found {embedding.shape}")
     if not np.isfinite(embedding).all():
         raise ValueError(f"{sample}: UMAP coordinates contain non-finite values")
+    if adata.obs[groupby].isna().any():
+        raise ValueError(f"{sample}: cluster column {groupby!r} has missing values")
 
-    selected = mapping[
-        (mapping["sample"] == sample)
-        & (mapping["branch"] == branch)
-        & (mapping["resolution"].astype(float) == float(resolution))
-        & (mapping["groupby"] == groupby)
-    ].copy()
-    if selected.empty:
-        raise ValueError(f"{sample}: no mapping rows match branch/resolution/groupby")
-
-    object_clusters = set(adata.obs[groupby].dropna().astype(str).unique())
-    mapped_clusters = set(selected["cluster_id"].astype(str))
+    object_clusters = set(adata.obs[groupby].astype(str).unique())
+    mapped_clusters = set(sample_mapping["cluster_id"])
     missing = sorted(object_clusters - mapped_clusters)
     extra = sorted(mapped_clusters - object_clusters)
     if missing or extra:
         raise ValueError(
             f"{sample}: mapping coverage mismatch; unmapped={missing}, absent_from_object={extra}"
         )
-    unknown_types = sorted(set(selected["cell_type"]) - set(cell_type_order))
-    if unknown_types:
-        raise ValueError(f"{sample}: cell types missing from shared palette: {unknown_types}")
-    if set(selected["annotation_status"]) != {"reviewed"}:
-        raise ValueError(f"{sample}: all applied annotations must have status 'reviewed'")
-    return selected
 
 
-def apply_annotations(
-    adata: ad.AnnData,
-    sample_cfg: dict,
-    sample_mapping: pd.DataFrame,
-    cell_type_order: list[str],
-    palette: dict[str, str],
-    mapping_path: Path,
-) -> None:
-    """Attach reviewed labels and reproducible annotation metadata in place."""
+def apply_annotations(adata: ad.AnnData, sample_cfg: dict, sample_mapping: pd.DataFrame,
+                      annotation: dict) -> None:
+    """Attach one label column per tier plus provenance, in place."""
     groupby = sample_cfg["groupby"]
-    cluster_to_type = sample_mapping.set_index("cluster_id")["cell_type"].to_dict()
     source_clusters = adata.obs[groupby].astype(str)
-    labels = source_clusters.map(cluster_to_type)
-    if labels.isna().any():
-        missing = sorted(source_clusters[labels.isna()].unique())
-        raise ValueError(f"Unmapped clusters remained after validation: {missing}")
-
-    # Keep the project-wide category order even when a type is absent from a sample.
-    adata.obs["cell_type"] = pd.Categorical(labels, categories=cell_type_order, ordered=True)
+    by_cluster = sample_mapping.set_index("cluster_id")
+    for level in annotation["levels"]:
+        column = label_column(level)
+        order, colors = level_vocabulary(annotation, level)
+        labels = source_clusters.map(by_cluster[column])
+        if labels.isna().any():
+            missing = sorted(source_clusters[labels.isna()].unique())
+            raise ValueError(f"Unmapped clusters remained after validation: {missing}")
+        # Keep the set-wide category order even when a label is absent from a sample.
+        adata.obs[column] = pd.Categorical(labels, categories=order, ordered=True)
+        adata.uns[f"{column}_colors"] = [colors[label] for label in order]
+        if level != annotation["levels"][0]:
+            adata.obs[inherited_column(level)] = source_clusters.map(by_cluster[inherited_column(level)]).astype(bool)
     adata.obs["cell_type_annotation_status"] = pd.Categorical(
-        ["reviewed"] * adata.n_obs,
-        categories=["reviewed", "unresolved"],
-    )
+        source_clusters.map(by_cluster["annotation_status"]), categories=["reviewed", "proposed"])
     adata.obs["cell_type_source_cluster"] = source_clusters.astype("category")
-    adata.uns["cell_type_colors"] = [palette[label] for label in cell_type_order]
     adata.uns["cell_type_annotation"] = {
+        **stamp(annotation),
         "branch": sample_cfg["branch"],
         "resolution": str(sample_cfg["resolution"]),
         "groupby": groupby,
         "umap_key": sample_cfg["umap_key"],
-        "mapping_file": str(mapping_path),
-        "cell_type_order": cell_type_order,
+        "mapping_file": str(annotation["mapping_path"].relative_to(REPO_ROOT)),
     }
+    # Retired 2026-11-22; never leave a stale single-level column behind.
+    if "cell_type" in adata.obs:
+        del adata.obs["cell_type"]
+    adata.uns.pop("cell_type_colors", None)
 
 
-def shared_legend(cell_type_order: list[str], palette: dict[str, str]) -> list[Line2D]:
-    """Build legend handles in project-wide cell-type order."""
+def shared_legend(order: list[str], palette: dict[str, str]) -> list[Line2D]:
+    """Build legend handles in set-wide label order."""
     return [
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            linestyle="",
-            markerfacecolor=palette[label],
-            markeredgecolor="none",
-            markersize=7,
-            label=label,
-        )
-        for label in cell_type_order
+        Line2D([0], [0], marker="o", linestyle="", markerfacecolor=palette[label],
+               markeredgecolor="none", markersize=7, label=label)
+        for label in order
     ]
 
 
-def add_centroid_labels(
-    ax: plt.Axes,
-    coords: np.ndarray,
-    labels: pd.Series,
-    present_types: list[str],
-    fontsize: float,
-) -> None:
-    """Place one readable cell-type label at each population's median location."""
+def add_centroid_labels(ax: plt.Axes, coords: np.ndarray, labels: pd.Series,
+                        present_types: list[str], fontsize: float) -> None:
+    """Place one readable label at each population's median location."""
     label_array = labels.astype(str).to_numpy()
     for cell_type in present_types:
         location = np.nanmedian(coords[label_array == cell_type], axis=0)
         ax.text(
-            location[0],
-            location[1],
-            cell_type,
-            fontsize=fontsize,
-            fontweight="bold",
-            ha="center",
-            va="center",
-            color="#111111",
+            location[0], location[1], cell_type, fontsize=fontsize, fontweight="bold",
+            ha="center", va="center", color="#111111",
             bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.72, "pad": 1.5},
             zorder=3,
         )
@@ -248,51 +194,34 @@ def style_umap_axis(ax: plt.Axes, title: str, plot_cfg: dict) -> None:
     ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
 
 
-def plot_matplotlib_umap(
-    ax: plt.Axes,
-    adata: ad.AnnData,
-    sample_cfg: dict,
-    cell_type_order: list[str],
-    palette: dict[str, str],
-    plot_cfg: dict,
-) -> None:
+def plot_matplotlib_umap(ax, adata, sample_cfg, column, order, palette, plot_cfg) -> None:
     """Plot one annotated UMAP directly with Matplotlib."""
     coords = np.asarray(adata.obsm[sample_cfg["umap_key"]])
-    labels = adata.obs["cell_type"]
+    labels = adata.obs[column]
     colors = labels.astype(str).map(palette).to_numpy()
     ax.scatter(
-        coords[:, 0],
-        coords[:, 1],
-        c=colors,
-        s=float(plot_cfg["point_size"]),
-        alpha=float(plot_cfg["alpha"]),
-        linewidths=0,
+        coords[:, 0], coords[:, 1], c=colors, s=float(plot_cfg["point_size"]),
+        alpha=float(plot_cfg["alpha"]), linewidths=0,
         rasterized=bool(plot_cfg.get("rasterized_points", True)),
     )
-    present = [label for label in cell_type_order if (labels == label).any()]
+    present = [label for label in order if (labels == label).any()]
     if plot_cfg.get("label_on_data", True):
         add_centroid_labels(ax, coords, labels, present, float(plot_cfg["label_fontsize"]))
     style_umap_axis(ax, sample_cfg["title"], plot_cfg)
 
 
-def plot_scanpy_umap(
-    ax: plt.Axes,
-    adata: ad.AnnData,
-    sample_cfg: dict,
-    cell_type_order: list[str],
-    palette: dict[str, str],
-    plot_cfg: dict,
-) -> None:
-    """Plot the same saved embedding through `scanpy.pl.umap`."""
+def plot_scanpy_umap(ax, adata, sample_cfg, column, order, palette, plot_cfg) -> None:
+    """Plot the saved embedding through `scanpy.pl.umap`."""
     had_generic = "X_umap" in adata.obsm
     generic = np.asarray(adata.obsm["X_umap"]).copy() if had_generic else None
-    had_colors = "cell_type_colors" in adata.uns
-    stored_colors = np.asarray(adata.uns["cell_type_colors"]).copy() if had_colors else None
+    color_key = f"{column}_colors"
+    had_colors = color_key in adata.uns
+    stored_colors = np.asarray(adata.uns[color_key]).copy() if had_colors else None
     adata.obsm["X_umap"] = np.asarray(adata.obsm[sample_cfg["umap_key"]])
     try:
         sc.pl.umap(
             adata,
-            color="cell_type",
+            color=column,
             palette=palette,
             size=float(plot_cfg["point_size"]),
             alpha=float(plot_cfg["alpha"]),
@@ -313,11 +242,11 @@ def plot_scanpy_umap(
         else:
             del adata.obsm["X_umap"]
         # Scanpy normalizes palette strings to RGBA values in `.uns`. Restore the
-        # canonical project hex codes so plotting cannot mutate saved metadata.
+        # canonical hex codes so plotting cannot mutate saved metadata.
         if had_colors:
-            adata.uns["cell_type_colors"] = stored_colors
+            adata.uns[color_key] = stored_colors
         else:
-            adata.uns.pop("cell_type_colors", None)
+            adata.uns.pop(color_key, None)
 
 
 def save_figure(fig: plt.Figure, path: Path, dpi: int, overwrite: bool, formats: list[str]) -> None:
@@ -332,6 +261,7 @@ def save_figure(fig: plt.Figure, path: Path, dpi: int, overwrite: bool, formats:
     paths = [path.with_suffix(f".{extension}") for extension in normalized]
     existing = [output_path for output_path in paths if output_path.exists()]
     if existing and not overwrite:
+        plt.close(fig)
         raise FileExistsError(f"Outputs already exist; use --overwrite: {existing}")
     path.parent.mkdir(parents=True, exist_ok=True)
     for output_path in paths:
@@ -340,118 +270,86 @@ def save_figure(fig: plt.Figure, path: Path, dpi: int, overwrite: bool, formats:
     plt.close(fig)
 
 
-def plot_individual_scanpy(
-    adata: ad.AnnData,
-    sample_cfg: dict,
-    cell_type_order: list[str],
-    palette: dict[str, str],
-    plot_cfg: dict,
-    figure_root: Path,
-    overwrite: bool,
-) -> None:
-    """Write a Scanpy UMAP for one sample in every configured format."""
+def legend_title(level: str) -> str:
+    return f"Cell type ({level_title(level)})"
+
+
+def plot_individual_scanpy(adata, sample_cfg, annotation, level, plot_cfg, figure_root, overwrite) -> None:
+    """Write a Scanpy UMAP for one sample and tier in every configured format."""
+    column = label_column(level)
+    order, palette = level_vocabulary(annotation, level)
     fig, ax = plt.subplots(1, 1, figsize=tuple(plot_cfg["individual_figsize"]))
-    plot_scanpy_umap(ax, adata, sample_cfg, cell_type_order, palette, plot_cfg)
+    plot_scanpy_umap(ax, adata, sample_cfg, column, order, palette, plot_cfg)
     if plot_cfg.get("show_legend", True):
-        fig.legend(
-            handles=shared_legend(cell_type_order, palette),
-            loc="center left",
-            bbox_to_anchor=(0.985, 0.5),
-            frameon=False,
-            title="Cell type",
-        )
+        present = [label for label in order if (adata.obs[column] == label).any()]
+        fig.legend(handles=shared_legend(present, palette), loc="center left",
+                   bbox_to_anchor=(0.985, 0.5), frameon=False, title=legend_title(level))
     if plot_cfg.get("show_figure_title", True):
         fig.suptitle(
-            f"Shared cell-type colours — {sample_cfg['branch_label']}, r{sample_cfg['resolution']}",
+            f"{sample_cfg['branch_label']}, r{sample_cfg['resolution']} — "
+            f"annotation {annotation['version']}, {level_title(level)}",
             fontsize=float(plot_cfg["suptitle_fontsize"]),
         )
-    path = figure_root / "per_sample_scanpy" / f"{sample_cfg['sample']}_cell_type_umap_scanpy.png"
+    path = figure_root / "per_sample_scanpy" / f"{sample_cfg['sample']}_{column}_umap_scanpy.png"
     save_figure(fig, path, int(plot_cfg["dpi"]), overwrite, plot_cfg.get("output_formats", ["png"]))
 
 
-def make_panel_figure(
-    records: list[tuple[dict, np.ndarray, pd.Categorical]],
-    method: str,
-    cell_type_order: list[str],
-    palette: dict[str, str],
-    plot_cfg: dict,
-    figure_root: Path,
-    overwrite: bool,
-) -> None:
-    """Write one multi-sample panel using Matplotlib or Scanpy rendering."""
+def make_panel_figure(records, annotation, level, plot_cfg, figure_root, overwrite) -> None:
+    """Write one multi-sample Scanpy panel for one tier."""
+    column = label_column(level)
+    order, palette = level_vocabulary(annotation, level)
     ncols = int(plot_cfg["panel_ncols"])
     nrows = math.ceil(len(records) / ncols)
     width, height = plot_cfg["panel_size_per_sample"]
     fig, axes = plt.subplots(nrows, ncols, figsize=(width * ncols, height * nrows), squeeze=False)
+    present = set()
     for ax, (sample_cfg, coords, labels) in zip(axes.flat, records):
-        plot_adata = ad.AnnData(obs=pd.DataFrame(index=np.arange(len(labels))))
-        plot_adata.obs["cell_type"] = labels.copy()
-        plot_adata.uns["cell_type_colors"] = [palette[label] for label in cell_type_order]
+        plot_adata = ad.AnnData(obs=pd.DataFrame(index=np.arange(len(labels)).astype(str)))
+        plot_adata.obs[column] = labels.copy()
+        plot_adata.uns[f"{column}_colors"] = [palette[label] for label in order]
         plot_adata.obsm[sample_cfg["umap_key"]] = coords
-        if method == "matplotlib":
-            plot_matplotlib_umap(ax, plot_adata, sample_cfg, cell_type_order, palette, plot_cfg)
-        elif method == "scanpy":
-            plot_scanpy_umap(ax, plot_adata, sample_cfg, cell_type_order, palette, plot_cfg)
-        else:
-            raise ValueError(f"Unknown plotting method: {method}")
+        plot_scanpy_umap(ax, plot_adata, sample_cfg, column, order, palette, plot_cfg)
+        present |= set(pd.Series(labels).astype(str))
     for ax in axes.flat[len(records):]:
         ax.set_visible(False)
     if plot_cfg.get("show_legend", True):
-        fig.legend(
-            handles=shared_legend(cell_type_order, palette),
-            loc="center left",
-            bbox_to_anchor=(0.985, 0.5),
-            frameon=False,
-            title="Cell type",
-        )
+        fig.legend(handles=shared_legend([label for label in order if label in present], palette),
+                   loc="center left", bbox_to_anchor=(0.985, 0.5), frameon=False, title=legend_title(level))
     if plot_cfg.get("show_figure_title", True):
-        method_title = "Matplotlib" if method == "matplotlib" else "Scanpy sc.pl.umap"
         fig.suptitle(
-            f"VBCT min15/area95 reviewed cell types — {method_title}",
+            f"{annotation['project'].upper()} {annotation['cohort']['branch']} — "
+            f"annotation {annotation['version']}, {level_title(level)}",
             fontsize=float(plot_cfg["suptitle_fontsize"]),
         )
-    path = figure_root / f"combined_{method}_cell_type_umaps.png"
+    path = figure_root / f"combined_scanpy_{column}_umaps.png"
     save_figure(fig, path, int(plot_cfg["dpi"]), overwrite, plot_cfg.get("output_formats", ["png"]))
 
 
-def build_count_tables(
-    adata: ad.AnnData,
-    sample_cfg: dict,
-    sample_mapping: pd.DataFrame,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Create per-source-cluster and merged-cell-type count tables."""
+def build_count_tables(adata, sample_cfg, sample_mapping, annotation) -> tuple[pd.DataFrame, dict]:
+    """Per-source-cluster counts (all tiers) and per-tier label counts for one sample."""
     groupby = sample_cfg["groupby"]
-    counts = (
-        adata.obs.groupby([groupby, "cell_type"], observed=True)
-        .size()
-        .rename("n_cells")
-        .reset_index()
-        .rename(columns={groupby: "cluster_id"})
-    )
-    counts["cluster_id"] = counts["cluster_id"].astype(str)
-    cluster_table = sample_mapping.merge(counts, on=["cluster_id", "cell_type"], how="left")
-    if cluster_table["n_cells"].isna().any():
-        raise ValueError(f"{sample_cfg['sample']}: count table did not reconcile with mapping")
-    type_table = (
-        adata.obs.groupby("cell_type", observed=True)
-        .size()
-        .rename("n_cells")
-        .reset_index()
-    )
-    type_table.insert(0, "sample", sample_cfg["sample"])
-    type_table.insert(1, "branch", sample_cfg["branch"])
-    type_table.insert(2, "resolution", str(sample_cfg["resolution"]))
-    if int(type_table["n_cells"].sum()) != adata.n_obs:
-        raise ValueError(f"{sample_cfg['sample']}: cell-type counts do not sum to n_obs")
-    return cluster_table, type_table
+    n_by_cluster = adata.obs[groupby].astype(str).value_counts()
+    cluster_table = sample_mapping.copy()
+    cluster_table["n_cells"] = cluster_table["cluster_id"].map(n_by_cluster)
+    if cluster_table["n_cells"].isna().any() or int(cluster_table["n_cells"].sum()) != adata.n_obs:
+        raise ValueError(f"{sample_cfg['sample']}: cluster counts did not reconcile with the object")
+    cluster_table["n_cells"] = cluster_table["n_cells"].astype(int)
+    level_tables = {}
+    for level in annotation["levels"]:
+        column = label_column(level)
+        table = adata.obs.groupby(column, observed=True).size().rename("n_cells").reset_index()
+        table = table.rename(columns={column: "cell_type"})
+        table.insert(0, "label_level", level)
+        table.insert(0, "resolution", str(sample_cfg["resolution"]))
+        table.insert(0, "branch", sample_cfg["branch"])
+        table.insert(0, "sample", sample_cfg["sample"])
+        if int(table["n_cells"].sum()) != adata.n_obs:
+            raise ValueError(f"{sample_cfg['sample']}: {column} counts do not sum to n_obs")
+        level_tables[level] = table
+    return cluster_table, level_tables
 
 
-def write_annotated_object(
-    adata: ad.AnnData,
-    path: Path,
-    compression: str | None,
-    overwrite: bool,
-) -> None:
+def write_annotated_object(adata: ad.AnnData, path: Path, compression: str | None, overwrite: bool) -> None:
     """Write an annotated object separately from its source object."""
     if path.exists() and not overwrite:
         raise FileExistsError(f"Annotated object already exists; use --overwrite: {path}")
@@ -460,89 +358,95 @@ def write_annotated_object(
     print(f"Wrote {path}")
 
 
+def write_table(frame: pd.DataFrame, path: Path, overwrite: bool) -> None:
+    if path.exists() and not overwrite:
+        raise FileExistsError(f"Summary already exists; use --overwrite: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(path, index=False)
+    print(f"Wrote {path}")
+
+
+def change_table(annotation: dict, cluster_counts: pd.DataFrame) -> pd.DataFrame | None:
+    """Clusters whose labels changed since the parent set, with their cell counts."""
+    if not annotation["parent"]:
+        return None
+    parent = load_annotation(sibling_dir(annotation, annotation["parent"]))
+    changes = cluster_changes(annotation, parent)
+    counts = cluster_counts[["sample", "cluster_id", "n_cells"]]
+    return changes.merge(counts, on=["sample", "cluster_id"], how="left")
+
+
 def main() -> None:
-    """Validate mappings, annotate objects, and create comparison UMAP figures."""
+    """Validate the set, annotate objects, and create per-tier UMAP figures."""
     args = parse_args()
     cfg = load_json(Path(args.config).resolve())
     input_root = args.input_root.resolve()
     output_root = args.output_root.resolve()
-    cohort = load_cohort(cfg["cohort"])
-    mapping_path = cohort["mapping_path"]
-    if mapping_path is None:
-        raise KeyError(f"{cohort['path']}: script 08 needs mapping_csv")
-    mapping = load_mapping(mapping_path)
-    cell_type_order, palette = load_palette(cohort["palette_path"])
-    samples = select_samples(cohort, cfg.get("samples"), args.sample)
-    # Annotation reads the script 06 object; replot-only configs read the annotated one.
+    annotation, _ = resolve_step(cfg, args, use_level=False)
+    mapping = load_mapping(annotation)
+    samples = select_samples(annotation["cohort"], cfg.get("samples"), args.sample)
+    plot_levels = cfg.get("plot_levels", annotation["levels"])
+    unknown_levels = sorted(set(plot_levels) - set(annotation["levels"]))
+    if unknown_levels:
+        raise ValueError(f"plot_levels {unknown_levels} are not in set {annotation['version']}")
+    # Annotation reads the script 06 object; replot-only configs read this set's annotated one.
     input_key = cfg.get("input_key", "recluster_h5ad")
     if input_key not in ("recluster_h5ad", "annotated_h5ad"):
         raise ValueError("input_key must be recluster_h5ad or annotated_h5ad")
-    if input_key == "annotated_h5ad" and cfg.get("write_annotated_objects", True):
+    replot = input_key == "annotated_h5ad"
+    write_objects = cfg.get("write_annotated_objects", True) and not args.no_write_annotated
+    if replot and cfg.get("write_annotated_objects", True):
         raise ValueError("Replotting annotated objects requires write_annotated_objects: false")
-    figure_root = resolve_path(output_root, cfg["figure_dir"])
-    table_root = resolve_path(output_root, cfg["summary_dir"])
+    table_root = resolve_path(output_root, step_dir(annotation, "processed", STEP))
     plot_cfg = cfg["plot"]
+    print(f"Annotation set {annotation['version']} ({annotation['status']}), cohort "
+          f"{annotation['cohort_name']}, levels {annotation['levels']}, plotting {plot_levels}")
 
-    cluster_tables = []
-    type_tables = []
-    panel_records = []
+    cluster_tables, level_tables, panel_records, written = [], {lvl: [] for lvl in annotation["levels"]}, \
+        {lvl: [] for lvl in plot_levels}, []
     for sample_cfg in samples:
         sample = sample_cfg["sample"]
-        input_path = resolve_path(input_root, sample_cfg[input_key])
+        if replot:
+            input_path = resolve_path(input_root, annotated_h5ad_path(annotation, sample_cfg))
+        else:
+            input_path = resolve_path(input_root, sample_cfg["recluster_h5ad"])
         if not input_path.exists():
             raise FileNotFoundError(f"{sample}: input object does not exist: {input_path}")
         print(f"Reading {sample}: {input_path}")
         adata = ad.read_h5ad(input_path)
         original_shape = adata.shape
         original_obs_names = adata.obs_names.copy()
-        sample_mapping = validate_sample_mapping(
-            adata, sample_cfg, mapping, cell_type_order
-        )
-        print(
-            f"Validated {sample}: {adata.n_obs:,} cells, "
-            f"{len(sample_mapping)} clusters, r{sample_cfg['resolution']}"
-        )
+        sample_mapping = mapping_for_sample(mapping, sample_cfg)
+        validate_sample_mapping(adata, sample_cfg, sample_mapping)
+        if replot:
+            check_stamp(dict(adata.uns.get("cell_type_annotation", {})), annotation, str(input_path))
+        print(f"Validated {sample}: {adata.n_obs:,} cells, {len(sample_mapping)} clusters, "
+              f"r{sample_cfg['resolution']}")
         if args.validate_only:
             continue
 
-        apply_annotations(
-            adata,
-            sample_cfg,
-            sample_mapping,
-            cell_type_order,
-            palette,
-            mapping_path,
-        )
+        if not replot:
+            apply_annotations(adata, sample_cfg, sample_mapping, annotation)
         if adata.shape != original_shape or not adata.obs_names.equals(original_obs_names):
             raise RuntimeError(f"{sample}: annotation changed shape or cell identifier order")
-        cluster_table, type_table = build_count_tables(adata, sample_cfg, sample_mapping)
+        cluster_table, per_level = build_count_tables(adata, sample_cfg, sample_mapping, annotation)
         cluster_tables.append(cluster_table)
-        type_tables.append(type_table)
-        plot_individual_scanpy(
-            adata,
-            sample_cfg,
-            cell_type_order,
-            palette,
-            plot_cfg,
-            figure_root,
-            args.overwrite,
-        )
-        if plot_cfg.get("make_combined_figure", True):
-            panel_records.append(
-                (
+        for level, table in per_level.items():
+            level_tables[level].append(table)
+        for level in plot_levels:
+            figure_root = resolve_path(output_root, step_dir(annotation, "output", STEP, level,
+                                                             cfg.get("output_subdir")))
+            plot_individual_scanpy(adata, sample_cfg, annotation, level, plot_cfg, figure_root, args.overwrite)
+            if plot_cfg.get("make_combined_figure", True):
+                panel_records[level].append((
                     sample_cfg,
                     np.asarray(adata.obsm[sample_cfg["umap_key"]]).copy(),
-                    adata.obs["cell_type"].values.copy(),
-                )
-            )
-        if cfg.get("write_annotated_objects", True) and not args.no_write_annotated:
-            output_h5ad = resolve_path(output_root, sample_cfg["annotated_h5ad"])
-            write_annotated_object(
-                adata,
-                output_h5ad,
-                cfg.get("h5ad_compression", "gzip"),
-                args.overwrite,
-            )
+                    adata.obs[label_column(level)].values.copy(),
+                ))
+        if write_objects and not replot:
+            output_h5ad = resolve_path(output_root, annotated_h5ad_path(annotation, sample_cfg))
+            write_annotated_object(adata, output_h5ad, cfg.get("h5ad_compression", "gzip"), args.overwrite)
+            written.append({"sample": sample, "n_obs": int(adata.n_obs), "path": str(output_h5ad)})
         del adata
 
     if args.validate_only:
@@ -550,26 +454,35 @@ def main() -> None:
         return
 
     if cfg.get("write_summary_tables", True):
-        table_root.mkdir(parents=True, exist_ok=True)
-        cluster_counts_path = table_root / "reviewed_cluster_to_cell_type_counts.csv"
-        type_counts_path = table_root / "reviewed_cell_type_counts.csv"
-        for summary_path in (cluster_counts_path, type_counts_path):
-            if summary_path.exists() and not args.overwrite:
-                raise FileExistsError(f"Summary already exists; use --overwrite: {summary_path}")
-        pd.concat(cluster_tables, ignore_index=True).to_csv(cluster_counts_path, index=False)
-        pd.concat(type_tables, ignore_index=True).to_csv(type_counts_path, index=False)
-        print(f"Wrote {cluster_counts_path}")
-        print(f"Wrote {type_counts_path}")
+        cluster_counts = pd.concat(cluster_tables, ignore_index=True)
+        write_table(cluster_counts, table_root / "cluster_annotation_counts.csv", args.overwrite)
+        for level, tables in level_tables.items():
+            write_table(pd.concat(tables, ignore_index=True),
+                        table_root / f"cell_type_counts_{level}.csv", args.overwrite)
+        changes = change_table(annotation, cluster_counts)
+        if changes is not None:
+            write_table(changes, table_root / f"changes_vs_{annotation['parent']}.csv", args.overwrite)
+            print(f"{len(changes)} clusters changed label since {annotation['parent']} "
+                  f"({int(changes['n_cells'].sum()):,} cells in processed samples)")
+        manifest = {
+            **stamp(annotation),
+            "run_at": datetime.now().isoformat(timespec="seconds"),
+            "config": str(Path(args.config)),
+            "input_root": str(input_root),
+            "samples": [s["sample"] for s in samples],
+            "total_cells": int(cluster_counts["n_cells"].sum()),
+            "annotated_h5ads": written,
+        }
+        manifest_path = table_root / "run_manifest.json"
+        if manifest_path.exists() and not args.overwrite:
+            raise FileExistsError(f"Manifest already exists; use --overwrite: {manifest_path}")
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+        print(f"Wrote {manifest_path}")
     if plot_cfg.get("make_combined_figure", True):
-        make_panel_figure(
-            panel_records,
-            "scanpy",
-            cell_type_order,
-            palette,
-            plot_cfg,
-            figure_root,
-            args.overwrite,
-        )
+        for level in plot_levels:
+            figure_root = resolve_path(output_root, step_dir(annotation, "output", STEP, level,
+                                                             cfg.get("output_subdir")))
+            make_panel_figure(panel_records[level], annotation, level, plot_cfg, figure_root, args.overwrite)
 
 
 if __name__ == "__main__":

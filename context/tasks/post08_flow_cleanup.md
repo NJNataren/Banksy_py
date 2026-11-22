@@ -90,7 +90,7 @@ Phase 3 as built:
   `<result_dir>/<sample>/<branch>_r<res>/`.
 - Configs moved: poster -> `config/poster/vbct/`; spatial helpers ->
   `config/spatial_analysis/vbct/`.
-- HPC staging list now includes `workflow_config.py`, `spatial_tables.py`, and
+- HPC staging list now includes `workflow_config.py` (renamed to `xenium_workflow/cohorts.py` 2026-11-22), `spatial_tables.py`, and
   the cohort config.
 - Existing figures in `figures/` were not moved in phase 3 (archived 2026-11-21; see Session History).
 - Out of scope: conference-figure helpers (separate tool, also used by pre-08
@@ -128,7 +128,7 @@ Phase 2 as built (commit hashes in older notes predate the 2026-11-20 rewrite; s
 Phase 1 as built:
 
 - `config/cohorts/vbct/min15_area95_selected_resolutions.json` + README;
-  loader `workflow_config.py` (repo root): `load_cohort`, `select_samples`,
+  loader `workflow_config.py` (repo root; renamed to `xenium_workflow/cohorts.py` 2026-11-22): `load_cohort`, `select_samples`,
   `add_root_arguments`, `resolve_path`, `REPO_ROOT`.
 - Cohort sample keys: `sample`, `response`, `tissue`, `resolution`,
   `recluster_h5ad` (06), `annotated_h5ad` (08), `groupby`, `umap_key`;

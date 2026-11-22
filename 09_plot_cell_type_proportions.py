@@ -2,7 +2,9 @@
 Title: Plot reviewed cell-type proportions across samples
 Date: 2026-10-26
 Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
-(workflow_config.py); --input-root/--output-root default to the repository root.
+(xenium_workflow/cohorts.py); --input-root/--output-root default to the repository root.
+Updated: 2026-11-22 - reads script 08's per-tier count table for one annotation
+set and label level (xenium_workflow/annotation_sets.py); output paths are derived.
 Summary: Validate an existing cell-type count table against configured samples,
 branches, resolutions, and a shared palette. Export a zero-filled proportion
 table and optionally tissue-faceted 100% stacked bars as PNG, SVG, and PDF
@@ -24,24 +26,24 @@ from matplotlib.ticker import PercentFormatter
 import numpy as np
 import pandas as pd
 
-from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples
+from xenium_workflow.annotation_sets import (
+    add_annotation_arguments, level_title, level_vocabulary, require_released, resolve_step, step_dir,
+)
+from xenium_workflow.cohorts import add_root_arguments, resolve_path, select_samples
 
 
 def prepare_proportions(
-    cfg: dict, samples: list[dict], palette_path: Path, input_root: Path
+    cfg: dict, samples: list[dict], order: list[str], colors: dict, counts_path: Path
 ) -> tuple[pd.DataFrame, dict]:
     """Validate counts and provenance, then fill missing types and normalize.
 
     Each denominator contains all annotated post-filtered cells in one sample.
     Reject unexpected samples or conditions rather than silently pooling them.
     """
-    palette = json.loads(palette_path.read_text())
-    order, colors = palette["cell_type_order"], palette["colors"]
-    if not order or len(order) != len(set(order)) or set(order) != set(colors):
-        raise ValueError("Palette must contain unique ordered labels and matching colors")
-    if not all(matplotlib.colors.is_color_like(color) for color in colors.values()):
-        raise ValueError("Palette contains invalid colors")
-    counts = pd.read_csv(resolve_path(input_root, cfg["counts_csv"]), dtype={"resolution": str})
+    palette = {"cell_type_order": order, "colors": colors}
+    if not counts_path.is_file():
+        raise FileNotFoundError(f"No script 08 count table at {counts_path}; run script 08 for this set")
+    counts = pd.read_csv(counts_path, dtype={"resolution": str})
     required = ["sample", "branch", "resolution", "cell_type", "n_cells"]
     if not set(required).issubset(counts.columns) or counts[required].isna().any().any():
         raise ValueError("Count table is missing required columns or values")
@@ -56,7 +58,7 @@ def prepare_proportions(
     if not np.isfinite(values).all() or (values < 0).any() or (values % 1 != 0).any():
         raise ValueError("Cell counts must be finite, nonnegative integers")
     counts["n_cells"] = values.astype("int64")
-    if int(values.sum()) != cfg["expected_total_cells"]:
+    if "expected_total_cells" in cfg and int(values.sum()) != cfg["expected_total_cells"]:
         raise ValueError("Input total does not match expected_total_cells")
     tables = []
     for sample in samples:
@@ -94,7 +96,7 @@ def get_panels(cfg: dict, samples: list[dict]) -> list[tuple[str, list[dict]]]:
 
 
 def plot_proportions(
-    table: pd.DataFrame, palette: dict, cfg: dict, samples: list[dict], stem: Path
+    table: pd.DataFrame, palette: dict, cfg: dict, samples: list[dict], stem: Path, level: str
 ) -> None:
     """Render equal-width bars in optional tissue facets with shared scale and legend."""
     settings = cfg["plot"]
@@ -115,7 +117,8 @@ def plot_proportions(
         names = [sample["sample"] for sample in samples]
         x = np.arange(len(names))
         bottom = np.zeros(len(names))
-        for cell_type in palette["cell_type_order"]:
+        present = set(table.loc[table["n_cells"] > 0, "cell_type"])
+        for cell_type in [label for label in palette["cell_type_order"] if label in present]:
             heights = table.loc[table["cell_type"] == cell_type].set_index("sample").loc[names, "proportion"].to_numpy()
             ax.bar(x, heights, bottom=bottom, width=0.72,
                    color=palette["colors"][cell_type], label=cell_type)
@@ -145,7 +148,7 @@ def plot_proportions(
     fig.legend(
         handles,
         labels,
-        title="Cell type",
+        title=f"Cell type ({level_title(level)})",
         bbox_to_anchor=(0.82, 0.82),
         loc="upper left",
         frameon=False,
@@ -182,21 +185,28 @@ def main() -> None:
     parser.add_argument("--config", required=True, help="JSON run configuration")
     parser.add_argument("--validate-only", action="store_true", help="Check input without writing outputs")
     parser.add_argument("--overwrite", action="store_true", help="Replace existing output files")
+    parser.add_argument("--allow-draft", action="store_true", help="Use a draft annotation set")
+    add_annotation_arguments(parser)
     add_root_arguments(parser)
     args = parser.parse_args()
     cfg = json.loads(Path(args.config).resolve().read_text())
-    cohort = load_cohort(cfg["cohort"])
+    annotation, level = resolve_step(cfg, args)
+    require_released(annotation, args.allow_draft, "Script 09")
+    order, colors = level_vocabulary(annotation, level)
     # Sample order, facets, and display labels come from this config; branch and
     # resolution come from the cohort.
-    samples = select_samples(cohort, cfg.get("samples"))
+    samples = select_samples(annotation["cohort"], cfg.get("samples"))
     get_panels(cfg, samples)
-    table, palette = prepare_proportions(cfg, samples, cohort["palette_path"], args.input_root)
+    counts_path = resolve_path(args.input_root, step_dir(annotation, "processed", "cell_type_annotation")
+                               / f"cell_type_counts_{level}.csv")
+    table, palette = prepare_proportions(cfg, samples, order, colors, counts_path)
+    print(f"Annotation set {annotation['version']} ({annotation['status']}), level {level}")
     print(f"Validated {table['sample'].nunique()} samples; {table['n_cells'].sum():,} cells; all proportions sum to 1")
     if args.validate_only:
         return
     # Figures go to output_dir; the proportion table goes to table_dir.
-    output = resolve_path(args.output_root, cfg["output_dir"])
-    table_dir = resolve_path(args.output_root, cfg.get("table_dir", cfg["output_dir"]))
+    output = resolve_path(args.output_root, step_dir(annotation, "output", "cell_type_proportions", level))
+    table_dir = resolve_path(args.output_root, step_dir(annotation, "processed", "cell_type_proportions", level))
     stem = output / cfg["output_stem"]
     csv_path = table_dir / f"{cfg['output_stem']}.csv"
     paths = [stem.with_suffix(f".{extension}") for extension in ("png", "svg", "pdf")] + [csv_path]
@@ -204,7 +214,7 @@ def main() -> None:
         raise FileExistsError("Outputs already exist; use --overwrite to replace them")
     os.makedirs(output, exist_ok=True)
     os.makedirs(table_dir, exist_ok=True)
-    plot_proportions(table, palette, cfg, samples, stem)
+    plot_proportions(table, palette, cfg, samples, stem, level)
     table.to_csv(csv_path, index=False)
     print(f"Wrote PNG, SVG, and PDF: {stem}")
     print(f"Wrote proportion CSV: {csv_path}")

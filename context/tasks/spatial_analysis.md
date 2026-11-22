@@ -76,7 +76,7 @@ Run from the `Banksy_py` root with the `banksy` conda environment.
 
 ### `spatial_common.py` (shared module)
 
-- `load_sample_records`: reads the cohort via `workflow_config.py` and returns
+- `load_sample_records`: reads the cohort via `workflow_config.py` (renamed to `xenium_workflow/cohorts.py` 2026-11-22; now reads an annotation set) and returns
   one record per sample (response, tissue, branch, resolution, annotated H5AD,
   enrichment table path), in the helper config's order.
 - `read_labels_and_coords`: reads only `obs/cell_type`, `obs/x`, and `obs/y`

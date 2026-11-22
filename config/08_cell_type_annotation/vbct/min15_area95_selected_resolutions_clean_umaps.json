@@ -1,8 +1,7 @@
 {
-  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "output_subdir": "clean_scanpy",
   "input_key": "annotated_h5ad",
-  "figure_dir": "data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/clean_scanpy",
-  "summary_dir": "data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions",
   "write_annotated_objects": false,
   "h5ad_compression": "gzip",
   "plot": {

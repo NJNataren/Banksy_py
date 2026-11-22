@@ -1,7 +1,7 @@
 {
-  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
-  "figure_dir": "data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/immune_infiltration",
-  "table_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/immune_infiltration",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "label_level": "tier_1",
+  "output_subdir": "immune_infiltration",
   "tumour_cell_type": "Melanoma cell",
   "query_cell_types": [
     "T cell",

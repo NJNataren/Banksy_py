@@ -5,7 +5,9 @@
 Title: Poster Dot Plot Of Canonical Markers Across The Cohort
 Date: 2026-10-28
 Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
-(workflow_config.py); --input-root/--output-root default to the repository root.
+(xenium_workflow/cohorts.py); --input-root/--output-root default to the repository root.
+Updated: 2026-11-22 - names an annotation set and label level (xenium_workflow/annotation_sets.py);
+reads `obs/cell_type_<tier>`, checks the annotation stamp, derives output folders.
 Summary: Read reviewed cell-type labels and log-normalised expression for a
 short canonical marker list from each script 08 annotated H5AD, and summarise
 every cell type by mean expression and fraction of expressing cells. Samples
@@ -36,9 +38,13 @@ try:
 except ImportError:
     from anndata.experimental import read_elem
 
-# The shared cohort loader lives at the repository root, two levels up.
+# The shared xenium_workflow package lives at the repository root, two levels up.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples  # noqa: E402
+from xenium_workflow.annotation_sets import (  # noqa: E402
+    add_annotation_arguments, annotated_h5ad_path, check_stamp, label_column, level_vocabulary,
+    require_released, resolve_step, step_dir,
+)
+from xenium_workflow.cohorts import add_root_arguments, resolve_path, select_samples  # noqa: E402
 
 
 plt.rcParams["font.family"] = "sans-serif"
@@ -50,26 +56,43 @@ def parse_args():
     parser = argparse.ArgumentParser(prog="plot cohort canonical marker dot plot for the poster")
     parser.add_argument("--config", required=True, help="Poster dot plot JSON config")
     parser.add_argument("--validate-only", action="store_true", help="Check inputs and genes without plotting")
+    parser.add_argument("--allow-draft", action="store_true", help="Use a draft annotation set")
+    add_annotation_arguments(parser)
     add_root_arguments(parser)
     return parser.parse_args()
 
 
 def load_inputs(cfg, args):
-    """Read the cohort and palette; return output root and one record per cohort sample."""
-    cohort = load_cohort(cfg["cohort"])
-    palette = json.loads(cohort["palette_path"].read_text())
+    """Read the annotation set; return context (set, level, column, folders), records, and label order."""
+    annotation, level = resolve_step(cfg, args)
+    require_released(annotation, args.allow_draft, "The poster dot plot")
+    order, _ = level_vocabulary(annotation, level)
     records = [
         {"sample": s["sample"], "resolution": s["resolution"],
-         "h5ad": resolve_path(args.input_root, s["annotated_h5ad"])}
-        for s in select_samples(cohort, cfg.get("samples"))
+         "h5ad": resolve_path(args.input_root, annotated_h5ad_path(annotation, s))}
+        for s in select_samples(annotation["cohort"], cfg.get("samples"))
     ]
-    return args.output_root, records, palette["cell_type_order"]
+    subdir = cfg.get("output_subdir")
+    context = {
+        "annotation": annotation, "level": level, "column": label_column(level),
+        "figure_dir": resolve_path(args.output_root, step_dir(annotation, "output", "poster", level, subdir)),
+        "table_dir": resolve_path(args.output_root, step_dir(annotation, "processed", "poster", level, subdir)),
+    }
+    print(f"Annotation set {annotation['version']} ({annotation['status']}), level {level}")
+    return context, records, order
+
+def read_checked_labels(handle, column, annotation, h5ad_path):
+    """Check the object's annotation stamp, then return the level's labels as strings."""
+    found = read_elem(handle["uns/cell_type_annotation"]) if "uns/cell_type_annotation" in handle else {}
+    check_stamp(found, annotation, str(h5ad_path))
+    return pd.Series(read_elem(handle[f"obs/{column}"])).astype(str).to_numpy()
 
 
-def read_sample(h5ad_path, genes):
-    """Read cell-type labels and the log-normalised `X` columns for `genes` only."""
+
+def read_sample(h5ad_path, genes, context):
+    """Read the level's labels and the log-normalised `X` columns for `genes` only."""
     with h5py.File(h5ad_path, "r") as handle:
-        labels = pd.Series(read_elem(handle["obs/cell_type"])).astype(str).to_numpy()
+        labels = read_checked_labels(handle, context["column"], context["annotation"], h5ad_path)
         var_names = pd.Index(read_elem(handle["var"]).index.astype(str))
         group = handle["X"]
         if group.attrs.get("encoding-type") != "csr_matrix":
@@ -169,7 +192,7 @@ def main():
     """Validate inputs, summarise marker expression per cell type, and render the dot plot."""
     args = parse_args()
     cfg = json.loads(Path(args.config).resolve().read_text())
-    root, records, order = load_inputs(cfg, args)
+    context, records, order = load_inputs(cfg, args)
     markers = cfg["markers"]
     if set(markers) - set(order):
         raise ValueError(f"Marker cell types absent from palette: {sorted(set(markers) - set(order))}")
@@ -179,7 +202,7 @@ def main():
     for record in records:
         if not record["h5ad"].is_file():
             raise FileNotFoundError(f"{record['sample']}: annotated object not found: {record['h5ad']}")
-        labels, expression = read_sample(record["h5ad"], genes)
+        labels, expression = read_sample(record["h5ad"], genes, context)
         print(f"{record['sample']} (r{record['resolution']}): {len(labels):,} cells, {len(set(labels))} cell types")
         if args.validate_only:
             continue
@@ -191,8 +214,7 @@ def main():
 
     per_sample = pd.DataFrame(rows)
     summary = cohort_summary(per_sample, cfg.get("sample_weighting", "equal"))
-    table_dir = resolve_path(root, cfg["table_dir"])
-    figure_dir = resolve_path(root, cfg["figure_dir"])
+    table_dir, figure_dir = context["table_dir"], context["figure_dir"]
     table_dir.mkdir(parents=True, exist_ok=True)
     figure_dir.mkdir(parents=True, exist_ok=True)
     per_sample.to_csv(table_dir / "marker_expression_per_sample.csv", index=False)

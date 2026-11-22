@@ -5,7 +5,9 @@
 Title: Compare Squidpy Neighbourhood Enrichment Across Samples
 Date: 2026-10-26
 Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
-(workflow_config.py); --input-root/--output-root default to the repository root.
+(xenium_workflow/cohorts.py); --input-root/--output-root default to the repository root.
+Updated: 2026-11-22 - names an annotation set and label level; figure and table
+folders are derived (spatial_common.load_sample_records).
 Summary: Collect script 10 cell-type neighbourhood enrichment matrices for all
 samples, convert them to a sample-size-independent metric, and plot responder
 versus non-responder comparisons. Squidpy z-scores grow with cell number, so
@@ -31,11 +33,11 @@ from matplotlib.lines import Line2D
 from scipy.spatial import cKDTree
 
 from spatial_common import (
-    RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED, add_root_arguments,
+    RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED, add_step_arguments,
     load_sample_records, read_labels_and_coords, resolve_path,
     sample_title, save_figure, spread_label_positions, tissue_markers,
 )
-from spatial_tables import read_enrichment_table
+from xenium_workflow.spatial_tables import read_enrichment_table
 
 
 # Blue = depleted, red = enriched, neutral grey at zero (no hue at the midpoint).
@@ -54,7 +56,7 @@ def parse_args():
     parser.add_argument("--config", required=True, help="Comparison JSON config")
     parser.add_argument("--sample", action="append", help="Restrict to a sample; repeat as needed")
     parser.add_argument("--validate-only", action="store_true", help="Check inputs and report sources without plotting")
-    add_root_arguments(parser)
+    add_step_arguments(parser)
     return parser.parse_args()
 
 
@@ -96,7 +98,7 @@ def load_enrichment(record):
     """Return script 10's primary-graph enrichment for one sample from its table."""
     table = record["enrichment_table"]
     if table is None:
-        raise KeyError("The comparison config needs script10_result_dir")
+        raise KeyError("No script 10 enrichment table path for this sample")
     if not table.is_file():
         raise FileNotFoundError(
             f"{record['sample']}: no enrichment table at {table}. Run script 10, or backfill from "
@@ -573,8 +575,7 @@ def main():
     validate_comparison_config(cfg, order)
     graphs, primary = graph_settings(cfg)
     tiling = cfg.get("tiling")
-    table_dir = resolve_path(root, cfg["table_dir"])
-    figure_dir = resolve_path(root, cfg["figure_dir"])
+    table_dir, figure_dir = context["table_dir"], context["figure_dir"]
     pseudocount = float(cfg.get("pseudocount", 1))
     pairs = [tuple(pair) for pair in cfg.get("focus_pairs", [])]
 
@@ -602,7 +603,7 @@ def main():
         if len(graphs) == 1 and not tiling:
             continue
 
-        labels, coords, present = read_labels_and_coords(record["annotated_h5ad"], order, context["coord_keys"])
+        labels, coords, present = read_labels_and_coords(record["annotated_h5ad"], context)
         if present != categories:
             raise ValueError(f"{record['sample']}: annotated cell types differ from script 10 categories")
         codes = pd.Categorical(labels, categories=present).codes.astype(np.int64)

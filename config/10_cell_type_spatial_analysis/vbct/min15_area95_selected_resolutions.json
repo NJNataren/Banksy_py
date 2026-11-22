@@ -1,7 +1,6 @@
 {
-  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
-  "figure_dir": "data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions",
-  "result_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "label_level": "tier_1",
   "moran_subsample_fraction": 0.25,
   "moran_n_perms": 10,
   "moran_n_jobs": 1,

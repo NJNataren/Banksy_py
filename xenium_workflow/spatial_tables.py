@@ -30,9 +30,9 @@ def enrichment_table_path(directory, sample, annotated_h5ad):
 def enrichment_from_labels(enrichment, labels):
     """Return z-scores, edge counts, categories, and cell counts from script 10 results.
 
-    `enrichment` is `uns['cell_type_nhood_enrichment']` (keys `zscore`, `count`)
-    and `labels` the categorical `obs['cell_type']`; categories keep the order
-    script 10 used.
+    `enrichment` is `uns['<label column>_nhood_enrichment']` (keys `zscore`,
+    `count`) and `labels` the categorical label column (e.g.
+    `obs['cell_type_tier_1']`); categories keep the order script 10 used.
     """
     labels = pd.Categorical(labels)
     categories = [str(category) for category in labels.categories]

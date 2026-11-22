@@ -5,7 +5,9 @@
 Title: Plot Immune Infiltration Distances From Config
 Date: 2026-10-26
 Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
-(workflow_config.py); --input-root/--output-root default to the repository root.
+(xenium_workflow/cohorts.py); --input-root/--output-root default to the repository root.
+Updated: 2026-11-22 - names an annotation set and label level; figure and table
+folders are derived (spatial_common.load_sample_records).
 Summary: For each sample, measure the distance from every immune cell of the
 configured types (e.g. T cells) to its nearest tumour cell, then compare how
 much of each population lies in contact with tumour, at the tumour margin, or
@@ -29,7 +31,7 @@ from matplotlib.patches import Patch
 from scipy.spatial import cKDTree
 
 from spatial_common import (
-    RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED, add_root_arguments,
+    RESPONSE_COLORS, RESPONSE_ORDER, SURFACE, TEXT_DARK, TEXT_MUTED, add_step_arguments,
     load_sample_records, read_labels_and_coords, resolve_path, save_figure,
 )
 
@@ -50,7 +52,7 @@ def parse_args():
     parser.add_argument("--sample", action="append", help="Restrict to a sample; repeat as needed")
     parser.add_argument("--validate-only", action="store_true", help="Check inputs without computing distances")
     parser.add_argument("--skip-maps", action="store_true", help="Skip per-sample spatial maps")
-    add_root_arguments(parser)
+    add_step_arguments(parser)
     return parser.parse_args()
 
 
@@ -250,15 +252,12 @@ def main():
         print(f"Tumour: {tumour}; query types: {queries}; bins: {bin_labels(edges)}")
         return
 
-    table_dir = resolve_path(root, cfg["table_dir"])
-    figure_dir = resolve_path(root, cfg["figure_dir"])
+    table_dir, figure_dir = context["table_dir"], context["figure_dir"]
     os.makedirs(table_dir, exist_ok=True)
     os.makedirs(figure_dir / "maps", exist_ok=True)
     summary_rows, histogram_rows, distances_by_sample = [], [], {}
     for record in records:
-        labels, coords, present = read_labels_and_coords(
-            record["annotated_h5ad"], context["order"], context["coord_keys"],
-        )
+        labels, coords, present = read_labels_and_coords(record["annotated_h5ad"], context)
         if tumour not in present:
             print(f"Skipping {record['sample']}: no {tumour} cells")
             continue

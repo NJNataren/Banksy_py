@@ -1,16 +1,19 @@
 """
 Title: Shared cohort config and data roots for post-08 workflow steps
 Date: 2026-11-19
-Summary: One place for the facts every step after script 08 needs: which
-samples belong to a cohort (response, tissue, branch, resolution, object paths,
-cluster and UMAP keys), the shared palette and reviewed mapping, and coordinate
-keys. Step configs point at a cohort with `"cohort": <path>` and may list the
+Updated: 2026-11-22 - cohorts hold clustering facts only. Labels (mapping,
+palette) and annotated-object paths moved to versioned annotation sets
+(annotation_sets.py, config/annotations/).
+Summary: One place for the clustering facts every step from script 08 on
+needs: which samples belong to a cohort (response, tissue, branch, resolution,
+script 06 object, cluster and UMAP keys) and the coordinate keys. Annotation
+sets name a cohort; step configs name an annotation set and may list the
 samples they use, in their own order, with plot-only fields. Every step takes
 the same `--input-root` and `--output-root` options, both defaulting to the
 repository root, so configs never contain machine-specific paths.
 
 Path rules:
-- Config files (cohort, palette, mapping) resolve against the repository root.
+- Config files (cohort, annotation set) resolve against the repository root.
 - Data read by a step resolves against `--input-root`.
 - Data written by a step resolves against `--output-root`.
 - Absolute paths are always used as given.
@@ -19,9 +22,12 @@ Path rules:
 import json
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent
+# This module lives in xenium_workflow/, one level below the repository root.
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
-REQUIRED_SAMPLE_KEYS = ("sample", "resolution", "annotated_h5ad")
+REQUIRED_SAMPLE_KEYS = ("sample", "resolution", "recluster_h5ad", "groupby", "umap_key")
+# Removed from cohorts on 2026-11-22; they now belong to annotation sets.
+RETIRED_COHORT_KEYS = ("palette_json", "mapping_csv")
 SHARED_SAMPLE_KEYS = ("project", "branch", "branch_label")
 
 
@@ -56,6 +62,13 @@ def load_cohort(value):
     """
     path = resolve_path(REPO_ROOT, value)
     cohort = load_json(path)
+    retired = [key for key in RETIRED_COHORT_KEYS if key in cohort]
+    if any("annotated_h5ad" in sample for sample in cohort["samples"]):
+        retired.append("samples[].annotated_h5ad")
+    if retired:
+        raise ValueError(f"{path}: {retired} moved to annotation sets (config/annotations/); remove them")
+    if "project" not in cohort or "branch" not in cohort:
+        raise ValueError(f"{path}: cohort needs project and branch")
     names = [sample["sample"] for sample in cohort["samples"]]
     if not names or len(names) != len(set(names)):
         raise ValueError(f"{path}: samples must be a nonempty list of unique names")
@@ -71,9 +84,10 @@ def load_cohort(value):
         records.append({**shared, **sample})
     return {
         "path": path,
+        "name": path.stem,
+        "project": cohort["project"],
+        "branch": cohort["branch"],
         "samples": records,
-        "palette_path": resolve_path(REPO_ROOT, cohort["palette_json"]),
-        "mapping_path": resolve_path(REPO_ROOT, cohort["mapping_csv"]) if "mapping_csv" in cohort else None,
         "coord_keys": cohort.get("coord_keys", ["x", "y"]),
     }
 

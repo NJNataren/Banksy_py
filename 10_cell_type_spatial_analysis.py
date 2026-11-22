@@ -5,12 +5,15 @@
 Title: Squidpy Spatial Analysis Of Reviewed Cell Types
 Date: 2026-10-26 (renamed from 10_squidpy_recluster_spatial_analysis.py 2026-11-20)
 Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
-(workflow_config.py); --input-root/--output-root default to the repository root.
+(xenium_workflow/cohorts.py); --input-root/--output-root default to the repository root.
 Updated: 2026-11-20 - also writes <stem>_nhood_enrichment.csv beside each result
-H5AD (spatial_tables.py) for the cross-sample comparison helper. Cell-type mode
+H5AD (xenium_workflow/spatial_tables.py) for the cross-sample comparison helper. Cell-type mode
 writes centrality and Moran CSVs to <result_dir>/<sample>/<branch>_r<res>/,
 not the figure folder. Moran's I permutations are seeded. The legacy script 06
 cluster mode was archived (archive/2026-11-20_script10_legacy_cluster_mode/).
+Updated: 2026-11-22 - reads a released annotation set (xenium_workflow/annotation_sets.py) and
+one label level (`label_level`, e.g. tier_1 -> obs `cell_type_tier_1`); output
+paths are derived from the set and level; the H5AD stamp is checked.
 Summary: Reuse script 08 annotated clean expression objects and reviewed cell
 types for Squidpy neighbourhood enrichment, centrality, co-occurrence, and
 Moran's I, one cohort sample at a time. Export PNG, SVG, and PDF figures with editable vector text and 300-DPI raster
@@ -34,8 +37,14 @@ import scanpy as sc
 import seaborn as sns
 import squidpy as sq
 
-from spatial_tables import enrichment_from_labels, enrichment_table_path, write_enrichment_table
-from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples
+from xenium_workflow.spatial_tables import enrichment_from_labels, enrichment_table_path, write_enrichment_table
+from xenium_workflow.annotation_sets import (
+    add_annotation_arguments, annotated_h5ad_path, check_stamp, label_column, level_vocabulary,
+    load_mapping, mapping_for_sample, require_released, resolve_step, step_dir,
+)
+from xenium_workflow.cohorts import add_root_arguments, resolve_path, select_samples
+
+STEP = "spatial_analysis"
 
 
 sc.logging.print_header()
@@ -58,8 +67,11 @@ def parse_args():
         "--config",
         type=str,
         required=True,
-        help="Script 10 JSON config naming a cohort, output folders, and analysis settings.",
+        help="Script 10 JSON config naming an annotation set, label level, and analysis settings.",
     )
+    add_annotation_arguments(parser)
+    parser.add_argument("--allow-draft", action="store_true",
+                        help="Run on a draft annotation set (local tests only)")
     parser.add_argument("--sample", action="append", help="Select a script 08 sample; repeat as needed")
     parser.add_argument("--validate-only", action="store_true", help="Check annotated inputs without running analyses")
     # Annotated inputs resolve under --input-root; figures and results under --output-root.
@@ -306,79 +318,81 @@ def run_squidpy_for_resolution(
 
 
 def run_annotation_config(cfg, args):
-    """Run cell-type analyses on the script 08 annotated objects of one cohort.
+    """Run label-level analyses on the script 08 annotated objects of one annotation set.
 
     Validation reads only backed metadata. Full runs load one sample at a time;
     annotation inputs remain unchanged and spatial results use separate paths.
     """
-    cohort = load_cohort(cfg["cohort"])
+    annotation, level = resolve_step(cfg, args)
+    require_released(annotation, args.allow_draft, "Script 10")
+    column = label_column(level)
+    order, colors = level_vocabulary(annotation, level)
+    mapping = load_mapping(annotation)
+    cohort = annotation["cohort"]
     input_root, output_root = args.input_root.resolve(), args.output_root.resolve()
-    palette = json.loads(cohort["palette_path"].read_text())
-    order, colors = palette["cell_type_order"], palette["colors"]
-    if len(order) != len(set(order)) or set(order) != set(colors):
-        raise ValueError("Shared palette has inconsistent labels")
-    if not all(mpl.colors.is_color_like(color) for color in colors.values()):
-        raise ValueError("Invalid shared palette colour")
+    figure_base = resolve_path(output_root, step_dir(annotation, "output", STEP, level))
+    result_base = resolve_path(output_root, step_dir(annotation, "processed", STEP, level))
     samples = select_samples(cohort, cfg.get("samples"), args.sample)
-    if cohort["mapping_path"] is None:
-        raise KeyError(f"{cohort['path']}: script 10 needs mapping_csv to verify annotations")
-    mapping = pd.read_csv(cohort["mapping_path"], dtype={"cluster_id": str, "resolution": str})
+    print(f"Annotation set {annotation['version']} ({annotation['status']}), level {level} ({column})")
     for sample in samples:
         name = sample["sample"]
-        source = resolve_path(input_root, sample["annotated_h5ad"])
+        source = resolve_path(input_root, annotated_h5ad_path(annotation, sample))
+        if not source.is_file():
+            raise FileNotFoundError(f"{name}: no script 08 object for set {annotation['version']} at {source}")
         adata = ad.read_h5ad(source, backed="r" if args.validate_only else None)
         try:
+            check_stamp(dict(adata.uns.get("cell_type_annotation", {})), annotation, name)
             groupby = sample["groupby"]
-            for key in ("cell_type", groupby):
+            for key in (column, groupby):
                 if key not in adata.obs or adata.obs[key].isna().any():
                     raise ValueError(f"{name}: missing labels in {key}")
             if not adata.obs_names.is_unique:
                 raise ValueError(f"{name}: duplicate cell identifiers")
-            labels = adata.obs["cell_type"].astype(str)
+            labels = adata.obs[column].astype(str)
             if set(labels) - set(order):
-                raise ValueError(f"{name}: unknown cell types")
-            # Verify annotations against the reviewed mapping for this exact grouping.
-            rows = mapping.loc[(mapping["sample"] == name) & (mapping["branch"] == sample["branch"])
-                               & (mapping["resolution"] == sample["resolution"]) & (mapping["groupby"] == groupby)]
-            if rows.empty or rows["cluster_id"].duplicated().any():
-                raise ValueError(f"{name}: missing or duplicate reviewed mapping")
-            expected = adata.obs[groupby].astype(str).map(rows.set_index("cluster_id")["cell_type"])
+                raise ValueError(f"{name}: labels outside the {level} vocabulary")
+            # Verify labels against the set's mapping for this exact grouping.
+            rows = mapping_for_sample(mapping, sample)
+            expected = adata.obs[groupby].astype(str).map(rows.set_index("cluster_id")[column])
             if expected.isna().any() or not (expected.to_numpy() == labels.to_numpy()).all():
-                raise ValueError(f"{name}: annotations disagree with reviewed cluster mapping")
+                raise ValueError(f"{name}: {column} disagrees with the annotation set mapping")
             prepare_spatial_coordinates(adata, cohort["coord_keys"])
             if not np.isfinite(adata.obsm["spatial"]).all():
                 raise ValueError(f"{name}: nonfinite spatial coordinates")
-            # Absent types must not create empty groups in Squidpy's calculations.
+            # Absent labels must not create empty groups in Squidpy's calculations.
             present = [label for label in order if label in set(labels)]
-            adata.obs["cell_type"] = pd.Categorical(labels, categories=present)
-            adata.uns["cell_type_colors"] = [colors[label] for label in present]
-            print(f"Validated {name}: {adata.n_obs:,} cells; {len(present)} types; {sample['branch']} r{sample['resolution']}")
+            print(f"Validated {name}: {adata.n_obs:,} cells; {len(present)} {level} labels; "
+                  f"{sample['branch']} r{sample['resolution']}")
             if args.validate_only:
                 continue
+            adata.obs[column] = pd.Categorical(labels, categories=present)
+            adata.uns[f"{column}_colors"] = [colors[label] for label in present]
             tag = f"{sample['branch']}_r{sample['resolution']}"
-            output = resolve_path(output_root, cfg["figure_dir"]) / name / tag
-            destination = resolve_path(output_root, cfg["result_dir"]) / name / f"{source.stem}_squidpy.h5ad"
+            output = figure_base / name / tag
+            destination = result_base / name / f"{source.stem}_squidpy.h5ad"
             if destination.resolve() == source.resolve():
                 raise ValueError("Spatial output must not overwrite the annotated input")
             os.makedirs(destination.parent, exist_ok=True)
             run_cfg = dict(cfg)
             run_cfg.setdefault("max_cooccurrence_clusters", len(present))
             run_squidpy_for_resolution(
-                adata, "cell_type", str(output), name, "annotated", "cell_type",
+                adata, column, str(output), name, "annotated", level,
                 sample["resolution"].replace(".", "p"), run_cfg,
                 table_dir=destination.parent / tag,
             )
             adata.uns["spatial_analysis_provenance"] = {
-                "cohort_config": str(cohort["path"]), "input_h5ad": str(source),
+                "annotation_version": annotation["version"], "annotation_sha256": annotation["sha256"],
+                "label_level": level, "label_column": column,
+                "cohort": annotation["cohort_name"], "input_h5ad": str(source),
                 "sample": name, "branch": sample["branch"],
                 "resolution": sample["resolution"], "source_groupby": groupby,
             }
             adata.write_h5ad(destination)
             print(f"Saved spatial results: {destination}")
             # Small copy of the enrichment so cross-sample helpers need not read this H5AD.
-            table = enrichment_table_path(destination.parent.parent, name, source)
+            table = enrichment_table_path(result_base, name, source)
             write_enrichment_table(table, *enrichment_from_labels(
-                adata.uns["cell_type_nhood_enrichment"], adata.obs["cell_type"]))
+                adata.uns[f"{column}_nhood_enrichment"], adata.obs[column]))
             print(f"Saved neighbourhood enrichment table: {table}")
         finally:
             if adata.isbacked:
@@ -387,16 +401,11 @@ def run_annotation_config(cfg, args):
 
 
 def main():
-    """Run cell-type spatial analyses for the cohort named in the config."""
+    """Run cell-type spatial analyses for the annotation set named in the config."""
     args = parse_args()
     with open(args.config) as handle:
         cfg = json.load(handle)
     figure_export_settings(cfg)
-    if "cohort" not in cfg:
-        raise KeyError(
-            "Config needs a cohort. Legacy cluster-mode configs were archived in "
-            "archive/2026-11-20_script10_legacy_cluster_mode/"
-        )
     run_annotation_config(cfg, args)
 
 

@@ -4,9 +4,11 @@
 """
 Title: Backfill neighbourhood enrichment tables from existing script 10 results
 Date: 2026-11-20
-Summary: For script 10 result H5ADs written before script 10 exported
-`<stem>_nhood_enrichment.csv`, read only `uns/cell_type_nhood_enrichment` and
-`obs/cell_type` (h5py, no `.X`) and write the same table script 10 now writes.
+Updated: 2026-11-22 - paths and the label column come from the annotation set
+and label level in the script 10 config (xenium_workflow/annotation_sets.py).
+Summary: For script 10 result H5ADs whose `<stem>_nhood_enrichment.csv` is not
+available locally, read only `uns/cell_type_<tier>_nhood_enrichment` and
+`obs/cell_type_<tier>` (h5py, no `.X`) and write the same table script 10 writes.
 Typical local use reads the results from the Phoenix mount and writes the
 tables into this repository:
 
@@ -14,9 +16,9 @@ tables into this repository:
       --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
       --input-root ~/mnt/phoenix_scratch/Banksy_py
 
-Inputs: script 10 cell-type config (cohort and `result_dir`); result H5ADs
-under `--input-root`. Outputs: one CSV per sample under `--output-root` at
-`<result_dir>/<sample>/<stem>_nhood_enrichment.csv`. Inputs are never modified;
+Inputs: script 10 config (annotation set, label level); result H5ADs under
+`--input-root`. Outputs: one CSV per sample under `--output-root` in script 10's
+derived result folder, `<...>/spatial_analysis/<cohort>/<version>/<tier>/<sample>/`. Inputs are never modified;
 existing tables are kept unless `--overwrite` is given.
 """
 
@@ -32,10 +34,11 @@ try:
 except ImportError:
     from anndata.experimental import read_elem
 
-from spatial_tables import (
+from xenium_workflow.spatial_tables import (
     enrichment_from_labels, enrichment_table_path, read_enrichment_table, write_enrichment_table,
 )
-from workflow_config import add_root_arguments, load_cohort, resolve_path, select_samples
+from xenium_workflow.annotation_sets import add_annotation_arguments, annotated_h5ad_path, label_column, resolve_step, step_dir
+from xenium_workflow.cohorts import add_root_arguments, resolve_path, select_samples
 
 
 def parse_args():
@@ -45,6 +48,7 @@ def parse_args():
     parser.add_argument("--sample", action="append", help="Restrict to a sample; repeat as needed")
     parser.add_argument("--validate-only", action="store_true", help="List inputs and outputs without writing")
     parser.add_argument("--overwrite", action="store_true", help="Replace existing tables")
+    add_annotation_arguments(parser)
     add_root_arguments(parser)
     return parser.parse_args()
 
@@ -53,14 +57,16 @@ def main():
     """Export one enrichment table per sample from its script 10 result H5AD."""
     args = parse_args()
     cfg = json.loads(Path(args.config).resolve().read_text())
-    cohort = load_cohort(cfg["cohort"])
-    result_in = resolve_path(args.input_root.resolve(), cfg["result_dir"])
-    result_out = resolve_path(args.output_root.resolve(), cfg["result_dir"])
-    for sample in select_samples(cohort, cfg.get("samples"), args.sample):
+    annotation, level = resolve_step(cfg, args)
+    column = label_column(level)
+    result_dir = step_dir(annotation, "processed", "spatial_analysis", level)
+    result_in = resolve_path(args.input_root.resolve(), result_dir)
+    result_out = resolve_path(args.output_root.resolve(), result_dir)
+    for sample in select_samples(annotation["cohort"], cfg.get("samples"), args.sample):
         name = sample["sample"]
-        stem = Path(sample["annotated_h5ad"]).stem
-        source = result_in / name / f"{stem}_squidpy.h5ad"
-        table = enrichment_table_path(result_out, name, sample["annotated_h5ad"])
+        annotated = annotated_h5ad_path(annotation, sample)
+        source = result_in / name / f"{annotated.stem}_squidpy.h5ad"
+        table = enrichment_table_path(result_out, name, annotated)
         if not source.is_file():
             raise FileNotFoundError(f"{name}: no script 10 result at {source}")
         if args.validate_only:
@@ -71,7 +77,7 @@ def main():
             continue
         with h5py.File(source, "r") as handle:
             parts = enrichment_from_labels(
-                read_elem(handle["uns/cell_type_nhood_enrichment"]), read_elem(handle["obs/cell_type"])
+                read_elem(handle[f"uns/{column}_nhood_enrichment"]), read_elem(handle[f"obs/{column}"])
             )
         write_enrichment_table(table, *parts)
         # Confirm the written table reproduces the stored matrices exactly.

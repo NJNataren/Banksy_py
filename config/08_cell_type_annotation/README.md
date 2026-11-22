@@ -1,81 +1,76 @@
-# Script 08: reviewed cell-type annotation and UMAPs
+# Script 08: cell-type annotation and UMAPs
 
-`08_annotate_cell_types_and_plot_umaps.py` applies a reviewed cluster mapping to
-clean script 06 recluster objects. It preserves source objects and original
-cluster columns, writes separate annotated H5ADs and count audits, and uses the
-same saved BANKSY coordinates for Matplotlib and Scanpy UMAP plots.
+`08_annotate_cell_types_and_plot_umaps.py` applies an annotation set (see
+`config/annotations/README.md`) to clean script 06 recluster objects. It writes
+one label column per tier (`cell_type_tier_1`, `cell_type_tier_2`, ...), a
+provenance stamp in `uns["cell_type_annotation"]`, per-tier Scanpy UMAPs,
+count tables, a change table against the parent set, and a run manifest.
+Source objects, original cluster columns, expression and embeddings are
+preserved. Since 2026-11-22 the mapping and palette live in the annotation set,
+not here, and every output path is derived from the set
+(`xenium_workflow/annotation_sets.py`); the old single `cell_type` column is retired.
 
-The active VBCT config uses Scanpy and writes PNG, SVG, and PDF. Dense point
-clouds are rasterized inside SVG/PDF so Inkscape can edit vector text, labels,
-legend, and layout without creating files containing millions of vector marks.
-Set `rasterized_points` to `false` only when individual editable points are
-required and the resulting file size is acceptable.
+Configs here hold plot settings only:
 
-Samples, the reviewed mapping, and the shared palette come from the cohort
-config named by `"cohort"` (`config/cohorts/vbct/min15_area95_selected_resolutions.json`);
-this config keeps only plot and output settings. `--input-root` and
-`--output-root` both default to the repository root. Locally, script 06 inputs
-are only on the Phoenix mount, so validate with:
+- `vbct/min15_area95_selected_resolutions.json`: annotate and plot. Names the
+  set with `"annotation"`; optional `plot_levels` limits which tiers are plotted
+  (default: all).
+- `vbct/min15_area95_selected_resolutions_clean_umaps.json`: replot clean
+  presentation UMAPs (no titles, axis labels, or external legend; 12-point
+  on-data labels) from the set's existing annotated objects
+  (`"input_key": "annotated_h5ad"`, `output_subdir: clean_scanpy`). Writes no
+  H5ADs or tables.
+
+`--annotation <set dir>` runs either config against another version. Figures
+are PNG, SVG and PDF; dense points are rasterized so Inkscape can edit text and
+layout (`rasterized_points: false` only when editable points are required).
+
+Locally, script 06 inputs are on the Phoenix mount:
 
 ```bash
+A=config/annotations/vbct/min15_area95_selected_resolutions
 conda run -n banksy python 08_annotate_cell_types_and_plot_umaps.py \
   --config config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json \
-  --input-root ~/mnt/phoenix_scratch/Banksy_py \
-  --validate-only
+  --annotation $A/v2 --input-root ~/mnt/phoenix_scratch/Banksy_py --validate-only
 ```
 
-Run all samples by removing `--validate-only`. Use `--sample <sample>` for a
-subset, `--no-write-annotated` for figures and tables only, and `--overwrite`
-to replace existing outputs.
+Drop `--validate-only` to write outputs. `--sample <sample>` restricts samples
+(tables then cover only those samples), `--no-write-annotated` skips H5ADs, and
+`--overwrite` replaces existing outputs (normal while a set is a draft).
 
-## Clean presentation UMAPs
+Outputs (under `--output-root`):
 
-The companion config
-`vbct/min15_area95_selected_resolutions_clean_umaps.json` reads the existing
-annotated H5AD files (`"input_key": "annotated_h5ad"`) and produces clean per-sample Scanpy UMAPs with no title,
-axis labels, or external legend. Cell types are labelled directly on the UMAP
-with 12-point text. It does not rewrite annotated objects or summary tables.
-
-```bash
-conda run -n banksy python 08_annotate_cell_types_and_plot_umaps.py \
-  --config config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_clean_umaps.json \
-  --overwrite
+```text
+data/xenium/processed/<project>/cell_type_annotation/<cohort>/<version>/
+  <sample>/adata_expression_clean_<sample>_<branch>_cell_type_annotated_<version>_r<res>.h5ad
+  cluster_annotation_counts.csv     one row per source cluster, all tiers, n_cells
+  cell_type_counts_<tier>.csv       per sample and label (read by script 09)
+  changes_vs_<parent>.csv           clusters whose labels changed since the parent set
+  run manifest (JSON)               inputs, outputs, set hash, cell totals
+data/xenium/output/<project>/cell_type_annotation/<cohort>/<version>/<tier>/[<output_subdir>/]
+  per_sample_scanpy/<sample>_cell_type_<tier>_umap_scanpy.{png,svg,pdf}
+  combined_scanpy_cell_type_<tier>_umaps.{png,svg,pdf}
 ```
 
-PNG, SVG, and PDF outputs are written to
-`data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/clean_scanpy/per_sample_scanpy/`
-(moved from `figures/cell_type_annotation/vbct_min15_area95_selected_resolutions/` on
-2026-11-20; the annotation config's figures moved likewise). Earlier figures are in
-`figures/_pre_post08_cleanup_2026-11-20/cell_type_annotation/`; its titled UMAPs and combined panels exist only
-there until script 08 is rerun.
-The original titled UMAPs and combined panel remain unchanged.
+Outputs from before 2026-11-22 (unversioned `.../min15_area95_selected_resolutions/`
+folders and `figures/_pre_post08_cleanup_2026-11-20/cell_type_annotation/`)
+are from the same labels as v1 but carry no stamp.
 
 ## HPC execution
 
-Submit script 08 from the HPC repository root instead of running it on a login
-node:
+Submit from the HPC repository root (one job, not an array: script 08 writes
+shared tables and combined UMAPs after all samples):
 
 ```bash
 cd /scratchdata1/users/a1210419/Banksy_py
 mkdir -p logs
 sbatch hpc/slurm/run_08_cell_type_annotation.sl
+# another version, or a rerun of a draft:
+sbatch --export=ALL,ANNOTATION=config/annotations/vbct/min15_area95_selected_resolutions/<version>,OVERWRITE=1 \
+  hpc/slurm/run_08_cell_type_annotation.sl
 ```
 
-The wrapper requests 8 CPUs, 180 GB RAM, and 8 hours. It passes the HPC
-repository as both input and output root (also the default since 2026-11-19;
-the config no longer stores the mounted path).
-
-This is deliberately one job rather than a Slurm array. Script 08 writes two
-shared count tables and a combined eight-sample UMAP after processing all
-samples; independent per-sample tasks would race on those shared outputs and
-produce incomplete summaries.
-
-The default is fail-safe: existing outputs cause the script to stop. To replace
-partial or previously completed script 08 outputs intentionally, submit:
-
-```bash
-sbatch --export=ALL,OVERWRITE=1 hpc/slurm/run_08_cell_type_annotation.sl
-```
-
-After script 08 finishes successfully, validate script 10 inputs and then
-submit `hpc/slurm/run_10_cell_type_spatial_analysis.sl`.
+The wrapper requests 8 CPUs, 180 GB RAM, and 8 hours and passes the HPC
+repository as input and output root. Existing outputs stop the run unless
+`OVERWRITE=1`. After script 08 finishes (and the set is released), validate
+and submit script 10 (`config/10_cell_type_spatial_analysis/vbct/README.md`).

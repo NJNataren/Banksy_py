@@ -2,8 +2,9 @@
 
 Configs for `helper_scripts/poster/` (HCA 2026 poster figures), moved here from
 `config/08_cell_type_annotation/vbct/` on 2026-11-20 (post-08 cleanup,
-phase 3). The helpers read only `cell_type`, UMAP embeddings, and marker
-expression from the script 08 annotated H5ADs (h5py, read-only).
+phase 3). The helpers read only the chosen tier's label column (e.g.
+`cell_type_tier_1`), UMAP embeddings, and marker expression from the script 08
+annotated H5ADs (h5py, read-only), after checking each object's annotation stamp.
 
 - `vbct/poster_cohort_umap_grid.json`: UMAP grid; lists samples in poster order
   with poster titles and optional point sizes.
@@ -11,10 +12,13 @@ expression from the script 08 annotated H5ADs (h5py, read-only).
   `vbct/poster_cohort_marker_dotplot_rdbu_large_font.json`: cohort marker dot
   plot (equal sample weight, per-gene min-max scaling); all cohort samples.
 
-Samples, object paths, UMAP keys, and palette come from the cohort config
-(`config/cohorts/vbct/min15_area95_selected_resolutions.json`). Figures go to
-`data/xenium/output/vbct/poster/min15_area95_selected_resolutions/`, dot plot
-tables to `data/xenium/processed/vbct/poster/min15_area95_selected_resolutions/cohort_marker_dotplot/`.
+Since 2026-11-22 each config names an annotation set (`"annotation"`), a tier
+(`"label_level"`), and an `output_subdir`; samples, object paths, UMAP keys,
+and palette come from the set and its cohort (`config/annotations/README.md`).
+`--annotation`/`--label-level` override the config; `--allow-draft` permits a
+draft set. Marker keys in the dot plot config must be labels of the chosen tier.
+Figures go to `data/xenium/output/<project>/poster/<cohort>/<version>/<tier>/<output_subdir>/`,
+dot plot tables to the same path under `data/xenium/processed/`.
 Figures made for the poster before 2026-11-20 remain in
 `figures/conference_min15_area95_selected_resolutions_poster/`.
 

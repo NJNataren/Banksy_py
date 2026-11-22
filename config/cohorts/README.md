@@ -1,15 +1,18 @@
 # Cohort configs
 
-One file per cohort and QC branch holds the facts that script 08 and every later
-step need: sample names, response, tissue, branch, selected resolution, the
-script 06 (`recluster_h5ad`) and script 08 (`annotated_h5ad`) object paths,
-cluster column (`groupby`), UMAP key, coordinate keys, the reviewed mapping
-CSV, and the shared palette. Added 2026-11-19 (post-08 cleanup, phase 1).
+One file per cohort and QC branch holds the clustering facts that script 08 and
+every later step need: sample names, response, tissue, branch, selected
+resolution, the script 06 object (`recluster_h5ad`), cluster column
+(`groupby`), UMAP key, and coordinate keys. Added 2026-11-19 (post-08 cleanup,
+phase 1). Since 2026-11-22 the labels (mapping, palette) and the script 08
+object paths belong to versioned annotation sets in
+`config/annotations/<project>/<cohort file stem>/vN/` (README there), so one
+cohort can carry several labellings.
 
-Step configs point here with `"cohort": "config/cohorts/<project>/<file>.json"`.
-They may list `samples` to choose and order samples for that step and to add
-plot-only fields (`title`, `facet`, `display_label`, `point_size`); they may
-not redefine a cohort fact. Loader and rules: `workflow_config.py` at the
+Annotation sets point here with `"cohort"`; step configs name an annotation
+set. Step configs may list `samples` to choose and order samples for that step
+and to add plot-only fields (`title`, `facet`, `display_label`, `point_size`);
+they may not redefine a cohort fact. Loader and rules: `xenium_workflow/cohorts.py` at the
 repository root.
 
 Paths here are relative. Config files resolve against the repository root;

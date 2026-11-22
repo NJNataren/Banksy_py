@@ -33,8 +33,8 @@ Most wrappers change to `REPO_DIR` before running the Python workflow scripts, s
     hpc/slurm/run_06_recluster_qc_annotated_mf_skin_non_res.sl
   ```
 
-- `run_08_cell_type_annotation.sl`: active script 08 reviewed cell-type annotation. Runs all eight configured samples sequentially in one job because the workflow writes shared count tables and a combined UMAP. Requests 8 CPUs, 180 GB, and 8 hours. Set `OVERWRITE=1` only to replace existing or partial outputs deliberately.
-- `run_10_cell_type_spatial_analysis.sl`: script 10 cell-type analysis (`10_cell_type_spatial_analysis.py`); requires script 08 annotated H5ADs. Picks one cohort sample per task (`0-7%2`) from `config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json` and requests 8 CPUs, 180 GB, and 24 hours per task.
+- `run_08_cell_type_annotation.sl`: active script 08 reviewed cell-type annotation. Runs all eight configured samples sequentially in one job because the workflow writes shared count tables and a combined UMAP. Requests 8 CPUs, 180 GB, and 8 hours. Set `OVERWRITE=1` only to replace existing or partial outputs deliberately. `ANNOTATION=config/annotations/<project>/<cohort>/vN` selects an annotation set other than the config's (2026-11-22).
+- `run_10_cell_type_spatial_analysis.sl`: script 10 cell-type analysis (`10_cell_type_spatial_analysis.py`); requires script 08 annotated H5ADs. Picks one cohort sample per task (`0-7%2`) from `config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json` and requests 8 CPUs, 180 GB, and 24 hours per task. Needs a released annotation set; `ANNOTATION=` and `LABEL_LEVEL=tier_2` override the config (2026-11-22). `CONFIG=` overrides the config path.
 - The legacy `run_10_squidpy_recluster_spatial_analysis.sl` (cluster mode on script 06 objects) was archived on 2026-11-20 in `archive/2026-11-20_script10_legacy_cluster_mode/`.
 
 ## Smoke-Test Wrappers

@@ -1,8 +1,7 @@
 {
-  "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
-  "script10_result_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions",
-  "figure_dir": "data/xenium/output/vbct/spatial_analysis/min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
-  "table_dir": "data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/cross_sample_nhood_enrichment",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "label_level": "tier_1",
+  "output_subdir": "cross_sample_nhood_enrichment",
   "pseudocount": 1,
   "primary_graph": "knn6",
   "graph_settings": [

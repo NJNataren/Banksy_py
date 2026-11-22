@@ -1,10 +1,8 @@
 {
-  "description": "VBCT cohort, min15_area95 QC branch, reviewed selected resolution per sample. Facts shared by script 08 and every later step; see workflow_config.py.",
+  "description": "VBCT cohort, min15_area95 QC branch, reviewed selected resolution per sample. Clustering facts shared by script 08 and every later step; labels live in annotation sets under config/annotations/vbct/min15_area95_selected_resolutions/. See xenium_workflow/cohorts.py.",
   "project": "vbct",
   "branch": "min15_area95",
   "branch_label": "minimum 15 transcripts, grouped area p95",
-  "palette_json": "config/08_cell_type_annotation/vbct/shared_cell_type_palette.json",
-  "mapping_csv": "config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_cell_type_mapping.csv",
   "coord_keys": [
     "x",
     "y"
@@ -16,7 +14,6 @@
       "tissue": "skin",
       "resolution": "1.00",
       "recluster_h5ad": "data/xenium/processed/vbct/CK_skin_res/adata_expression_clean_CK_skin_res_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
-      "annotated_h5ad": "data/xenium/processed/vbct/CK_skin_res/cell_type_annotation/adata_expression_clean_CK_skin_res_min15_area95_cell_type_annotated_r1.00.h5ad",
       "groupby": "labels_scaled_gaussian_pc30_nc0.20_r1.00_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
       "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
     },
@@ -26,7 +23,6 @@
       "tissue": "skin",
       "resolution": "0.80",
       "recluster_h5ad": "data/xenium/processed/vbct/EL_skin_res/adata_expression_clean_EL_skin_res_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
-      "annotated_h5ad": "data/xenium/processed/vbct/EL_skin_res/cell_type_annotation/adata_expression_clean_EL_skin_res_min15_area95_cell_type_annotated_r0.80.h5ad",
       "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
       "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
     },
@@ -36,7 +32,6 @@
       "tissue": "lung",
       "resolution": "1.00",
       "recluster_h5ad": "data/xenium/processed/vbct/GR_lung_non_res_roi/adata_expression_clean_GR_lung_non_res_roi_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
-      "annotated_h5ad": "data/xenium/processed/vbct/GR_lung_non_res_roi/cell_type_annotation/adata_expression_clean_GR_lung_non_res_roi_min15_area95_cell_type_annotated_r1.00.h5ad",
       "groupby": "labels_scaled_gaussian_pc35_nc0.20_r1.00_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
       "umap_key": "X_umap_scaled_gaussian_pc35_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
     },
@@ -46,7 +41,6 @@
       "tissue": "brain",
       "resolution": "0.90",
       "recluster_h5ad": "data/xenium/processed/vbct/BE_brain_non_res/adata_expression_clean_BE_brain_non_res_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
-      "annotated_h5ad": "data/xenium/processed/vbct/BE_brain_non_res/cell_type_annotation/adata_expression_clean_BE_brain_non_res_min15_area95_cell_type_annotated_r0.90.h5ad",
       "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.90_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
       "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
     },
@@ -56,7 +50,6 @@
       "tissue": "brain",
       "resolution": "0.80",
       "recluster_h5ad": "data/xenium/processed/vbct/HW_brain_res/adata_expression_clean_HW_brain_res_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
-      "annotated_h5ad": "data/xenium/processed/vbct/HW_brain_res/cell_type_annotation/adata_expression_clean_HW_brain_res_min15_area95_cell_type_annotated_r0.80.h5ad",
       "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
       "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
     },
@@ -66,7 +59,6 @@
       "tissue": "skin",
       "resolution": "0.50",
       "recluster_h5ad": "data/xenium/processed/vbct/MF_skin_non_res/adata_expression_clean_MF_skin_non_res_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
-      "annotated_h5ad": "data/xenium/processed/vbct/MF_skin_non_res/cell_type_annotation/adata_expression_clean_MF_skin_non_res_min15_area95_cell_type_annotated_r0.50.h5ad",
       "groupby": "labels_scaled_gaussian_pc20_nc0.20_r0.50_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
       "umap_key": "X_umap_scaled_gaussian_pc20_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
     },
@@ -76,7 +68,6 @@
       "tissue": "gastric",
       "resolution": "0.70",
       "recluster_h5ad": "data/xenium/processed/vbct/MG_gastric_non_res/adata_expression_clean_MG_gastric_non_res_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
-      "annotated_h5ad": "data/xenium/processed/vbct/MG_gastric_non_res/cell_type_annotation/adata_expression_clean_MG_gastric_non_res_min15_area95_cell_type_annotated_r0.70.h5ad",
       "groupby": "labels_scaled_gaussian_pc35_nc0.20_r0.70_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
       "umap_key": "X_umap_scaled_gaussian_pc35_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
     },
@@ -86,7 +77,6 @@
       "tissue": "bowel",
       "resolution": "0.80",
       "recluster_h5ad": "data/xenium/processed/vbct/CK_bowel_res/adata_expression_clean_CK_bowel_res_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only_cells_used_for_banksy_with_clusters_0.50_0.60_0.70_0.80_0.90_1.00_1.10_1.20_1.30_1.40_1.50.h5ad",
-      "annotated_h5ad": "data/xenium/processed/vbct/CK_bowel_res/cell_type_annotation/adata_expression_clean_CK_bowel_res_min15_area95_cell_type_annotated_r0.80.h5ad",
       "groupby": "labels_scaled_gaussian_pc30_nc0.20_r0.80_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only",
       "umap_key": "X_umap_scaled_gaussian_pc30_nc0.20_recluster_filtered_qc_v1_grouped_area95_min_transcript_gte15_qc_pass_only"
     }

@@ -62,7 +62,7 @@ Do not use `adata_spatial.X` from BANKSY spatial objects for biological marker-e
    - Writes clean-object UMAP cluster plots under `umap_cluster_plot/` and cluster-plus-QC UMAPs under `umap_qc/`.
 
 8. `08_annotate_cell_types_and_plot_umaps.py`
-   - Apply reviewed cluster-to-cell-type mappings to script 06 clean objects and save annotated H5ADs plus shared-colour UMAPs. Samples, mapping, and palette come from the cohort config (`config/cohorts/`).
+   - Apply a versioned annotation set (`config/annotations/`, `xenium_workflow/annotation_sets.py`) to script 06 clean objects: one label column per tier (`cell_type_tier_1`, optional `cell_type_tier_2`), stamped annotated H5ADs, per-tier UMAPs, counts, and a change table against the parent set. Samples come from the set's cohort config (`config/cohorts/`).
 
 9. `09_plot_cell_type_proportions.py`
    - Optional composition plots from script 08 count tables, including tissue facets. This is not a prerequisite for spatial analysis.
@@ -102,6 +102,7 @@ config/04_plot_dotplot/active/vbct_recluster_qc_pass_only/
 config/05_apply_qc_filters/
 config/06_recluster_qc_annotated/
 config/cohorts/
+config/annotations/
 config/08_cell_type_annotation/
 config/09_cell_type_proportions/
 config/10_cell_type_spatial_analysis/
@@ -342,15 +343,20 @@ config/01a_clustree/vbct/small_recluster_qc_pass_only.json
 
 ## After Script 08: Cell Types, Spatial Analysis, and Figures
 
-Everything downstream of script 08 reads one cohort config and follows one
-output rule (post-08 cleanup, branch `cleanup/post08-flow`, 2026-11-19/20; plan
+Everything from script 08 on reads one annotation set (which names its cohort)
+and follows one output rule. Annotation sets were added on 2026-11-22
+(`config/annotations/README.md`; design in `context/tasks/cell_type_annotation.md`);
+the post-08 cleanup before it (post-08 cleanup, branch `cleanup/post08-flow`, 2026-11-19/20; plan
 and validation in `context/tasks/post08_flow_cleanup.md`). The workflow is
 **06 → 08 → 10**; 09, 10a, and the helpers branch off it.
 
 ```text
 config/cohorts/vbct/min15_area95_selected_resolutions.json
-  samples, response, tissue, resolution, object paths, palette, mapping
-        |  read directly by every step below (workflow_config.py)
+  samples, response, tissue, resolution, script 06 objects, cluster/UMAP keys
+        |  named by
+config/annotations/vbct/min15_area95_selected_resolutions/<version>/
+  mapping.csv (tiers), palette.json, CHANGES.md; draft or released
+        |  read by every step below (xenium_workflow/annotation_sets.py, xenium_workflow/cohorts.py)
         v
 06 recluster objects --> 08 annotate (HPC) --> annotated H5ADs --+--> 10 spatial analysis (HPC, one sample per task)
                            |                                     |      |- figures --> output/.../spatial_analysis/
@@ -367,24 +373,34 @@ config/cohorts/vbct/min15_area95_selected_resolutions.json
 ### Shared pieces
 
 - **Cohort config** (`config/cohorts/`, README there): the only place samples,
-  response/tissue labels, branch, selected resolution, script 06 and 08 object
-  paths, cluster and UMAP keys, palette, and reviewed mapping are defined. Step
-  configs point to it with `"cohort"` and may list `samples` to set their own
-  order and add plot-only fields (titles, facets); they cannot redefine a fact.
+  response/tissue labels, branch, selected resolution, script 06 object paths,
+  and cluster and UMAP keys are defined.
+- **Annotation set** (`config/annotations/<project>/<cohort>/vN/`, README there):
+  one labelling of the cohort's clusters, with tiers (`cell_type_tier_1` broad,
+  optional `cell_type_tier_2` finer, nested under tier 1). New versions come from
+  `python -m xenium_workflow.annotation_sets new`; `release` locks a set by hash, and scripts 09,
+  10 and the helpers need a released set. Step configs name a set with
+  `"annotation"` and a tier with `"label_level"` (overridable with
+  `--annotation`/`--label-level`), and may list `samples` to set their own order
+  and add plot-only fields; they cannot redefine a fact.
 - **Roots:** every post-08 step takes `--input-root` and `--output-root`, both
   defaulting to the repository root; configs hold no machine-specific paths.
   Pass `--input-root ~/mnt/phoenix_scratch/Banksy_py` only when inputs exist only
   on Phoenix (script 08 locally, script 10a).
-- **Output rule:** figures go to
-  `data/xenium/output/vbct/<step>/min15_area95_selected_resolutions/`; tables and
-  H5ADs go to the same path under `data/xenium/processed/vbct/`. Steps:
+- **Output rule:** paths are derived from the set (`xenium_workflow/annotation_sets.py`), never
+  written in step configs. Figures go to
+  `data/xenium/output/vbct/<step>/<cohort>/<version>/<tier>/[<output_subdir>/]`;
+  tables and H5ADs to the same path under `data/xenium/processed/vbct/`
+  (script 08's annotated H5ADs and tables sit at `<version>/`, without a tier).
+  Unversioned `<step>/min15_area95_selected_resolutions/` folders predate
+  2026-11-22 (v1 labels, old `cell_type` column). Steps:
   `cell_type_annotation` (08), `cell_type_proportions` (09),
   `spatial_analysis` (10 and its helpers), `poster`. Figures from runs before
   2026-11-19/20 were archived on 2026-11-21 in `figures/_pre_post08_cleanup_2026-11-20/` (README
   there); the poster folder `figures/conference_min15_area95_selected_resolutions_poster/`
   was left in place.
 - **Enrichment tables:** script 10 writes `<stem>_nhood_enrichment.csv` per
-  sample (format in `spatial_tables.py`); the comparison helper reads these, so
+  sample (format in `xenium_workflow/spatial_tables.py`); the comparison helper reads these, so
   local analysis never needs the result H5ADs. Script 10a backfills them from
   stored results.
 - Script 10 seeds neighbourhood enrichment and Moran's I permutations (1234).
@@ -393,7 +409,8 @@ config/cohorts/vbct/min15_area95_selected_resolutions.json
 
 | Step | Script | Config | Runs |
 |---|---|---|---|
-| 08 annotate | `08_annotate_cell_types_and_plot_umaps.py` | `config/08_cell_type_annotation/vbct/` | HPC (`run_08_cell_type_annotation.sl`, one batch job); locally needs `--input-root` on the mount |
+| annotation sets | `xenium_workflow/annotation_sets.py` (`new`, `check`, `diff`, `release`) | `config/annotations/vbct/` | local |
+| 08 annotate | `08_annotate_cell_types_and_plot_umaps.py` | `config/08_cell_type_annotation/vbct/` | HPC (`run_08_cell_type_annotation.sl`, one batch job, `ANNOTATION=` override); locally needs `--input-root` on the mount |
 | 09 proportions | `09_plot_cell_type_proportions.py` | `config/09_cell_type_proportions/vbct/` | local |
 | 10 spatial | `10_cell_type_spatial_analysis.py` | `config/10_cell_type_spatial_analysis/vbct/` | HPC (`run_10_cell_type_spatial_analysis.sl`, array 0-7) |
 | 10a backfill | `10a_export_nhood_enrichment_tables.py` | script 10 config | local, after each HPC script 10 run |
@@ -410,7 +427,8 @@ their config keeps its own sample list and output folder under `figures/`.
 cd /scratchdata1/users/a1210419/Banksy_py
 mkdir -p logs
 sbatch hpc/slurm/run_08_cell_type_annotation.sl
-# after script 08 completes:
+# another annotation version: --export=ALL,ANNOTATION=config/annotations/vbct/min15_area95_selected_resolutions/<version>
+# after script 08 completes (script 10 needs a released set; LABEL_LEVEL=tier_2 for tier 2):
 python 10_cell_type_spatial_analysis.py \
   --config config/10_cell_type_spatial_analysis/vbct/min15_area95_selected_resolutions.json \
   --validate-only
@@ -449,6 +467,11 @@ python helper_scripts/poster/plot_cohort_marker_dotplot_from_config.py --config 
 
 ### History
 
+- 2026-11-22 (`feature/annotation-sets`): versioned annotation sets with tiers;
+  mapping and palette moved from `config/08_cell_type_annotation/vbct/` to
+  `config/annotations/vbct/min15_area95_selected_resolutions/v1/`; `cell_type`
+  column replaced by `cell_type_tier_1`; step configs lost `cohort` and their
+  output folders.
 - 2026-10-25: spatial step renamed from 07 to 10; no 07 alias.
 - 2026-11-19/20 (`cleanup/post08-flow`): cohort config and shared roots;
   enrichment tables replace reading result H5ADs (the local recompute fallback
