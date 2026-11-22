@@ -870,3 +870,46 @@ Imports were updated in scripts 08, 09, 10 and 10a, both spatial helpers and bot
 (`AGENTS.md`, both workflow READMEs, config READMEs) were updated. Older task
 handoffs keep the old names as history. `banksy_utils/` was deliberately not
 used, to keep upstream BANKSY code separate from pipeline plumbing.
+
+## Session Update: v1 Regenerated on Phoenix (2026-11-22)
+
+Nathalie ran script 08 for v1 on Phoenix from branch `feature/annotation-sets`
+(commit `36529a2`, pushed to `origin`), Slurm job 16939096. It finished at 13:43.
+It was checked read-only through the mount:
+
+- **Samples.** All 8 validated and written under
+  `data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/v1/`.
+  `tools/pipeline_status.py` reports `08-annot` 8/8.
+- **Manifest and totals.** The run manifest shows v1 released (hash `f60c669e...`),
+  2,083,396 cells and 8 H5ADs. The 127 clusters account for all 2,083,396 cells.
+- **Counts.** `cell_type_counts_tier_1.csv` (52 rows) is identical to the old
+  `reviewed_cell_type_counts.csv`.
+- **Objects.** Every object's stamp matches released v1. Each has
+  `cell_type_tier_1` and no `cell_type`. CK_skin_res `inspect_h5ad`: CLEAN EXPRESSION.
+- **Warnings.** The `.err` contains only Scanpy deprecation and colormapping warnings.
+
+Remaining from the migration plan: archive the unversioned outputs, and run
+script 10 on v1 after the Moran's I review.
+
+## Session Update: Old Outputs Archived Locally; v2 Draft Created (2026-11-22)
+
+- **Archive script.** New `helper_scripts/archive_pre_annotation_sets_outputs.sh` is a
+  one-off. It runs dry by default and moves only with `--apply`. It moves the
+  unversioned script 08/09/10, helper and poster outputs into
+  `data/xenium/_pre_annotation_sets_2026-11-22/` (same relative paths, README
+  included) and never touches `vN/` folders.
+- **Local run.** Applied locally: 32 paths, 2.1 GB. Not yet run on Phoenix
+  (Nathalie runs it there after pulling).
+- **Conference figures.** The config `config/conference_figures/vbct_min15_area95_selected_resolutions.json`
+  read the old annotated objects on the Phoenix mount by absolute path. Its 8
+  `adata_path` values now point at the archive location, which is valid once the
+  script has run on Phoenix.
+- **v2 draft.** `python -m xenium_workflow.annotation_sets new` created
+  `config/annotations/vbct/min15_area95_selected_resolutions/v2/` (draft, parent
+  v1, identical copy). Nathalie is editing it for the second round of cluster
+  merges.
+- **Script 10 for this week's meeting.** Nathalie wants script 10 for v1 and v2
+  before the Moran's I fix, using the current settings with no parameter changes.
+  Do not present the Moran FDR gene lists or the top-Moran plots from these runs
+  (`morans_i_significance.md`). Neighbourhood enrichment, centrality and
+  co-occurrence are unaffected.
