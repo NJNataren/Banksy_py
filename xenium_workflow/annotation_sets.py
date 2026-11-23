@@ -299,6 +299,9 @@ def load_mapping(annotation: dict) -> pd.DataFrame:
                      | (rows["resolution"].astype(float) != float(record["resolution"]))]
         if not wrong.empty:
             raise ValueError(f"{path}: {name} rows do not match the cohort branch/resolution/groupby")
+        # Spreadsheet editors rewrite 1.00 as 1 and 0.90 as 0.9; use the cohort's
+        # spelling so comparisons between sets and output names stay stable.
+        mapping.loc[rows.index, "resolution"] = str(record["resolution"])
 
     first = label_column(levels[0])
     unknown = sorted(set(mapping[first]) - set(tiers[levels[0]]["order"]))
