@@ -13,6 +13,10 @@ labels. Optional row metadata can add annotation labels, filters, and ordering
 without rewriting the expression exports. Per-sample filters can keep one
 resolution, several resolutions, or all available resolutions for
 cross-resolution marker review.
+Updated: 2026-11-22 - optional `annotation` block labels and orders rows with a
+versioned annotation set (xenium_workflow/annotation_sets.py): it keeps only one
+cohort sample's selected-resolution clusters, adds `cell_type_<tier>` from the
+set's mapping, and can derive the output path under that set's folders.
 """
 
 import argparse
@@ -25,6 +29,10 @@ import shutil
 
 import matplotlib.pyplot as plt
 import pandas as pd
+
+from xenium_workflow.annotation_sets import (
+    label_column, level_vocabulary, load_annotation, load_mapping, step_dir,
+)
 
 
 REQUIRED_COLUMNS = {
@@ -113,6 +121,14 @@ def parse_args():
         "--config",
         required=True,
         help="JSON config defining input CSVs, plot options, and output path.",
+    )
+    parser.add_argument(
+        "--annotation",
+        help="Annotation set folder; overrides annotation.set in the config.",
+    )
+    parser.add_argument(
+        "--label-level",
+        help="tier_1, tier_2, ...; overrides annotation.label_level in the config.",
     )
     return parser.parse_args()
 
@@ -298,6 +314,89 @@ def apply_row_metadata(df, cfg):
         )
 
     return merged
+
+
+def apply_annotation_labels(df, cfg):
+    """Label rows with an annotation set's cluster labels (optional).
+
+    Config block (all keys except `set` and `sample` optional):
+
+        "annotation": {"set": "config/annotations/vbct/<cohort>/v1",
+                       "sample": "GR_lung_non_res_roi", "label_level": "tier_1",
+                       "source_rows": {"sample": "min15_area95"}}
+
+    Keeps only rows from the set cohort's clustering for `sample` (its
+    `groupby` and selected resolution), optionally narrowed by `source_rows`
+    (column -> value, e.g. the filter-sensitivity pseudo-sample). Adds
+    `cell_type_<tier>`, `annotation_label` (same value), `annotation_rank`
+    (position in the tier vocabulary), and `annotation_version`. Every cluster
+    in the export must be in the mapping and vice versa, so no row is
+    unlabelled and no mapped cluster is silently missing.
+    """
+    spec = cfg.get("annotation")
+    if not spec:
+        return df
+    annotation = load_annotation(spec["set"])
+    level = spec.get("label_level", "tier_1")
+    if level not in annotation["levels"]:
+        raise ValueError(f"Label level {level!r} is not in set {annotation['version']}")
+    records = {record["sample"]: record for record in annotation["cohort"]["samples"]}
+    sample = spec["sample"]
+    if sample not in records:
+        raise ValueError(f"Sample {sample!r} is not in cohort {annotation['cohort_name']}")
+    record = records[sample]
+    if "groupby" not in df.columns:
+        raise ValueError("Annotation labels need the export's `groupby` column")
+
+    keep = df["groupby"].astype(str) == record["groupby"]
+    keep &= df["resolution"].map(normalize_resolution_value) == normalize_resolution_value(
+        record["resolution"]
+    )
+    for column, value in (spec.get("source_rows") or {}).items():
+        if column not in df.columns:
+            raise ValueError(f"annotation.source_rows column {column!r} not in export")
+        keep &= df[column].astype(str) == str(value)
+    df = df[keep].copy()
+    if df.empty:
+        raise ValueError(
+            f"No export rows for {sample} with groupby {record['groupby']!r} at "
+            f"r{record['resolution']}"
+        )
+
+    column = label_column(level)
+    mapping = load_mapping(annotation)
+    rows = mapping[mapping["sample"] == sample].set_index("cluster_id")
+    exported = set(df["cluster_id"].astype(str))
+    missing, extra = sorted(exported - set(rows.index)), sorted(set(rows.index) - exported)
+    if missing or extra:
+        raise ValueError(
+            f"{sample}: export and annotation set disagree; unmapped clusters {missing}, "
+            f"mapped clusters absent from export {extra}"
+        )
+    order, _ = level_vocabulary(annotation, level)
+    df[column] = df["cluster_id"].astype(str).map(rows[column])
+    df["annotation_label"] = df[column]
+    df["annotation_rank"] = df[column].map({label: rank for rank, label in enumerate(order)})
+    df["annotation_version"] = annotation["version"]
+    df["annotation_sample"] = sample
+    # Defaults: clusters grouped by label in vocabulary order, separated by label.
+    cfg.setdefault("row_order_columns", ["annotation_rank", "cluster_id"])
+    cfg.setdefault("row_separator_column", "annotation_label")
+    cfg.setdefault("rows_top_to_bottom", True)
+    cfg.setdefault("y_label_template", "cluster {cluster_id} · {annotation_label} (n={n_cells})")
+    cfg.setdefault("title", f"{sample} · r{record['resolution']} · {record['branch']} clusters · "
+                            f"annotation {annotation['version']} ({annotation['status']}), "
+                            f"{level.replace('_', ' ')}")
+    cfg.setdefault("y_axis_label", f"{sample} cluster · {level.replace('_', ' ')} label "
+                                   f"(annotation {annotation['version']})")
+    if not cfg.get("output_png"):
+        subdir = spec.get("output_subdir", "cluster_marker_dotplots")
+        folder = step_dir(annotation, "output", "cell_type_annotation", level, subdir)
+        cfg["output_png"] = str(folder / f"{sample}_r{record['resolution']}_{column}"
+                                f"_{annotation['version']}_{spec.get('output_suffix', 'zscore_dotplot')}.png")
+    print(f"Labelled {df['cluster_id'].nunique()} clusters of {sample} with "
+          f"{annotation['version']} {column} ({annotation['status']})")
+    return df
 
 
 def apply_row_filters(df, row_filters, mode="all"):
@@ -1309,7 +1408,11 @@ def plot_dotplot(
         make_cluster_labels(df, cluster_order, cfg),
         fontsize=figure_cfg["y_tick_fontsize"],
     )
-    ax.set_ylim(-0.75, len(cluster_order) - 0.25)
+    if cfg.get("rows_top_to_bottom", False):
+        # First row in cluster_order at the top (reading order).
+        ax.set_ylim(len(cluster_order) - 0.25, -0.75)
+    else:
+        ax.set_ylim(-0.75, len(cluster_order) - 0.25)
     ax.set_xlim(-0.75, len(gene_order) - 0.35)
     if dendro_ax is not None:
         dendro_ax.set_xlim(ax.get_xlim())
@@ -1446,11 +1549,19 @@ def main():
     """Read a plot config, combine export CSVs, and write one dotplot image."""
     args = parse_args()
     cfg = load_config(args.config)
+    if args.annotation or args.label_level:
+        if "annotation" not in cfg:
+            raise ValueError("--annotation/--label-level need an `annotation` block in the config")
+        if args.annotation:
+            cfg["annotation"]["set"] = args.annotation
+        if args.label_level:
+            cfg["annotation"]["label_level"] = args.label_level
 
     df = load_export_tables(get_dotplot_summary_csvs(cfg))
     df = apply_sample_filters(df, cfg.get("sample_filters"))
     df = filter_values(df, "sample", cfg.get("samples"))
     df = filter_values(df, "resolution", cfg.get("resolutions"))
+    df = apply_annotation_labels(df, cfg)
     df = apply_row_metadata(df, cfg)
     df = apply_row_filters(
         df,

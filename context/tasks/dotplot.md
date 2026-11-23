@@ -522,3 +522,85 @@ explicitly disable automatic QC annotations to retain branch-specific numeric
 cluster labels. Script 04 computes shared gene-wise z-scores over all five
 conditions (clipped at 2.5), so colours change relative to the four-condition plots.
 Cluster IDs remain condition-specific, including the prefiltered baseline.
+
+## Future Work: Combined Selected-Resolution Dot Plot Across Samples (noted 2026-11-23)
+
+Not started; options to discuss with Nathalie before implementing.
+
+### Already done
+
+Per-sample cluster marker dot plots for annotation set v1 exist (one per VBCT
+sample). Each shows only that sample's clusters at its selected resolution
+(min15_area95 branch), labelled `cluster <id> · <tier-1 label> (n=<cells>)`
+and grouped by label. They use the 89 genes kept by
+`03_xenium_gene_review_for_dotplot_manual_annotation_2026-06-11.csv`, z-scored
+per gene within the sample, clipped at ±2.5.
+
+- Configs: `config/04_plot_dotplot/active/vbct_annotation_sets/min15_area95_selected_resolutions/`
+  (README there).
+- Outputs: `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/v1/tier_1/cluster_marker_dotplots/`.
+- Mechanism: the `annotation` block in script 04 (`apply_annotation_labels`).
+- Inputs: the `min15_area95` rows of the local filter-sensitivity exports, verified
+  identical to v1's clusters and cell counts. The same configs replot for another
+  set with `--annotation <set dir>` (drafts allowed).
+- Context: `cell_type_annotation.md`.
+
+### Goal
+
+One figure covering all eight samples, each at only the resolution selected for
+script 08.
+
+### Options
+
+**(a) All 127 clusters, stacked by sample.**
+- **Layout.** One block per sample, rows labelled
+  `<sample> · cluster <id> · <label>`, grouped by label within each sample and
+  separated by sample.
+- **Pros and cons.** Shows every cluster in one place, but the figure is tall
+  (127 rows).
+- **Decision needed: z-score scope.**
+  - *Within each sample:* matches the per-sample plots and keeps contrast
+    between clusters, but colours are not comparable between samples.
+  - *Across the whole cohort:* colours are comparable between samples, but
+    samples with high overall expression dominate.
+
+**(b) One row per label per sample (cross-sample consistency check).**
+- **Layout.** Rows like `T cell · CK_skin_res`, `T cell · EL_skin_res`, ... (about 50
+  rows), against the same marker genes.
+- **Purpose.** Shows whether a label means the same thing in every sample. For
+  example: does every `T cell` group express CD3E/CD2, or is one sample's
+  `Fibroblast` pericyte-like (RGS5)? Do labels used in only one or two samples
+  (`Epithelial cell`, `Pericyte`) have convincing markers? Inconsistent labels
+  would distort script 10's responder vs non-responder comparisons.
+- **Method.** Each label's values must be recomputed from its clusters weighted
+  by cell count (mean expression and percent expressing weighted by `n_cells`),
+  not averaged equally across clusters.
+  - Can be built from the same exports and the set's mapping, so no H5ADs are
+    needed.
+  - Alternatively, the poster marker dot plot helper
+    (`helper_scripts/poster/plot_cohort_marker_dotplot_from_config.py`) computes
+    per-label values from the annotated H5ADs, but it averages samples into one
+    cohort row per label. It would need a per-sample row option.
+- **Comparing versions.** Rerun after v2 to see whether the labels became more
+  consistent.
+
+### Implementation notes (either option)
+
+- Extend script 04's `annotation` block to accept several samples (one block per
+  sample, or the whole cohort), rather than one `sample`.
+- Keep the check that every exported cluster is mapped and every mapped cluster
+  is exported, for each sample.
+- Keep the review filter, gene grouping, and canonical-gene highlighting from the
+  per-sample configs unless Nathalie chooses otherwise.
+- Write outputs next to the per-sample plots under the set's `<version>/<tier>/`
+  folder.
+
+### Observations from the v1 per-sample plots (to judge, not conclusions)
+
+Some very small clusters stand out and may be worth deciding on in v2:
+
+- CK_bowel_res clusters 16 (n=376) and 17 (n=238), labelled melanoma, each with
+  one strongly expressed atypical gene.
+- CK_bowel_res cluster 18, a 28-cell T-cell cluster.
+- GR_lung_non_res_roi cluster 13 (n=403), labelled melanoma, with a B-cell-like
+  marker signal.

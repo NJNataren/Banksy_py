@@ -913,3 +913,29 @@ script 10 on v1 after the Moran's I review.
   Do not present the Moran FDR gene lists or the top-Moran plots from these runs
   (`morans_i_significance.md`). Neighbourhood enrichment, centrality and
   co-occurrence are unaffected.
+
+## Session Update: v1 Cluster Marker Dot Plots (2026-11-23)
+
+Per-sample dot plots of v1's clusters at each sample's selected resolution, to
+review markers before the v2 merges. No new script 03 export was needed:
+
+- **Input check.** The `min15_area95` rows of the local filter-sensitivity exports
+  match v1 exactly for all eight samples: same clusters, same cell counts as v1's
+  `cluster_annotation_counts.csv` on Phoenix (127 clusters), 304 genes from `.raw`,
+  and the cohort's script 06 object.
+- **Script 04 change.** It gained an optional `annotation` block, read by
+  `apply_annotation_labels`. The block keeps one sample's selected-resolution
+  clusters and labels them from a set. It requires every exported cluster to be
+  mapped and every mapped cluster to be exported.
+- **Script 04 rendering.** It also orders rows by label, can derive the output
+  path, and accepts `--annotation`/`--label-level` overrides, so the same configs
+  replot for v2. A new `rows_top_to_bottom` option is on by default only for
+  annotation plots; existing configs are unchanged.
+- **Configs and plot settings.** The configs are in
+  `config/04_plot_dotplot/active/vbct_annotation_sets/min15_area95_selected_resolutions/`
+  (README there). Nathalie chose the reviewed 89-gene filter and z-scoring within
+  each sample, clipped at ±2.5.
+- **Outputs.** All eight rendered locally (127 clusters labelled) to
+  `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/v1/tier_1/cluster_marker_dotplots/`.
+- **Still to discuss.** Nathalie wants a combined dot plot that shows only each
+  sample's selected resolution.
