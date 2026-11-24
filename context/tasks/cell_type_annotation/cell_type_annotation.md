@@ -36,11 +36,16 @@ CK_bowel_res 0.80.
 | Set | Status | Content | Script 08 (Phoenix) | Script 10 (Phoenix) |
 |---|---|---|---|---|
 | v1 | released 2026-11-22 (`f60c669e…`) | first reviewed labelling, tier 1 only, 8 types | done, job 16939096; counts identical to the pre-set labelling | done 8/8, job 16941700, tier 1; logs show no errors |
-| v2 | draft (`9d6d99cc…`, commit `7363034`) | parent v1; BE c5 (6,652 cells) and HW c15 (431 cells) moved from Epithelial cell to Melanoma cell | done, job 17027103; `changes_vs_v1.csv` lists exactly those 2 clusters | not run (needs release) |
+| v2 | released 2026-11-24 (`9d6d99cc…`) | parent v1; BE c5 (6,652 cells) and HW c15 (431 cells) moved from Epithelial cell to Melanoma cell | done, job 17027103 (run while v2 was a draft, same hash); `changes_vs_v1.csv` lists exactly those 2 clusters | not run |
 
-The v2 objects were written from the current v2 files, so they stay valid when
-v2 is released unchanged. Verified through the mount on 2026-11-24 with
+Script 08 status was verified through the mount on 2026-11-24 with
 `tools/pipeline_status.py --annotation <set> --root <mount>`.
+
+**Script 09 (local, reads counts from the mount):** v1 done 2026-11-24, both
+configs (standard and by tissue). Proportions are identical to the
+pre-annotation-set version. Outputs:
+`data/xenium/{output,processed}/vbct/cell_type_proportions/min15_area95_selected_resolutions/v1/tier_1/`.
+v2 not run yet.
 
 **Palette (tier 1, unchanged since v1):** Melanoma cell `#AA4499`, Macrophage
 `#EE7733`, T cell `#4477AA`, B cell `#66CCEE`, Fibroblast `#228833`,
@@ -96,12 +101,10 @@ centrality, co-occurrence and the cross-sample comparisons are unaffected.
 
 ## Next Step
 
-Release v2 and run script 10 for it (needed for this week's meeting):
-1. Locally: `python -m xenium_workflow.annotation_sets release config/annotations/vbct/min15_area95_selected_resolutions/v2`.
-   This must not change `mapping.csv` or `palette.json`, or the v2 objects become
-   invalid. Then commit and push.
-2. On Phoenix: `git pull`, then
+Run script 10 and script 09 for released v2 (needed for this week's meeting):
+1. On Phoenix: `git pull`, then
    `sbatch --array=0-7%4 --export=ALL,ANNOTATION=config/annotations/vbct/min15_area95_selected_resolutions/v2,LABEL_LEVEL=tier_1 hpc/slurm/run_10_cell_type_spatial_analysis.sl`.
+2. Locally: script 09 for v2 (both configs, `--annotation <v2 dir> --input-root ~/mnt/phoenix_scratch/Banksy_py`).
 3. Locally, for v1 now and v2 when done: run the spatial comparison helpers
    with `--input-root ~/mnt/phoenix_scratch/Banksy_py` (and `--annotation` for
    v2). Commands are in `config/spatial_analysis/README.md`.

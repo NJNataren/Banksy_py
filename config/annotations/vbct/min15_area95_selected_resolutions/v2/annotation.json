@@ -2,6 +2,8 @@
   "version": "v2",
   "cohort": "config/cohorts/vbct/min15_area95_selected_resolutions.json",
   "parent": "v1",
-  "status": "draft",
-  "created": "2026-11-22"
+  "status": "released",
+  "created": "2026-11-22",
+  "released": "2026-11-24",
+  "sha256": "9d6d99cc94b476fdd11583b85fc27d3b6fcb9ec72d11afe6a37a74268851e949"
 }
