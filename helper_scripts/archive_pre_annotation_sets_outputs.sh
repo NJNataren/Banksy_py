@@ -82,6 +82,6 @@ mirror their original location under `data/xenium/`.
   enrichment tables, cross-sample spatial helpers, poster helpers).
 
 v1 was regenerated on Phoenix by script 08 (job 16939096) with identical counts.
-Context: `context/tasks/cell_type_annotation.md`.
+Context: `context/tasks/cell_type_annotation/cell_type_annotation.md`.
 EOF
 echo "Moved ${#targets[@]} paths; wrote $ARCHIVE/README.md"

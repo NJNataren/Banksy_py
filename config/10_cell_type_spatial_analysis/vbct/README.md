@@ -45,7 +45,7 @@ sbatch --export=ALL,ANNOTATION=config/annotations/vbct/min15_area95_selected_res
 ```
 
 A tier-2 run repeats Moran's I, which does not depend on labels (open point in
-`context/tasks/cell_type_annotation.md`).
+`context/tasks/cell_type_annotation/cell_type_annotation.md`).
 
 The legacy config-per-task wrapper and cluster-mode configs were archived on
 2026-11-20 (`archive/2026-11-20_script10_legacy_cluster_mode/`); this folder was

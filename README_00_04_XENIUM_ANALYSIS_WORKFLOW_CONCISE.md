@@ -345,7 +345,7 @@ config/01a_clustree/vbct/small_recluster_qc_pass_only.json
 
 Everything from script 08 on reads one annotation set (which names its cohort)
 and follows one output rule. Annotation sets were added on 2026-11-22
-(`config/annotations/README.md`; design in `context/tasks/cell_type_annotation.md`);
+(`config/annotations/README.md`; status and decisions in `context/tasks/cell_type_annotation/cell_type_annotation.md`);
 the post-08 cleanup before it (post-08 cleanup, branch `cleanup/post08-flow`, 2026-11-19/20; plan
 and validation in `context/tasks/post08_flow_cleanup.md`). The workflow is
 **06 → 08 → 10**; 09, 10a, and the helpers branch off it.

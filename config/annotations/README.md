@@ -3,7 +3,7 @@
 An annotation set is one reviewed labelling of one cohort's clusters. Script 08
 applies it; scripts 09, 10, 10a, and the spatial and poster helpers read the
 objects and tables it produced. Added 2026-11-22. Design and rationale:
-`context/tasks/cell_type_annotation.md` ("Design: Versioned Annotation Sets").
+`context/tasks/cell_type_annotation/cell_type_annotation.md` (decisions; the full design note is in its `archive/`).
 
 ```text
 config/annotations/<project>/<cohort>/<version>/

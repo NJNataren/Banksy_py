@@ -16,7 +16,7 @@ Related context:
   script 10 HPC run history.
 - `context/tasks/post08_flow_cleanup.md`: the 2026-11-19/20 restructuring
   behind the paths below (branch `cleanup/post08-flow`).
-- `context/tasks/cell_type_annotation.md`: script 08 annotations and shared palette.
+- `context/tasks/cell_type_annotation/cell_type_annotation.md`: script 08 annotations and shared palette.
 - `context/tasks/hca_poster.md`: these results were kept off the HCA poster.
 
 ## Current Status (2026-11-21)
@@ -172,8 +172,8 @@ Inputs (local):
 - Enrichment tables:
   `data/xenium/processed/vbct/spatial_analysis/min15_area95_selected_resolutions/<sample>/<stem>_nhood_enrichment.csv`
   (backfilled 2026-11-20 from the Phoenix result H5ADs)
-- Shared palette: `config/08_cell_type_annotation/vbct/shared_cell_type_palette.json`
-  (named in the cohort config)
+- Shared palette: `config/annotations/vbct/min15_area95_selected_resolutions/v1/palette.json` (moved there from the script 08 config folder
+  on 2026-11-22; named by the annotation set)
 
 Outputs (figures as png/svg/pdf):
 

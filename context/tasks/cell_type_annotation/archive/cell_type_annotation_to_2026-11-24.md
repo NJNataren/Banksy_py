@@ -1,3 +1,8 @@
+> **Archived 2026-11-24.** Verbatim copy of `context/tasks/cell_type_annotation.md`
+> (now `context/tasks/cell_type_annotation/cell_type_annotation.md`) before it was
+> converted to the current-state layout. Historical only: paths, run status and
+> next steps here may be stale. Annotation-set usage is in `config/annotations/README.md`.
+
 # Task: Shared Cell-Type Annotation and Colours Across Samples
 
 ## Goal

@@ -67,8 +67,8 @@ Read the following fully:
 2. `README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md`.
 3. `context/tasks/conference_figures.md`, including the August 29 poster-polish
    update superseding earlier crop-selection notes.
-4. `context/tasks/cell_type_annotation.md`, including all October 24-25 updates
-   superseding its initial planning-stage status and recorded next steps.
+4. `context/tasks/cell_type_annotation/cell_type_annotation.md` (moved and converted
+   2026-11-24; the October 24-25 updates are in its `archive/`).
 
 Skills applied:
 
@@ -229,8 +229,8 @@ Related paths recorded in the handoff, not fully reread for this mock-up:
 - `08_annotate_cell_types_and_plot_umaps.py`
 - `09_plot_cell_type_proportions.py`
 - `config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions.json`
-- `config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_cell_type_mapping.csv`
-- `config/08_cell_type_annotation/vbct/shared_cell_type_palette.json`
+- `config/annotations/vbct/min15_area95_selected_resolutions/v1/mapping.csv` (moved 2026-11-22 from `config/08_cell_type_annotation/vbct/min15_area95_selected_resolutions_cell_type_mapping.csv`; column `cell_type` renamed `cell_type_tier_1`)
+- `config/annotations/vbct/min15_area95_selected_resolutions/v1/palette.json` (moved there from the script 08 config folder on 2026-11-22)
 - `config/09_cell_type_proportions/vbct/min15_area95_selected_resolutions_by_tissue.json`
 - `data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cell_type_counts.csv`
 - `data/xenium/processed/vbct/cell_type_annotation/min15_area95_selected_resolutions/reviewed_cluster_to_cell_type_counts.csv`
