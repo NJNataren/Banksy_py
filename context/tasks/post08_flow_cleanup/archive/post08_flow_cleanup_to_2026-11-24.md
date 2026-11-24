@@ -1,3 +1,9 @@
+> **Archived 2026-11-24.** Verbatim copy of `context/tasks/post08_flow_cleanup.md`
+> (now `context/tasks/post08_flow_cleanup/post08_flow_cleanup.md`) before it was
+> converted to the current-state layout. Historical only: paths, run status and
+> next steps here may be stale (shared modules moved to `xenium_workflow/` and
+> outputs gained annotation-set folders on 2026-11-22).
+
 # Task: Untangle the Pipeline Flow After Script 08
 
 ## Goal

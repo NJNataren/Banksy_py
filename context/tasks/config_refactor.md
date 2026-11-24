@@ -63,7 +63,7 @@ Layering decisions agreed so far:
   the fork first and moving it afterwards. Do this on a separate branch.
 
 The interim post-08 cleanup is done on branch `cleanup/post08-flow` (see
-`context/tasks/post08_flow_cleanup.md`): `config/cohorts/vbct/min15_area95_selected_resolutions.json`
+`context/tasks/post08_flow_cleanup/post08_flow_cleanup.md`): `config/cohorts/vbct/min15_area95_selected_resolutions.json`
 holds sample facts plus the selected per-branch resolution, read by scripts 08,
 09, 10, 10a and the post-08 helpers through `workflow_config.py`, which also
 provides the shared `--input-root`/`--output-root` options (replacing

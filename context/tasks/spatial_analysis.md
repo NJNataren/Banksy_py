@@ -14,7 +14,7 @@ Related context:
   post-08 flow diagram, run table, and commands.
 - `config/spatial_analysis/README.md`: helper usage; `config/10_cell_type_spatial_analysis/vbct/README.md`:
   script 10 HPC run history.
-- `context/tasks/post08_flow_cleanup.md`: the 2026-11-19/20 restructuring
+- `context/tasks/post08_flow_cleanup/post08_flow_cleanup.md`: the 2026-11-19/20 restructuring
   behind the paths below (branch `cleanup/post08-flow`).
 - `context/tasks/cell_type_annotation/cell_type_annotation.md`: script 08 annotations and shared palette.
 - `context/tasks/hca_poster.md`: these results were kept off the HCA poster.
@@ -301,9 +301,10 @@ Descriptive only: 4 versus 4 samples, five tissue sites, different resolutions.
    threshold artefact, all-NaN analytic FDR when a gene is constant, arbitrary
    top-Moran plots). Do not use the Moran FDR CSVs or plots; fix planned in
    `morans_i_significance.md`.
-8. Promote the two helpers to numbered pipeline steps in the planned workflow
-   package once the analysis extensions are finished (siblings; neither depends
-   on the other). See `decouple_workflow_from_banksy.md`.
+8. Promoting the two helpers to numbered steps is now part of a proposed
+   restructure of the spatial steps (per-sample compute vs cross-sample
+   compare; future work, 2026-11-24). See Next Step in
+   `context/tasks/post08_flow_cleanup/post08_flow_cleanup.md`.
 
 ## Session History
 
