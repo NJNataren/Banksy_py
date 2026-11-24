@@ -28,6 +28,18 @@ The lead human bioinformatician for this project is Nathalie.
 - Task handoffs live in `context/tasks/`; load them via the `banksy-context` skill.
 - Data and generated outputs are expected under `data/xenium/`, `figures/`, `logs/`, and `hpc/`; treat these as potentially large or machine-specific.
 
+## Task files — user rule (2026-11-24)
+Task handoffs in `context/tasks/` record current state, not a session log.
+- Layout: Goal, Current State, Decisions, Next Step, Open Questions, History.
+- Edit Current State, Next Step and Open Questions in place each session; do not add "Session Update" sections.
+- Decisions: one dated line each, naming who decided when it was Nathalie.
+- Keep exactly one Next Step. When it is superseded, replace it rather than adding another.
+- Group task files by subject in `context/tasks/<subject>/` (e.g. `context/tasks/dotplot/`, with `dotplot.md` as the main file) when a subject has more than one file.
+- Move superseded or completed detail to `archive/<task>_to_<date>.md` inside that subject folder, and leave a one-line pointer under History.
+- How-to and option reference belongs in config READMEs, script docstrings or the workflow manual; task files link to it.
+- Keep a task file under about 200 lines. If an edit would push it over, archive first.
+- `context/tasks/dotplot/` follows this layout (2026-11-24); convert other task files when they are next worked on.
+
 ## Environment
 - Preferred environment files are `environment.yml` and `requirements.txt`.
 - The conda environment for this work is `banksy` (locally and in the Slurm scripts).

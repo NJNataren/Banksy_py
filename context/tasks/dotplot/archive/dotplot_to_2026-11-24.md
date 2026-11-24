@@ -1,3 +1,9 @@
+> **Archived 2026-11-24.** Verbatim copy of `context/tasks/dotplot.md` (now `context/tasks/dotplot/dotplot.md`) before it
+> was slimmed. Historical only: paths and next steps here may be stale. Current
+> state is in `context/tasks/dotplot/dotplot.md` (VBCT) and `context/tasks/dotplot/ptmt_dotplot.md`
+> (PTMT); script 03/04 reference is in `README_00_04_XENIUM_ANALYSIS_WORKFLOW.md`
+> and `config/04_plot_dotplot/README.md`.
+
 # Task: Xenium Dotplot Export And Plotting
 
 ## Goal
@@ -523,27 +529,107 @@ cluster labels. Script 04 computes shared gene-wise z-scores over all five
 conditions (clipped at 2.5), so colours change relative to the four-condition plots.
 Cluster IDs remain condition-specific, including the prefiltered baseline.
 
+## Session Update: Annotation-Labelled Cluster Dot Plots (2026-11-23)
+
+Per-sample dot plots of each VBCT sample's clusters at the resolution selected
+for script 08, labelled with a versioned annotation set. Made to review cluster
+markers before the v2 merges. See `cell_type_annotation.md` and
+`config/annotations/README.md` for annotation sets.
+
+### How they are made
+
+- **Script.** Script 04 (`04_plot_multi_sample_dotplot_from_config_local.py`),
+  run locally. It gained an optional `annotation` block, read by
+  `apply_annotation_labels`:
+
+  ```json
+  "annotation": {"set": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+                 "sample": "GR_lung_non_res_roi", "label_level": "tier_1",
+                 "source_rows": {"sample": "min15_area95"}}
+  ```
+
+- **Row selection.** The block keeps only that sample's rows for the cohort's
+  clustering column (`groupby`) and selected resolution, from the `min15_area95`
+  pseudo-sample.
+- **Labels.** It adds `cell_type_tier_1` from the set's `mapping.csv`. It fails
+  if any exported cluster is unmapped, or any mapped cluster is missing from the
+  export.
+- **Row layout.** Rows are labelled `cluster <id> · <label> (n=<cells>)`,
+  grouped by label in the set's vocabulary order, separated by lines, and read
+  top to bottom. The new `rows_top_to_bottom` option is on by default only for
+  annotation plots, so existing configs are unchanged.
+- **Output path and title.** Without `output_png`, the output path is derived
+  from the set, and the title names the version and its draft or released
+  status.
+- **Overrides.** `--annotation <set dir>` and `--label-level <tier>` replot the
+  same configs for another version. Drafts are allowed.
+
+### Configs and settings
+
+- **Configs:** `config/04_plot_dotplot/active/vbct_annotation_sets/min15_area95_selected_resolutions/`,
+  one `<sample>_cluster_markers_local.json` per sample, with a README.
+- **Base settings:** copied from the `vbct_filter_sensitivity/selected_resolutions/`
+  configs: figure layout, gene file
+  `01_xenium_gene_list_annotation_master_v1_May_2026_Tier1_2026-06-15.csv`
+  grouped by `Tier_1_annotation`, and canonical-gene highlighting from
+  `02_xenium_melanoma_canonical_genes_2026-05-22.csv`.
+- **Genes:** the 89 genes kept by the review filter
+  `03_xenium_gene_review_for_dotplot_manual_annotation_2026-06-11.csv`
+  (`manual_review_True_if_keep`). Nathalie chose this over all 304 genes.
+  - The filter drops several subtype and state markers, e.g. TOP2A, MZB1, CLEC9A,
+    CCR7, LYVE1, PROX1, SELE and S100B.
+  - An all-304-gene version remains an option if clusters need splitting rather
+    than merging.
+- **Colour:** mean expression z-scored per gene across the plotted sample's
+  clusters, clipped at ±2.5 (chosen by Nathalie).
+- **Dot size:** percent expressing.
+
+### Inputs (no new script 03 export)
+
+- **Source.** The configs read the existing local filter-sensitivity exports in
+  `data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/`.
+  MF uses `MF_skin_non_res_min15_area95_all_res_dotplot_summary.csv`.
+- **Check against v1.** Their `min15_area95` rows were checked against v1's
+  `cluster_annotation_counts.csv` on Phoenix for all eight samples. All 127
+  clusters and their cell counts are identical; 304 genes from `.raw`, from the
+  cohort's script 06 object.
+- **Why that is enough.** v1 objects have the same cells and expression, so these
+  rows are v1's per-cluster expression.
+
+### Commands
+
+```bash
+C=config/04_plot_dotplot/active/vbct_annotation_sets/min15_area95_selected_resolutions
+for f in $C/*.json; do
+  python 04_plot_multi_sample_dotplot_from_config_local.py --config "$f"
+done
+# another set or tier with the same configs:
+python 04_plot_multi_sample_dotplot_from_config_local.py --config $C/BE_brain_non_res_cluster_markers_local.json \
+  --annotation config/annotations/vbct/min15_area95_selected_resolutions/v2
+```
+
+### Outputs (local)
+
+```text
+data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/<version>/tier_1/cluster_marker_dotplots/
+  <sample>_r<res>_cell_type_tier_1_<version>_zscore_dotplot.png
+```
+
+- **v1:** all eight samples, 127 clusters labelled.
+- **v2 (draft):** BE_brain_non_res and HW_brain_res only. These are the two
+  samples changed in v2: BE cluster 5 and HW cluster 15 moved from Epithelial
+  cell to Melanoma cell. Rerun the other six once v2 is final if a full v2 set is
+  wanted.
+
 ## Future Work: Combined Selected-Resolution Dot Plot Across Samples (noted 2026-11-23)
 
 Not started; options to discuss with Nathalie before implementing.
 
 ### Already done
 
-Per-sample cluster marker dot plots for annotation set v1 exist (one per VBCT
-sample). Each shows only that sample's clusters at its selected resolution
-(min15_area95 branch), labelled `cluster <id> · <tier-1 label> (n=<cells>)`
-and grouped by label. They use the 89 genes kept by
-`03_xenium_gene_review_for_dotplot_manual_annotation_2026-06-11.csv`, z-scored
-per gene within the sample, clipped at ±2.5.
-
-- Configs: `config/04_plot_dotplot/active/vbct_annotation_sets/min15_area95_selected_resolutions/`
-  (README there).
-- Outputs: `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/v1/tier_1/cluster_marker_dotplots/`.
-- Mechanism: the `annotation` block in script 04 (`apply_annotation_labels`).
-- Inputs: the `min15_area95` rows of the local filter-sensitivity exports, verified
-  identical to v1's clusters and cell counts. The same configs replot for another
-  set with `--annotation <set dir>` (drafts allowed).
-- Context: `cell_type_annotation.md`.
+The per-sample annotation-labelled cluster dot plots (see the session update
+above). The combined plot should reuse their configs, gene settings, and
+`annotation` mechanism.
 
 ### Goal
 

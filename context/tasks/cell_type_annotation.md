@@ -43,7 +43,7 @@ proposed approach; biological labels require review before application.
 Related context:
 
 - `README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md`: pipeline and object conventions.
-- `context/tasks/dotplot.md`: marker-expression plots and filter-sensitivity comparisons.
+- `context/tasks/dotplot/dotplot.md`: marker-expression plots and filter-sensitivity comparisons.
 
 GR and MG have filter-sensitivity plots at resolution `1.00`, including a
 prefiltered baseline and four QC branches. MG also has a five-condition plot at
@@ -939,3 +939,24 @@ review markers before the v2 merges. No new script 03 export was needed:
   `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/v1/tier_1/cluster_marker_dotplots/`.
 - **Still to discuss.** Nathalie wants a combined dot plot that shows only each
   sample's selected resolution.
+
+
+## Session Update: v2 Draft Committed; v2 Dot Plots (2026-11-23)
+
+- **Edits.** Nathalie edited v2: BE_brain_non_res cluster 5 and HW_brain_res
+  cluster 15 moved from Epithelial cell to Melanoma cell (melanocytic markers
+  with KRT18). `CHANGES.md` was written; both rows are `reviewed`.
+- **Loader fix.** Saving `mapping.csv` from a spreadsheet re-sorted the rows and
+  rewrote resolutions (`1.00` became `1`), which broke `diff`.
+  `load_mapping` now writes each row's resolution in the cohort's spelling. v2's
+  file was re-sorted into v1 order, so it differs from v1 only in those two rows.
+  `diff` reports 2 clusters changed.
+- **Committed.** `7363034` (v2 still a draft) and pushed.
+- **Dot plots.** BE and HW cluster dot plots were replotted with v2 labels
+  (`--annotation .../v2`) to
+  `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/v2/tier_1/cluster_marker_dotplots/`.
+  Method: `context/tasks/dotplot/dotplot.md` (Current State, item 1).
+- **Next.** Script 08 for v2 on Phoenix
+  (`ANNOTATION=config/annotations/vbct/min15_area95_selected_resolutions/v2`).
+  Then check its output (expect `changes_vs_v1.csv` with the two clusters),
+  release v2, commit and push, and run script 10 for v2.

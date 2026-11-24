@@ -1,13 +1,14 @@
 """
 Title: Dead-citation checker for project documentation
 Created: 2026-11-20
-Last modified: 2026-11-20
+Last modified: 2026-11-24
 Summary: Find file and directory paths cited in agent/handoff documentation
 (backtick spans and fenced code blocks) and report those that no longer exist,
 so agents do not follow instructions that point at renamed or moved scripts,
-configs or folders. Dead citations in history sections, or on lines that say
-something was renamed/superseded/archived, are warnings; dead citations in
-current sections are errors (exit status 1).
+configs or folders. Dead citations in history sections, on lines that say
+something was renamed/superseded/archived, or anywhere in a doc kept under an
+`archive/` folder, are warnings; dead citations in current sections are errors
+(exit status 1).
 Inputs: Markdown files (default: AGENTS.md, README_*.md, context/**/*.md,
 hpc/slurm/README.md in the repository).
 Outputs: Report on stdout (or JSON with --json). Writes nothing.
@@ -171,6 +172,9 @@ def check_file(doc_path, index, include_data):
     results, seen = [], set()
     recent_dirs = []  # (line_number, resolved folder) for folders cited recently
     lines = doc_path.read_text(errors="replace").splitlines()
+    # Archived docs (any `archive/` folder, e.g. context/tasks/dotplot/archive/) are
+    # history throughout, whatever their original headings say.
+    in_archive = "archive" in doc_path.relative_to(REPO_ROOT).parts[:-1]
     for number, text, heading, context in iter_code_text(lines):
         planned = bool(PLANNED_RE.search(heading)) or bool(PLANNED_RE.search(context))
         # An inline span that is one existing path containing spaces
@@ -185,7 +189,8 @@ def check_file(doc_path, index, include_data):
             # Judge history wording without the token itself, so a filename
             # such as `..._archive_labels.json` does not excuse itself.
             line_text = lines[number - 1].replace(token, "")
-            history = bool(HISTORY_HEADING_RE.search(heading)) or bool(HISTORY_LINE_RE.search(line_text))
+            history = (in_archive or bool(HISTORY_HEADING_RE.search(heading))
+                       or bool(HISTORY_LINE_RE.search(line_text)))
             status, detail = classify(token, doc_path, index, include_data)
             folder = REPO_ROOT / token.removeprefix("Banksy_py/")
             if token.endswith("/") and folder.is_dir():
