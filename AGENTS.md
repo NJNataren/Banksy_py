@@ -30,20 +30,27 @@ The lead human bioinformatician for this project is Nathalie.
 
 ## Task files — user rule (2026-11-24)
 Task handoffs in `context/tasks/` record current state, not a session log.
-- Layout: Goal, Current State, Decisions, Next Step, Open Questions, History.
-- Edit Current State, Next Step and Open Questions in place each session; do not add "Session Update" sections.
+- Layout: Goal, Current State, Decisions, Next Step, Later, Open Questions, Pitfalls, History.
+- Pitfalls (2026-11-25, Nathalie): optional list of standing task-specific gotchas (things to know before acting, true every session). Project-wide gotchas go under "Environment" below, not in task files.
+- Edit Current State, Next Step, Later and Open Questions in place each session; do not add "Session Update" sections.
 - Decisions: one dated line each, naming who decided when it was Nathalie.
-- Keep exactly one Next Step. When it is superseded, replace it rather than adding another.
+- Keep exactly one Next Step: the current focus. When it is done or superseded, replace it (usually by promoting the top Later item) rather than adding another.
+- Later (2026-11-25, Nathalie): optional short priority-ordered list of queued work, one line each. Remove items when done or dropped; do not keep finished items there. Later items are not instructions to start work.
 - Group task files by subject in `context/tasks/<subject>/` (e.g. `context/tasks/dotplot/`, with `dotplot.md` as the main file) when a subject has more than one file.
 - Move superseded or completed detail to `archive/<task>_to_<date>.md` inside that subject folder, and leave a one-line pointer under History.
 - How-to and option reference belongs in config READMEs, script docstrings or the workflow manual; task files link to it.
-- Keep a task file under about 200 lines. If an edit would push it over, archive first.
+- Keep a task file under about 250 lines. If an edit would push it over, archive first.
 - `context/tasks/dotplot/` follows this layout (2026-11-24); convert other task files when they are next worked on.
+- Start new or converted files from `context/tasks/TEMPLATE.md`. `python tools/check_task_file.py [files]` checks the layout (a hook runs it after edits to task files); keep its section list and line limit in sync with this rule.
 
 ## Environment
 - Preferred environment files are `environment.yml` and `requirements.txt`.
 - The conda environment for this work is `banksy` (locally and in the Slurm scripts).
 - Main scientific stack includes `scanpy`, `anndata`, `numpy`, `scipy`, `pandas`, `matplotlib`, `seaborn`, `igraph`, `leidenalg`, and `umap-learn`.
+- Local gotchas:
+  - Check whether the Phoenix mount is active with `findmnt -T ~/mnt/phoenix_scratch`; `mountpoint` misreports from the agent sandbox. The HPC rule above still applies (read-only, never reconnect).
+  - `conda run` does not forward stdin, so heredoc Python run through it silently does nothing; write a script file or call the env's `python` directly.
+  - Arial is not installed locally; matplotlib falls back to DejaVu Sans, and SVG text stays editable.
 
 ## Workflow Conventions
 - Where a step has both a notebook and a `.py` version, check whether both need to stay in sync when changing analysis logic.
@@ -57,6 +64,7 @@ Read-only scripts in `tools/` (run with the `banksy` environment). They never wr
 - Before using an `.h5ad` for marker expression, dotplots or any expression summary, run `python tools/inspect_h5ad.py <file> --panel-size <n>`. Proceed only if the verdict is CLEAN EXPRESSION; a BANKSY-EXPANDED verdict means the wrong matrix. Use `--obs-values <column>` instead of writing inspection snippets.
 - Before relying on recorded run status ("script 08 completed", "outputs transferred"), run `python tools/pipeline_status.py --config-dir <script 06 config dir>`. It derives expected outputs from configs and reports ok / MISSING / stale. Use `--root <mounted checkout>` to check the HPC copy through an active mount; if the mount is inactive it says so; report that and do not reconnect.
 - `python tools/check_doc_citations.py [files]` reports cited paths in docs that no longer exist. A hook runs it automatically after edits to `context/` docs, `AGENTS.md` and `README_*.md`. Treat DEAD/ARCHIVED citations in a handoff as stale instructions: locate the current file before acting.
+- `python tools/check_task_file.py [files]` checks task files against the "Task files" rule (sections, order, one Next Step, line limit). Unconverted older files are reported as NOT CONVERTED, not errors (`--strict` to fail them).
 - `pipeline_status.py` copies the output filename rules from scripts 05, 06 and 10; update it when those scripts change how they name outputs.
 
 ## Scientific Parameters — user rule (2026-11-20)
