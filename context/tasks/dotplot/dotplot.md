@@ -44,9 +44,15 @@ to review clusters before the v2 merges)
   against v1's `cluster_annotation_counts.csv` on Phoenix: all 127 clusters and
   cell counts identical, 304 genes from `.raw`.
 - Outputs: `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/<version>/tier_1/cluster_marker_dotplots/`.
-  v1: all eight samples. v2 (draft): BE_brain_non_res and HW_brain_res only
-  (the samples v2 changes: BE c5 and HW c15 Epithelial → Melanoma). Rerun the
-  other six once v2 is final.
+  v1 and v2: all eight samples. v2 (released 2026-11-24) changes only BE c5
+  and HW c15 (Epithelial → Melanoma); all eight v2 plots were re-rendered on
+  2026-11-24 after release (127 clusters; titles read "released").
+- Under v2, epithelial cells remain only in MG_gastric_non_res (17.0%),
+  CK_bowel_res (4.3%) and EL_skin_res (0.6%) (script 09 v2 proportions).
+- CDH1 is not in the 304-gene panel. The panel's epithelial genes are
+  skin-derived (keratinocyte/eccrine: KRT5, KRT15, KRT18, CLDN4, TP63, TACSTD2,
+  AQP3, DSC1, LY6D, S100A14, PTGR1; LYZ is mis-tiered as epithelial); no
+  EPCAM, KRT8 or KRT19.
 
 ```bash
 C=config/04_plot_dotplot/active/vbct_annotation_sets/min15_area95_selected_resolutions
@@ -66,7 +72,28 @@ for f in $C/*.json; do python 04_plot_multi_sample_dotplot_from_config_local.py 
   figures: `figures/dotplots/filter_sensitivity/`. Seven samples have
   five-condition plots; MF has only a min15_area95 all-resolution plot.
 
-**3. Cohort poster dot plot** (one row per label, samples averaged with equal
+**3. Paper cell-type marker dot plots** (issue #64, rendered 2026-11-24)
+- Script `helper_scripts/paper_figures/plot_cell_type_marker_dotplot_from_config.py`;
+  configs `config/paper_figures/vbct/cell_type_marker_dotplot.json` (by sample,
+  z-score within sample) and `..._cohort.json` (cell-type rows, equal sample
+  weight, z-score across cell types); a third, `..._by_sample_global_zscore.json`,
+  z-scores across all 50 rows as a supplementary detection panel (MF near white;
+  HW immune rows carry melanoma markers); README in `config/paper_figures/`. v2,
+  tier 1; reads the same script 03 exports as (1).
+- 127 clusters merged into 50 sample x cell type rows; counts match script 09 v2.
+- Outputs: `data/xenium/{output,processed}/vbct/paper_figures/min15_area95_selected_resolutions/v2/tier_1/cell_type_marker_dotplot/`
+  (figure; merged expression and marker specificity tables).
+- Markers are provisional (poster set; epithelial KRT18, CLDN4, TACSTD2).
+  Specificity summary flags: B-cell markers MZB1 and TNFRSF17 are plasma-cell
+  genes and rank top with CD79A (MS4A1/CD19/CD79B absent); CLDN4 is weak in
+  epithelial cells (12% expressing), S100A14 and MAL2 are more specific; Pericyte
+  occurs only in GR (207 cells) and RGS5 is weak there while MYH11 is specific
+  (smooth-muscle-like); C1QA is the weakest macrophage pick (FCER1G, AIF1 rank
+  higher). EL macrophages show MITF/MLANA signal. Endothelial rows carry
+  RGS5/NOTCH3/ACTA2 in most samples (pericytes likely inside endothelial
+  clusters where no Pericyte label exists).
+
+**4. Cohort poster dot plot** (one row per label, samples averaged with equal
 weight, genes min-max scaled)
 - Config: `config/poster/vbct/poster_cohort_marker_dotplot_rdbu_large_font.json`
   (v1, tier 1, three markers per label; epithelial uses KRT18 and KRT5 only).
@@ -90,33 +117,37 @@ and `config/04_plot_dotplot/active/`) predate the QC branches; not in current us
   splitting.
 - 2026-11-23 (Nathalie): Annotation-labelled plots z-score per gene across the
   plotted sample's clusters, clipped at ±2.5; dot size is percent expressing.
+- 2026-11-24 (Nathalie): The paper's main marker figure merges clusters per
+  cell type within each sample, rows grouped by sample (skin, brain, GI, lung;
+  res before non-res), three markers per cell type, no minimum-cell cutoff;
+  per-cluster plots are supporting.
+- 2026-11-24 (Nathalie): Make both a by-sample plot and a cohort plot (equal
+  sample weight). Colour is a Seurat-style per-gene z-score (clip ±2.5): within
+  each sample for the by-sample plot, across cell types for the cohort plot.
+  Replaces per-gene min-max across all rows, which made low-detection samples
+  (MF) and non-maximal samples look pale.
+- 2026-11-24 (Nathalie): Paper figure scripts live in `helper_scripts/paper_figures/`
+  (post-08, named by content), not as a numbered pipeline step.
 
 ## Next Step
 
-Issue #64 (supervisor meeting 2026-11-19): per-sample cell-type marker dot
-plots instead of the pooled cohort plot.
-1. Per-sample rows rather than pooled.
-2. Drop cell types that are implausible for the tissue (e.g. epithelial in
-   brain). Nathalie decides the list.
-3. Use the most recognisable marker per cell type.
-4. Check whether CDH1 is in the panel and whether it is a good epithelial marker.
+Issue #64: Nathalie reviews `marker_specificity_summary.csv` and the two paper
+dot plots (State 3), then finalises three markers per cell type (same list in
+both configs) and decides how to handle the B-cell (plasma-cell) and Pericyte
+labels.
 
 Related: #63 (markers for myofibroblasts, neurons, dendritic cells).
 
 ## Open Questions
 
-- **Annotation version:** v1 (released) or v2 once final?
-- **Build route for per-sample label rows:**
-  - (b1) Script 04 from the existing exports plus the set's mapping, no H5ADs.
-    Label values must be cell-count-weighted over their clusters (`n_cells`),
-    not averaged equally. Needs the `annotation` block to accept several samples.
-  - (b2) Add a per-sample row option to the poster helper, which computes label
-    values from the annotated H5ADs.
-- **z-score scope** for any cross-sample figure: within each sample (contrast
-  between clusters) or across the cohort (comparable colours, but high-expressing
-  samples dominate).
-- **All 127 clusters in one figure** (stacked by sample) is the alternative
-  to label rows; it is tall.
+- **B-cell label:** the "B cell" rows are dominated by plasma-cell genes
+  (MZB1, TNFRSF17); relabel (e.g. "B/plasma cell") in a new annotation set?
+- **Pericyte:** only in GR (207 cells), ACTA2/MYH11-high; pericyte, smooth
+  muscle or myofibroblast? Overlaps #63.
+- **Which plot is main:** by-sample or cohort plot as the main figure, the
+  other as supplementary.
+- **BE melanoma clusters 9 and 11:** little MITF/MLANA/PMEL signal; check the
+  label (annotation question, not plotting).
 - **Small clusters seen in the v1 plots** (to judge, not conclusions):
   CK_bowel_res c16 (n=376) and c17 (n=238), labelled melanoma, each with one
   strongly expressed atypical gene; CK_bowel_res c18, a 28-cell T-cell cluster;

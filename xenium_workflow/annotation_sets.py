@@ -64,7 +64,8 @@ STATUSES = ("draft", "released")
 ROW_STATUSES = ("reviewed", "proposed")
 KEY_COLUMNS = ["sample", "branch", "resolution", "groupby", "cluster_id"]
 HASHED_FILES = ("mapping.csv", "palette.json")
-STEP_NAMES = ("cell_type_annotation", "cell_type_proportions", "spatial_analysis", "poster")
+STEP_NAMES = ("cell_type_annotation", "cell_type_proportions", "spatial_analysis", "poster",
+              "paper_figures")
 # Step-config keys replaced by the annotation set and derived paths (2026-11-22).
 RETIRED_STEP_KEYS = ("cohort", "figure_dir", "summary_dir", "result_dir", "table_dir",
                      "output_dir", "counts_csv", "script10_result_dir")

@@ -1,0 +1,121 @@
+{
+  "description": "Cell-type marker dot plot by sample (issue #64): one row per sample x cell type, clusters merged by cell-count weighting from the script 03 exports; per-gene z-score within each sample (Seurat DotPlot style, clipped at 2.5).",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v2",
+  "label_level": "tier_1",
+  "output_subdir": "cell_type_marker_dotplot",
+  "output_stem": "cell_type_marker_dotplot_by_sample",
+  "rows": "sample_cell_type",
+  "scaling": {
+    "method": "zscore",
+    "within_sample": true,
+    "clip": 2.5
+  },
+  "figure_formats": [
+    "png",
+    "svg",
+    "pdf"
+  ],
+  "figure_dpi": 200,
+  "samples": [
+    {
+      "sample": "CK_skin_res",
+      "tissue_group": "Skin"
+    },
+    {
+      "sample": "EL_skin_res",
+      "tissue_group": "Skin"
+    },
+    {
+      "sample": "MF_skin_non_res",
+      "tissue_group": "Skin"
+    },
+    {
+      "sample": "HW_brain_res",
+      "tissue_group": "Brain"
+    },
+    {
+      "sample": "BE_brain_non_res",
+      "tissue_group": "Brain"
+    },
+    {
+      "sample": "CK_bowel_res",
+      "tissue_group": "GI"
+    },
+    {
+      "sample": "MG_gastric_non_res",
+      "tissue_group": "GI"
+    },
+    {
+      "sample": "GR_lung_non_res_roi",
+      "tissue_group": "Lung"
+    }
+  ],
+  "exports": {
+    "CK_skin_res": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/CK_skin_res_r1.00_filter_sensitivity_dotplot_summary.csv",
+    "EL_skin_res": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/EL_skin_res_r0.80_filter_sensitivity_dotplot_summary.csv",
+    "MF_skin_non_res": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/MF_skin_non_res_min15_area95_all_res_dotplot_summary.csv",
+    "HW_brain_res": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/HW_brain_res_r0.80_filter_sensitivity_dotplot_summary.csv",
+    "BE_brain_non_res": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/BE_brain_non_res_r0.90_filter_sensitivity_dotplot_summary.csv",
+    "CK_bowel_res": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/CK_bowel_res_r0.80_filter_sensitivity_dotplot_summary.csv",
+    "MG_gastric_non_res": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/MG_gastric_non_res_r0.70_filter_sensitivity_dotplot_summary.csv",
+    "GR_lung_non_res_roi": "data/xenium/processed/vbct/cross_sample_dotplot_exports/filter_sensitivity/GR_lung_non_res_roi_r1.00_filter_sensitivity_dotplot_summary.csv"
+  },
+  "source_rows": {
+    "sample": "min15_area95"
+  },
+  "canonical_gene_file": "data/xenium/raw_data/gene_markers/02_xenium_melanoma_canonical_genes_2026-05-22.csv",
+  "canonical_gene_column": "Gene",
+  "markers": {
+    "Melanoma cell": [
+      "MITF",
+      "MLANA",
+      "PMEL"
+    ],
+    "Macrophage": [
+      "C1QA",
+      "CD163",
+      "CD68"
+    ],
+    "T cell": [
+      "CD3D",
+      "CD3E",
+      "CD8A"
+    ],
+    "B cell": [
+      "CD79A",
+      "MZB1",
+      "TNFRSF17"
+    ],
+    "Fibroblast": [
+      "COL6A1",
+      "LUM",
+      "PDGFRA"
+    ],
+    "Endothelial cell": [
+      "CDH5",
+      "PLVAP",
+      "VWF"
+    ],
+    "Epithelial cell": [
+      "KRT18",
+      "CLDN4",
+      "TACSTD2"
+    ],
+    "Pericyte": [
+      "ACTA2",
+      "RGS5",
+      "NOTCH3"
+    ]
+  },
+  "plot": {
+    "row_height_in": 0.24,
+    "column_width_in": 0.34,
+    "extra_width_in": 4.5,
+    "extra_height_in": 2.2,
+    "max_dot_size": 110,
+    "cmap": "RdBu_r",
+    "colorbar_label": "Mean expression\n(z-score per gene\nwithin sample)",
+    "fontsize": 9,
+    "gene_fontsize": 9
+  }
+}
