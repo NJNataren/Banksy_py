@@ -1,7 +1,8 @@
 {
-  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v2",
   "label_level": "tier_1",
   "output_subdir": "cross_sample_nhood_enrichment",
+  "heatmap_layout": "triangle",
   "pseudocount": 1,
   "primary_graph": "knn6",
   "graph_settings": [

@@ -8,6 +8,9 @@ Updated: 2026-11-19 - samples, palette, and mapping come from a cohort config
 (xenium_workflow/cohorts.py); --input-root/--output-root default to the repository root.
 Updated: 2026-11-22 - names an annotation set and label level; figure and table
 folders are derived (spatial_common.load_sample_records).
+Updated: 2026-11-25 - optional lower-triangle heatmaps with labels on both axes
+(config `heatmap_layout`: "triangle" or "full"); the all-sample grid places
+responders and non-responders side by side (kanban #65).
 Summary: Collect script 10 cell-type neighbourhood enrichment matrices for all
 samples, convert them to a sample-size-independent metric, and plot responder
 versus non-responder comparisons. Squidpy z-scores grow with cell number, so
@@ -235,13 +238,32 @@ def symmetric_limit(matrices, off_diagonal=True):
     return max(np.ceil(limit * 4) / 4, 0.25)
 
 
-def draw_heatmap(ax, matrix, limit, title, show_y=True, marks=None):
+def heatmap_layout(cfg):
+    """Return True for the lower-triangle heatmap layout, False for the full mirrored matrix.
+
+    log2 O/E matrices are symmetric (directed counts are symmetrised), so the
+    lower triangle with its diagonal holds every value once. Config key
+    `heatmap_layout`: "triangle" or "full" (default "full").
+    """
+    layout = cfg.get("heatmap_layout", "full")
+    if layout not in {"triangle", "full"}:
+        raise ValueError(f"heatmap_layout must be 'triangle' or 'full', not {layout!r}")
+    return layout == "triangle"
+
+
+def draw_heatmap(ax, matrix, limit, title, show_y=True, marks=None, triangle=False):
     """Draw one annotated diverging heatmap; NaN cells (absent types) stay blank.
 
     `marks` is an optional boolean frame aligned with `matrix`; marked values get
     a trailing dagger (used for group means based on fewer samples than the group).
+    With `triangle`, cells above the diagonal are left blank and both axes are
+    always labelled.
     """
-    image = ax.imshow(matrix.to_numpy(dtype=float), cmap=DIVERGING_CMAP, vmin=-limit, vmax=limit)
+    values = matrix.to_numpy(dtype=float).copy()
+    if triangle:
+        values[np.triu_indices_from(values, k=1)] = np.nan
+        show_y = True
+    image = ax.imshow(values, cmap=DIVERGING_CMAP, vmin=-limit, vmax=limit)
     labels = list(matrix.index)
     ax.set_xticks(range(len(labels)), labels, rotation=90, fontsize=8)
     ax.set_yticks(range(len(labels)), labels if show_y else [], fontsize=8)
@@ -251,7 +273,7 @@ def draw_heatmap(ax, matrix, limit, title, show_y=True, marks=None):
     ax.set_title(title, fontsize=10, color=TEXT_DARK)
     for i in range(len(labels)):
         for j in range(len(labels)):
-            value = matrix.iat[i, j]
+            value = values[i, j]
             if np.isfinite(value):
                 ink = "#ffffff" if abs(value) > 0.6 * limit else TEXT_DARK
                 dagger = "†" if marks is not None and marks.iat[i, j] else ""
@@ -266,28 +288,42 @@ def response_tissue_legend(ax, records, markers, **kwargs):
     ax.legend(handles=handles, frameon=False, fontsize=8, **kwargs)
 
 
+GROUP_HEADINGS = {"res": "Responders (res)", "non_res": "Non-responders (non_res)"}
+
+
 def plot_sample_grid(long_df, records, order, figure_dir, cfg):
-    """Plot every sample on one shared colour scale: responders top, non-responders bottom."""
-    rows = [[r for r in records if r["response"] == group] for group in RESPONSE_ORDER]
-    rows = [row for row in rows if row]
-    ncols = max(len(row) for row in rows)
+    """Plot every sample on one shared colour scale, response groups side by side.
+
+    Each group is a block of panels (responders left, non-responders right) under
+    a heading in the group's colour; one colour bar on the right serves both.
+    """
+    triangle = heatmap_layout(cfg)
+    groups = [(group, [r for r in records if r["response"] == group]) for group in RESPONSE_ORDER]
+    groups = [(group, members) for group, members in groups if members]
+    largest = max(len(members) for _, members in groups)
+    ncols = int(np.ceil(np.sqrt(largest)))
+    nrows = int(np.ceil(largest / ncols))
     present = present_types(long_df, [r["sample"] for r in records], order)
     matrices = {r["sample"]: metric_matrix(long_df, r["sample"], present) for r in records}
     limit = symmetric_limit(matrices.values())
 
-    fig, axes = plt.subplots(
-        len(rows), ncols, figsize=(3.4 * ncols, 4.2 * len(rows)), squeeze=False, layout="constrained",
-    )
+    panel_width = 3.9 if triangle else 3.4
+    fig = plt.figure(figsize=(panel_width * ncols * len(groups) + 1.6, 4.4 * nrows + 0.8), layout="constrained")
+    subfigs = fig.subfigures(1, len(groups) + 1, width_ratios=[1] * len(groups) + [0.12], wspace=0.05)
     image = None
-    for row_index, row in enumerate(rows):
-        for col_index in range(ncols):
-            ax = axes[row_index, col_index]
-            if col_index >= len(row):
+    for subfig, (group, members) in zip(subfigs, groups):
+        axes = subfig.subplots(nrows, ncols, squeeze=False).ravel()
+        for index, ax in enumerate(axes):
+            if index >= len(members):
                 ax.axis("off")
                 continue
-            record = row[col_index]
-            image = draw_heatmap(ax, matrices[record["sample"]], limit, sample_title(record), show_y=col_index == 0)
-    colorbar = fig.colorbar(image, ax=axes, shrink=0.6, extend="both")
+            record = members[index]
+            image = draw_heatmap(ax, matrices[record["sample"]], limit, sample_title(record),
+                                 show_y=index % ncols == 0, triangle=triangle)
+        subfig.suptitle(f"{GROUP_HEADINGS.get(group, group)}, n = {len(members)}",
+                        fontsize=11, fontweight="bold", color=RESPONSE_COLORS[group])
+    colorbar_ax = subfigs[-1].add_axes([0.05, 0.25, 0.2, 0.5])
+    colorbar = fig.colorbar(image, cax=colorbar_ax, extend="both")
     colorbar.set_label(f"{METRIC_LABEL}\n(scale set by off-diagonal pairs; diagonal may exceed it)", fontsize=8)
     fig.suptitle("Neighbourhood enrichment by response group", fontsize=12)
     save_figure(fig, figure_dir / "nhood_enrichment_log2_obs_exp_all_samples", cfg)
@@ -479,12 +515,14 @@ def plot_comparison(primary_df, comparison, samples, order, figure_dir, cfg):
     shared = [label for label in present if difference.loc[label].notna().any()]
     difference = difference.reindex(index=shared, columns=shared)
     n_res = sum(s["response"] == "res" for s in samples)
+    triangle = heatmap_layout(cfg)
 
     n_panels = len(samples) + 1
     ncols = min(n_panels, 5)
     nrows = int(np.ceil(n_panels / ncols))
+    panel_width = 4.1 if triangle else 3.6
     fig, axes = plt.subplots(
-        nrows, ncols, figsize=(3.6 * ncols + 1.5, 4.2 * nrows), squeeze=False, layout="constrained",
+        nrows, ncols, figsize=(panel_width * ncols + 1.5, 4.2 * nrows), squeeze=False, layout="constrained",
     )
     # Only the first column shows y labels, so add space to keep panels and titles apart.
     fig.get_layout_engine().set(w_pad=0.15)
@@ -492,7 +530,8 @@ def plot_comparison(primary_df, comparison, samples, order, figure_dir, cfg):
     limit = symmetric_limit(matrices)
     image = None
     for index, (record, matrix) in enumerate(zip(samples, matrices)):
-        image = draw_heatmap(flat[index], matrix, limit, sample_title(record), show_y=index % ncols == 0)
+        image = draw_heatmap(flat[index], matrix, limit, sample_title(record),
+                             show_y=index % ncols == 0, triangle=triangle)
     fig.colorbar(image, ax=flat[: len(samples)].tolist(), shrink=0.6, extend="both").set_label("log2 O/E", fontsize=8)
 
     diff_ax = flat[len(samples)]
@@ -500,7 +539,7 @@ def plot_comparison(primary_df, comparison, samples, order, figure_dir, cfg):
     diff_image = draw_heatmap(
         diff_ax, difference, diff_limit,
         f"res − non_res (mean)\n{n_res} vs {len(samples) - n_res}, descriptive only",
-        show_y=True,
+        show_y=True, triangle=triangle,
     )
     fig.colorbar(diff_image, ax=diff_ax, shrink=0.6).set_label("difference in log2 O/E", fontsize=8)
     for ax in flat[n_panels:]:
@@ -540,7 +579,8 @@ def plot_combined_comparison(primary_df, comparison, samples, order, figure_dir,
     pd.DataFrame(rows).to_csv(csv_path, index=False)
     print(f"Saved combined comparison table: {csv_path}")
 
-    fig, axes = plt.subplots(1, 3, figsize=(12.5, 4.6), squeeze=False, layout="constrained")
+    triangle = heatmap_layout(cfg)
+    fig, axes = plt.subplots(1, 3, figsize=(14.5 if triangle else 12.5, 4.6), squeeze=False, layout="constrained")
     fig.get_layout_engine().set(w_pad=0.15)
     axes = axes[0]
     limit = symmetric_limit([means[group] for group in RESPONSE_ORDER])
@@ -549,13 +589,13 @@ def plot_combined_comparison(primary_df, comparison, samples, order, figure_dir,
         names = ", ".join(s["sample"] for s in members[group])
         heading = f"{group}: mean of {len(members[group])}" if len(members[group]) > 1 else group
         image = draw_heatmap(axes[index], means[group], limit, f"{heading}\n{names}",
-                             show_y=index == 0, marks=marks[group])
+                             show_y=index == 0, marks=marks[group], triangle=triangle)
     fig.colorbar(image, ax=axes[:2].tolist(), shrink=0.6, extend="both").set_label("log2 O/E", fontsize=8)
     diff_limit = symmetric_limit([difference], off_diagonal=False)
     diff_image = draw_heatmap(
         axes[2], difference, diff_limit,
         f"res − non_res\n{len(members['res'])} vs {len(members['non_res'])}, descriptive only",
-        show_y=False, marks=difference_marks,
+        show_y=False, marks=difference_marks, triangle=triangle,
     )
     fig.colorbar(diff_image, ax=axes[2], shrink=0.6).set_label("difference in log2 O/E", fontsize=8)
     if any(m.to_numpy().any() for m in (marks["res"], marks["non_res"])):

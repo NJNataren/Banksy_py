@@ -1,5 +1,5 @@
 {
-  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v1",
+  "annotation": "config/annotations/vbct/min15_area95_selected_resolutions/v2",
   "label_level": "tier_1",
   "output_subdir": "immune_infiltration",
   "tumour_cell_type": "Melanoma cell",

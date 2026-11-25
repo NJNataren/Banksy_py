@@ -13,7 +13,7 @@ names in these configs (focus pairs, tumour and query types) must be labels of
 the chosen tier. Figures go to
 `data/xenium/output/<project>/spatial_analysis/<cohort>/<version>/<tier>/<output_subdir>/`,
 tables to the same path under `data/xenium/processed/`. Analysis status and
-findings: `context/tasks/spatial_analysis.md`.
+findings: `context/tasks/spatial_analysis/spatial_analysis.md`.
 
 ## Neighbourhood enrichment comparison
 
@@ -51,6 +51,14 @@ for wider neighbourhoods (`n_neighs` or `radius_um`; coordinates are µm), and
 use KD-tree edge counts, verified edge-for-edge against Squidpy's 6-NN counts
 for all eight samples; they have no z-scores. Comparison heatmaps use the
 primary (script 10) graph; difference CSVs cover every graph.
+
+Heatmap layout: `"heatmap_layout": "triangle"` draws each symmetric log2 O/E
+matrix as its lower triangle (diagonal kept) with cell-type labels on both axes
+of every panel; `"full"` (the default when the key is absent) draws the
+mirrored matrix. The all-sample figure places responders and non-responders
+side by side as two blocks under coloured group headings, sharing one colour
+scale. Layout changes figures only; tables are unaffected (kanban #65,
+2026-11-25).
 
 ## Immune infiltration distances
 

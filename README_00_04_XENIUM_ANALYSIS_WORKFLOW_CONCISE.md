@@ -461,7 +461,7 @@ python helper_scripts/poster/plot_cohort_marker_dotplot_from_config.py --config 
 
 - Compare samples with log2(observed / expected) neighbour edges, not Squidpy
   z-scores, which grow with cell number. Full status, decisions, and findings:
-  `context/tasks/spatial_analysis.md`; poster decisions: `context/tasks/hca_poster.md`.
+  `context/tasks/spatial_analysis/spatial_analysis.md`; poster decisions: `context/tasks/hca_poster.md`.
 - The poster dot plot averages per-sample means with equal sample weight and
   min-max scales each gene; `plot.cmap` and `plot.colorbar_label` are optional.
 

@@ -16,7 +16,7 @@ The first cleanup (2026-11-19 to 2026-11-21) is done and merged. The remaining
 work is the restructure of the spatial steps described under Next Step. It is
 not a small job and is not scheduled yet.
 
-Related: `context/tasks/spatial_analysis.md` (the analysis itself),
+Related: `context/tasks/spatial_analysis/spatial_analysis.md` (the analysis itself),
 `context/tasks/config_refactor.md` and `context/tasks/decouple_workflow_from_banksy.md`
 (later config and package work; this task must stay compatible with them).
 
@@ -64,7 +64,7 @@ test; details in the archive):
   The infiltration helper's docstring (lines 15–17) still says its samples come
   from the comparison config; that text is stale.
 - The planned tumour core vs border mask and TLS check
-  (`context/tasks/spatial_analysis.md`) have no place in the current layout.
+  (`context/tasks/spatial_analysis/spatial_analysis.md`) have no place in the current layout.
 
 **Loose ends from the first cleanup:**
 - Conference-figure helpers still keep their own sample list and palette copy
