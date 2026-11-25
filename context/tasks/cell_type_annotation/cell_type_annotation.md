@@ -36,7 +36,7 @@ CK_bowel_res 0.80.
 | Set | Status | Content | Script 08 (Phoenix) | Script 10 (Phoenix) |
 |---|---|---|---|---|
 | v1 | released 2026-11-22 (`f60c669e…`) | first reviewed labelling, tier 1 only, 8 types | done, job 16939096; counts identical to the pre-set labelling | done 8/8, job 16941700, tier 1; logs show no errors |
-| v2 | released 2026-11-24 (`9d6d99cc…`) | parent v1; BE c5 (6,652 cells) and HW c15 (431 cells) moved from Epithelial cell to Melanoma cell | done, job 17027103 (run while v2 was a draft, same hash); `changes_vs_v1.csv` lists exactly those 2 clusters | not run |
+| v2 | released 2026-11-24 (`9d6d99cc…`) | parent v1; BE c5 (6,652 cells) and HW c15 (431 cells) moved from Epithelial cell to Melanoma cell | done, job 17027103 (run while v2 was a draft, same hash); `changes_vs_v1.csv` lists exactly those 2 clusters | done 8/8, tier 1 (verified through the mount with `tools/pipeline_status.py` 2026-11-25) |
 
 Script 08 status was verified through the mount on 2026-11-24 with
 `tools/pipeline_status.py --annotation <set> --root <mount>`.
@@ -45,7 +45,10 @@ Script 08 status was verified through the mount on 2026-11-24 with
 configs (standard and by tissue). Proportions are identical to the
 pre-annotation-set version. Outputs:
 `data/xenium/{output,processed}/vbct/cell_type_proportions/min15_area95_selected_resolutions/v1/tier_1/`.
-v2 not run yet.
+v2 done 2026-11-24 (same folder under `v2/`). Only BE and HW change from v1:
+BE melanoma 24.4% → 33.8% and epithelial 9.4% → 0%; HW melanoma 71.5% → 71.6%
+and epithelial 0.1% → 0%. Epithelial cells remain only in samples whose
+epithelial clusters v2 did not change.
 
 **Palette (tier 1, unchanged since v1):** Melanoma cell `#AA4499`, Macrophage
 `#EE7733`, T cell `#4477AA`, B cell `#66CCEE`, Fibroblast `#228833`,
@@ -57,7 +60,9 @@ Endothelial cell `#CC3311`, Epithelial cell `#CCBB44`, Pericyte `#777777`.
   Script 10 results under `.../spatial_analysis/min15_area95_selected_resolutions/v1/tier_1/<sample>/`.
 - Local: cluster marker dot plots for v1 (8 samples) and v2 (BE, HW) under
   `data/xenium/output/vbct/cell_type_annotation/min15_area95_selected_resolutions/<version>/tier_1/cluster_marker_dotplots/`.
-  The cross-sample spatial helpers have not been run for v1 or v2 yet.
+  Cross-sample spatial helpers: run 2026-11-25 for v1 (neighbourhood comparison)
+  and v2 (both helpers; the helper configs now name v2). Results and v1 → v2
+  changes: `context/tasks/spatial_analysis/spatial_analysis.md`.
 - Archived: outputs from before annotation sets (old `cell_type` column, no
   stamp) are in `data/xenium/_pre_annotation_sets_2026-11-22/`, locally and on
   Phoenix (`helper_scripts/archive_pre_annotation_sets_outputs.sh`, README
@@ -101,13 +106,8 @@ centrality, co-occurrence and the cross-sample comparisons are unaffected.
 
 ## Next Step
 
-Run script 10 and script 09 for released v2 (needed for this week's meeting):
-1. On Phoenix: `git pull`, then
-   `sbatch --array=0-7%4 --export=ALL,ANNOTATION=config/annotations/vbct/min15_area95_selected_resolutions/v2,LABEL_LEVEL=tier_1 hpc/slurm/run_10_cell_type_spatial_analysis.sl`.
-2. Locally: script 09 for v2 (both configs, `--annotation <v2 dir> --input-root ~/mnt/phoenix_scratch/Banksy_py`).
-3. Locally, for v1 now and v2 when done: run the spatial comparison helpers
-   with `--input-root ~/mnt/phoenix_scratch/Banksy_py` (and `--annotation` for
-   v2). Commands are in `config/spatial_analysis/README.md`.
+Decide when to merge `feature/annotation-sets` into `main` (v2 script 10 and
+the spatial helpers are done as of 2026-11-25; see Open Questions).
 
 ## Open Questions
 
