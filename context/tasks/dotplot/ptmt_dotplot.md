@@ -8,6 +8,11 @@ annotation and shared-marker selection for PC55 run 1 are in
 
 Keep `ptmt` and `ptmt_pc55` outputs separate.
 
+## Goal
+
+Marker dot plots for the PTMT (PC35) and PTMT PC55 cohorts that support
+cluster annotation review, with readable gene labels.
+
 ## Current State
 
 **Marker files** (`data/xenium/raw_data/gene_markers/ptmt/`):

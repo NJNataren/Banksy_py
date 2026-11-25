@@ -1,9 +1,7 @@
 # Task: Untangle the Pipeline Flow After Script 08
 
-<!-- Task file rules (see Banksy_py/AGENTS.md, "Task files"): edit Current
-State, Next Step and Open Questions in place; add one dated line per decision;
-no "Session Update" sections; move superseded text to archive/ beside this file;
-keep this file under ~200 lines. -->
+<!-- Layout and editing rules: "Task files" in Banksy_py/AGENTS.md.
+Check with `python tools/check_task_file.py <this file>`. -->
 
 ## Goal
 
@@ -66,35 +64,7 @@ test; details in the archive):
 - The planned tumour core vs border mask and TLS check
   (`context/tasks/spatial_analysis/spatial_analysis.md`) have no place in the current layout.
 
-**Loose ends from the first cleanup:**
-- Conference-figure helpers still keep their own sample list and palette copy
-  and write to `figures/conference_min15_area95_selected_resolutions_poster/`
-  (`context/tasks/conference_figures.md`).
-- That poster folder is not archived: confirm no design file links into it.
-- Script 08's titled UMAPs and combined panels exist only in
-  `figures/_pre_post08_cleanup_2026-11-20/` until script 08 is rerun.
-
-## Decisions
-
-- 2026-11-19 (Nathalie): one cohort config for every step after 08; figures for
-  08 and 09 move to `data/xenium/output/`; archive script 10's legacy cluster
-  mode; rename script 10.
-- 2026-11-19 (Nathalie): keep the cross-sample spatial helpers as helpers until
-  the analysis extensions settle; `spatial_common.py` not into `banksy_utils/`.
-- 2026-11-20 (Nathalie): merge to `main` only after a one-sample HPC test; old
-  `figures/` outputs stay until reruns refill the new locations (archived
-  2026-11-21).
-- 2026-11-24 (Nathalie): the spatial restructure below is future work, not
-  started; numbering the two helpers by dependency alone (e.g. 08a / 10b) was
-  discussed but not chosen.
-
-## Next Step
-
-Restructure the spatial steps so each number is one stage and each analysis
-is split into per-sample computation and cross-sample comparison. Not
-scheduled; do it on its own branch with a baseline, as for the first cleanup.
-
-Proposed layout (2026-11-24, for discussion):
+**Proposed restructure** (2026-11-24, for discussion; not started):
 
 | Step | Does | Reads | Runs |
 |---|---|---|---|
@@ -124,8 +94,38 @@ formats in `xenium_workflow/` (like `spatial_tables.py`), move the sensitivity
 graphs and tiles into script 10 (longer HPC job, same settings), new configs
 and Slurm wrapper changes, docs (`README_00_04_XENIUM_ANALYSIS_WORKFLOW_CONCISE.md`,
 config READMEs, `AGENTS.md`), and a byte-for-byte check of every table against a
-baseline taken first. No scientific parameter changes; if any setting has to
-move, confirm with Nathalie first.
+baseline taken first.
+
+**Loose ends from the first cleanup:**
+- Conference-figure helpers still keep their own sample list and palette copy
+  and write to `figures/conference_min15_area95_selected_resolutions_poster/`
+  (`context/tasks/conference_figures.md`).
+- That poster folder is not archived: confirm no design file links into it.
+- Script 08's titled UMAPs and combined panels exist only in
+  `figures/_pre_post08_cleanup_2026-11-20/` until script 08 is rerun.
+
+## Decisions
+
+- 2026-11-19 (Nathalie): one cohort config for every step after 08; figures for
+  08 and 09 move to `data/xenium/output/`; archive script 10's legacy cluster
+  mode; rename script 10.
+- 2026-11-19 (Nathalie): keep the cross-sample spatial helpers as helpers until
+  the analysis extensions settle; `spatial_common.py` not into `banksy_utils/`.
+- 2026-11-20 (Nathalie): merge to `main` only after a one-sample HPC test; old
+  `figures/` outputs stay until reruns refill the new locations (archived
+  2026-11-21).
+- 2026-11-24 (Nathalie): the spatial restructure below is future work, not
+  started; numbering the two helpers by dependency alone (e.g. 08a / 10b) was
+  discussed but not chosen.
+
+## Next Step
+
+Restructure the spatial steps as in "Proposed restructure" under Current
+State: each number one stage, each analysis split into per-sample computation
+and cross-sample comparison. Not scheduled; settle the Open Questions first,
+then work on its own branch with a baseline, as for the first cleanup. No
+scientific parameter changes; if any setting has to move, confirm with
+Nathalie first.
 
 ## Open Questions
 
